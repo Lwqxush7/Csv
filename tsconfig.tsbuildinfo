@@ -1,1 +1,0 @@
-{"root":["./vite.config.ts","./server.ts","./src/App.tsx","./src/main.tsx","./src/components/CandlestickViewer.tsx","./src/components/SettingsView.tsx","./src/data/pairs.ts","./src/services/marketApi.ts","./src/types/market.ts","./src/utils/candles.test.ts","./src/utils/candles.ts"],"version":"5.8.3"}
