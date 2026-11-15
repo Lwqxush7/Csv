@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CFD Veri Merkezi</title>
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    :root {
+      --bg: #080d1a;
+      --surface: #10182b;
+      --surface-2: #162038;
+      --border: #253352;
+      --text: #dce6f7;
+      --muted: #8b9dc3;
+      --white: #ffffff;
+      --accent: #3b82f6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --cyan: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand h1 { font-size: 17px; color: var(--white); font-weight: 700; }
+    .brand p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .header-right { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 12px; border-radius: 999px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 12px; font-weight: 600; color: var(--white);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .dot.busy { background: var(--amber); }
+    .dot.err { background: var(--red); }
+
+    .btn {
+      appearance: none; border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 14px; background: var(--surface-2); color: var(--text);
+      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn:hover:not(:disabled) { border-color: #4b6294; color: var(--white); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--white); }
+    .btn-primary:hover:not(:disabled) { background: #2563eb; border-color: #2563eb; }
+    .btn-green { background: var(--green); border-color: var(--green); color: #052e20; }
+    .btn-green:hover:not(:disabled) { background: #059669; border-color: #059669; color: var(--white); }
+    .btn-danger { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    .btn-danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.25); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      border: 1px solid var(--border); background: var(--surface-2); color: var(--muted);
+    }
+    .badge.ok { background: rgba(16, 185, 129, 0.14); border-color: rgba(16, 185, 129, 0.45); color: #34d399; }
+    .badge.partial { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.45); color: #fbbf24; }
+    .badge.err { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.45); color: #f87171; }
+
+    .settings-panel { display: none; flex-direction: column; gap: 14px; }
+    .settings-panel.open { display: flex; }
+    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .setting-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .setting-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .setting-head strong { font-size: 13px; color: var(--white); }
+    .setting-hint { font-size: 11.5px; color: var(--muted); }
+    .setting-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .msg-line { font-size: 11.5px; min-height: 16px; color: var(--muted); }
+    .msg-line.ok { color: #34d399; }
+    .msg-line.err { color: #f87171; }
+
+    .input {
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--white);
+      font-family: inherit; font-size: 13px; outline: none;
+    }
+    .input:focus { border-color: var(--accent); }
+
+    .cat-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .cat-tab {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .cat-tab.active { background: var(--accent); border-color: var(--accent); color: var(--white); }
+
+    .pair-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+    .pair-btn {
+      padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); text-align: left; cursor: pointer;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .pair-btn:hover { border-color: #4b6294; }
+    .pair-btn.active { border-color: var(--cyan); background: rgba(56, 189, 248, 0.12); }
+    .pair-code { font-size: 14px; font-weight: 800; color: var(--white); }
+    .pair-name { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .date-row { display: grid; grid-template-columns: 1fr 1fr 2.2fr; gap: 12px; align-items: end; margin-bottom: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .quick-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .quick-btn {
+      padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .quick-btn.active { border-color: var(--green); background: rgba(16, 185, 129, 0.14); color: #34d399; }
+
+    .action-bar {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 10px; padding-top: 12px; border-top: 1px solid var(--border);
+    }
+    .action-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .chk-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; cursor: pointer; color: var(--text); }
+    .selection-info { font-size: 12px; color: var(--muted); }
+
+    .progress-wrap { margin-top: 12px; display: none; flex-direction: column; gap: 6px; }
+    .progress-wrap.visible { display: flex; }
+    .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .progress-track { width: 100%; height: 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--green)); }
+
+    .results { display: none; flex-direction: column; gap: 16px; }
+    .results.visible { display: flex; }
+    .result-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .result-head h2 { font-size: 15px; color: var(--white); }
+    .result-head p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .tf-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+    .tf-card {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 11px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 5px;
+    }
+    .tf-card:hover:not(.empty) { border-color: #4b6294; }
+    .tf-card.active { border-color: var(--cyan); background: rgba(56, 189, 248, 0.1); }
+    .tf-card.partial { border-color: rgba(245, 158, 11, 0.5); }
+    .tf-card.empty { opacity: 0.72; cursor: not-allowed; }
+    .tf-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .tf-name { font-size: 14px; font-weight: 800; color: var(--white); }
+    .tf-actions { display: flex; align-items: center; gap: 6px; }
+    .tf-meta { font-size: 11.5px; color: var(--text); }
+    .tf-src { font-size: 11px; color: var(--cyan); }
+    .tf-reason { font-size: 11px; color: var(--muted); line-height: 1.35; }
+    .tf-card.partial .tf-reason { color: #fbbf24; }
+    .tf-card.empty .tf-reason { color: #f87171; }
+
+    .chart-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    .chart-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12.5px; color: var(--white); font-weight: 700; }
+    #chartEl { width: 100%; height: 400px; }
+
+    .table-wrap { overflow-x: auto; max-height: 280px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; text-align: left; }
+    th {
+      position: sticky; top: 0; background: var(--surface-2); color: var(--muted);
+      padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase;
+    }
+    td { padding: 7px 10px; border-bottom: 1px solid rgba(37, 51, 82, 0.6); white-space: nowrap; }
+
+    .log-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .log-head h3 { font-size: 14px; color: var(--white); }
+
+    @media (max-width: 960px) {
+      .pair-grid { grid-template-columns: repeat(3, 1fr); }
+      .tf-grid { grid-template-columns: repeat(2, 1fr); }
+      .date-row, .settings-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .pair-grid { grid-template-columns: repeat(2, 1fr); }
+      .tf-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="card header">
+      <div class="brand">
+        <h1>📊 CFD Tarihsel Veri Merkezi</h1>
+        <p>15 Enstrüman (Forex, Endeks, Emtia) • 11 Zaman Dilimi • Sabit ISO UTC CSV</p>
+      </div>
+      <div class="header-right">
+        <button type="button" id="settingsToggleBtn" class="btn">⚙ Ayarlar <span id="settingsKeyCount" class="badge">0 Anahtar</span></button>
+        <div class="status-pill"><span id="statusDot" class="dot"></span><span id="statusText">Hazır</span></div>
+      </div>
+    </header>
+
+    <section id="settingsPanel" class="card settings-panel">
+      <div class="setting-head">
+        <strong style="font-size:15px;">⚙ API Anahtarları ve Proxy Ayarları (localStorage)</strong>
+        <button type="button" id="resetAllSettingsBtn" class="btn btn-danger btn-sm">Tümünü Sıfırla</button>
+      </div>
+      <div class="settings-grid">
+        <div class="setting-box">
+          <div class="setting-head"><strong>Tiingo API Token (Forex &amp; Altın/Gümüş)</strong><span id="tiingoBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Eksik kalan Forex, XAUUSD ve XAGUSD spot dilimleri için kullanılır.</div>
+          <input type="password" id="tiingoKey" class="input" placeholder="Tiingo token girin" />
+          <div class="setting-row">
+            <button type="button" id="tiingoSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="tiingoTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="tiingoClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="tiingoMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box">
+          <div class="setting-head"><strong>Twelve Data API Key (Forex &amp; Emtia)</strong><span id="tdBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">8 istek/dk korumasıyla çalışır; limit dolunca bekler.</div>
+          <input type="password" id="tdKey" class="input" placeholder="Twelve Data key girin" />
+          <div class="setting-row">
+            <button type="button" id="tdSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="tdTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="tdClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="tdMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box">
+          <div class="setting-head"><strong>FMP API Key (Endeks, Forex &amp; Emtia)</strong><span id="fmpBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Financial Modeling Prep anahtarı (isteğe bağlı yedek).</div>
+          <input type="password" id="fmpKey" class="input" placeholder="FMP key girin" />
+          <div class="setting-row">
+            <button type="button" id="fmpSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="fmpTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="fmpClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="fmpMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box">
+          <div class="setting-head"><strong>Massive API Key (Yedek • 5 istek/dk)</strong><span id="massiveBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Forex, Altın/Gümüş ve ABD endeksleri (ücretli planda) için yedek kaynak.</div>
+          <input type="password" id="massiveKey" class="input" placeholder="Massive apiKey girin" />
+          <div class="setting-row">
+            <button type="button" id="massiveSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="massiveTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="massiveClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="massiveMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box" style="grid-column: 1 / -1;">
+          <div class="setting-head"><strong>Özel CORS Proxy Adresim (Cloudflare Worker — İsteğe Bağlı)</strong><span id="proxyBadge" class="badge">Hazır Proxy</span></div>
+          <div class="setting-hint">Önce doğrudan denenir; olmazsa bu proxy, sonra AllOrigins, CorsProxy.io ve CodeTabs sırayla denenir.</div>
+          <div class="setting-row" style="align-items:center;">
+            <input type="text" id="customProxyInput" class="input" style="flex:1; min-width:240px;" placeholder="https://worker-adiniz.workers.dev/?url=" />
+            <button type="button" id="proxySaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="proxyClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="proxyMsg" class="msg-line"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div id="catTabs" class="cat-tabs">
+        <button type="button" class="cat-tab" data-cat="forex">Forex (5)</button>
+        <button type="button" class="cat-tab" data-cat="index">Endeks (5)</button>
+        <button type="button" class="cat-tab active" data-cat="commodity">Emtia (5)</button>
+      </div>
+      <div id="pairGrid" class="pair-grid"></div>
+
+      <div class="date-row">
+        <div class="field">
+          <label for="startDate">Başlangıç Tarihi</label>
+          <input type="date" id="startDate" class="input" />
+        </div>
+        <div class="field">
+          <label for="endDate">Bitiş Tarihi</label>
+          <input type="date" id="endDate" class="input" />
+        </div>
+        <div class="field">
+          <label>Hızlı Aralık</label>
+          <div class="quick-row">
+            <button type="button" class="quick-btn" data-range="7d">7 Gün</button>
+            <button type="button" class="quick-btn active" data-range="1m">1 Ay</button>
+            <button type="button" class="quick-btn" data-range="3m">3 Ay</button>
+            <button type="button" class="quick-btn" data-range="6m">6 Ay</button>
+            <button type="button" class="quick-btn" data-range="1y">1 Yıl</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="action-left">
+          <button type="button" id="fetchBtn" class="btn btn-primary">▶ Veriyi Çek</button>
+          <button type="button" id="stopBtn" class="btn btn-danger" disabled>■ Durdur</button>
+          <label class="chk-label">
+            <input type="checkbox" id="volumeChk" checked />
+            <span>CSV'de volume sütunu olsun</span>
+          </label>
+        </div>
+        <div id="selectionInfo" class="selection-info"></div>
+      </div>
+
+      <div id="progressWrap" class="progress-wrap">
+        <div class="progress-meta">
+          <span id="progressText">Hazırlanıyor...</span>
+          <span id="progressPct">%0</span>
+        </div>
+        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      </div>
+    </section>
+
+    <section id="resultSection" class="card results">
+      <div class="result-head">
+        <div>
+          <h2 id="resultTitle">Sonuçlar</h2>
+          <p id="resultSubtitle"></p>
+        </div>
+        <button type="button" id="downloadMergedBtn" class="btn btn-green">⬇ Tek Birleşik CSV İndir</button>
+      </div>
+
+      <div id="tfGrid" class="tf-grid"></div>
+
+      <div class="chart-box">
+        <div class="chart-head">
+          <span id="chartTitle">Mum Grafiği</span>
+          <span class="setting-hint">Karta tıklayarak zaman dilimini değiştirin</span>
+        </div>
+        <div id="chartEl"></div>
+      </div>
+
+      <div>
+        <div class="log-head">
+          <h3>Son 30 Mum Önizleme</h3>
+          <span id="tableInfo" class="setting-hint"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="log-head">
+        <h3>📋 Kaynak Günlüğü <span id="logCount" class="badge">0 Kayıt</span></h3>
+        <button type="button" id="clearLogBtn" class="btn btn-sm">Günlüğü Temizle</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Saat</th>
+              <th>Parite</th>
+              <th>Kaynak</th>
+              <th>Dilim</th>
+              <th>İstenen Aralık</th>
+              <th>Gelen Mum</th>
+              <th>Durum / Mesaj</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="7" style="color:var(--muted);">Henüz kaynak isteği yapılmadı.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const ALL_TF = ['M1', 'M3', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'D1', 'W1', 'MN1'];
+      const TF_SEC = { M1: 60, M3: 180, M5: 300, M15: 900, M30: 1800, H1: 3600, H2: 7200, H4: 14400, D1: 86400, W1: 604800, MN1: 2592000 };
+
+      const PAIRS = {
+        EURUSD: { code: 'EURUSD', cat: 'forex', name: 'Euro / ABD Doları', dec: 5, yahoo: 'EURUSD=X', yahooAlt: null, tiingo: 'eurusd', td: 'EUR/USD', fmp: 'EURUSD', biquote: 'EURUSD', biquoteAlt: [], massive: 'C:EURUSD', tz: 'UTC' },
+        GBPUSD: { code: 'GBPUSD', cat: 'forex', name: 'Sterlin / ABD Doları', dec: 5, yahoo: 'GBPUSD=X', yahooAlt: null, tiingo: 'gbpusd', td: 'GBP/USD', fmp: 'GBPUSD', biquote: 'GBPUSD', biquoteAlt: [], massive: 'C:GBPUSD', tz: 'UTC' },
+        USDJPY: { code: 'USDJPY', cat: 'forex', name: 'ABD Doları / Japon Yeni', dec: 3, yahoo: 'USDJPY=X', yahooAlt: null, tiingo: 'usdjpy', td: 'USD/JPY', fmp: 'USDJPY', biquote: 'USDJPY', biquoteAlt: [], massive: 'C:USDJPY', tz: 'UTC' },
+        USDCHF: { code: 'USDCHF', cat: 'forex', name: 'ABD Doları / İsviçre Frangı', dec: 5, yahoo: 'USDCHF=X', yahooAlt: null, tiingo: 'usdchf', td: 'USD/CHF', fmp: 'USDCHF', biquote: 'USDCHF', biquoteAlt: [], massive: 'C:USDCHF', tz: 'UTC' },
+        AUDUSD: { code: 'AUDUSD', cat: 'forex', name: 'Avustralya Doları / USD', dec: 5, yahoo: 'AUDUSD=X', yahooAlt: null, tiingo: 'audusd', td: 'AUD/USD', fmp: 'AUDUSD', biquote: 'AUDUSD', biquoteAlt: [], massive: 'C:AUDUSD', tz: 'UTC' },
+
+        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: '^NDX', yahooAlt: 'NQ=F', tiingo: null, td: null, fmp: '^NDX', biquote: 'USTEC', biquoteAlt: ['NAS100', 'US100'], massive: 'I:NDX', tz: 'America/New_York' },
+        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: '^GSPC', yahooAlt: 'ES=F', tiingo: null, td: null, fmp: '^GSPC', biquote: 'US500', biquoteAlt: ['SP500', 'SPX500'], massive: 'I:SPX', tz: 'America/New_York' },
+        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: '^DJI', yahooAlt: 'YM=F', tiingo: null, td: null, fmp: '^DJI', biquote: 'US30', biquoteAlt: ['DJ30'], massive: 'I:DJI', tz: 'America/New_York' },
+        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: '^GDAXI', yahooAlt: null, tiingo: null, td: null, fmp: '^GDAXI', biquote: 'DE30', biquoteAlt: ['DE40', 'GER40'], massive: null, tz: 'Europe/Berlin' },
+        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: '^FTSE', yahooAlt: null, tiingo: null, td: null, fmp: '^FTSE', biquote: 'UK100', biquoteAlt: ['FTSE100'], massive: null, tz: 'Europe/London' },
+
+        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'XAUUSD=X', yahooLastResort: 'GC=F', isSpotMetal: true, tiingo: 'xauusd', td: 'XAU/USD', fmp: 'GCUSD', biquote: 'XAUUSD', biquoteAlt: [], massive: 'C:XAUUSD', tz: 'UTC' },
+        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'XAGUSD=X', yahooLastResort: 'SI=F', isSpotMetal: true, tiingo: 'xagusd', td: 'XAG/USD', fmp: 'SIUSD', biquote: 'XAGUSD', biquoteAlt: [], massive: 'C:XAGUSD', tz: 'UTC' },
+        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooAlt: null, tiingo: null, td: 'WTI/USD', fmp: 'CLUSD', biquote: 'USOIL', biquoteAlt: ['WTI'], massive: null, tz: 'America/New_York' },
+        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooAlt: null, tiingo: null, td: 'XBR/USD', fmp: 'BZUSD', biquote: 'UKOIL', biquoteAlt: ['BRENT'], massive: null, tz: 'Europe/London' },
+        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooAlt: null, tiingo: null, td: 'NG/USD',  fmp: 'NGUSD', biquote: 'NATGAS', biquoteAlt: ['NGAS'], massive: null, tz: 'America/New_York' }
+      };
+
+      const STORE = {
+        tiingo: 'cfd_key_tiingo',
+        td: 'cfd_key_twelvedata',
+        fmp: 'cfd_key_fmp',
+        massive: 'cfd_key_massive',
+        proxy: 'cfd_custom_proxy',
+        vol: 'cfd_include_volume'
+      };
+
+      const TIINGO_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1hour', D1: '1day' };
+      const TD_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1h', H4: '4h', D1: '1day' };
+      const FMP_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1hour', H4: '4hour', D1: '1day' };
+      const MASSIVE_TF = {
+        M1: [1, 'minute'], M5: [5, 'minute'], M15: [15, 'minute'], M30: [30, 'minute'],
+        H1: [1, 'hour'], H4: [4, 'hour'], D1: [1, 'day'], W1: [1, 'week'], MN1: [1, 'month']
+      };
+      const BIQUOTE_TF = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', H4: '4h', D1: '1d' };
+
+      const state = {
+        cat: 'commodity',
+        pair: 'XAUUSD',
+        abortFetch: false,
+        fetching: false,
+        activeControllers: new Set(),
+        hostRouteMemory: new Map(),
+        tdTimes: [],
+        massiveTimes: [],
+        biquoteSymbols: null,
+        logs: [],
+        result: null,
+        activeTf: 'M15',
+        chart: null,
+        series: null
+      };
+
+      const $ = id => document.getElementById(id);
+      const pad2 = n => String(n).padStart(2, '0');
+      const toYMD = d => `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+      const isoUtc = ts => new Date(ts * 1000).toISOString().replace('.000Z', 'Z');
+      const shortDate = ts => {
+        const d = new Date(ts * 1000);
+        return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}.${String(d.getUTCFullYear()).slice(-2)}`;
+      };
+      const nowTimeStr = () => {
+        const d = new Date();
+        return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+      };
+
+      function setStatus(mode, text) {
+        $('statusDot').className = `dot ${mode === 'busy' ? 'busy' : mode === 'err' ? 'err' : ''}`;
+        $('statusText').textContent = text;
+      }
+
+      function setProgress(pct, text) {
+        $('progressWrap').classList.add('visible');
+        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+        $('progressFill').style.width = `${clamped}%`;
+        $('progressPct').textContent = `%${clamped}`;
+        if (text) $('progressText').textContent = text;
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      function addLog(pair, source, tf, rangeStr, count, msg, level = 'ok') {
+        state.logs.unshift({
+          time: nowTimeStr(),
+          pair,
+          source,
+          tf,
+          rangeStr,
+          count,
+          msg,
+          level
+        });
+        if (state.logs.length > 300) state.logs.pop();
+        renderLogs();
+      }
+
+      function renderLogs() {
+        $('logCount').textContent = `${state.logs.length} Kayıt`;
+        if (!state.logs.length) {
+          $('logBody').innerHTML = '<tr><td colspan="7" style="color:var(--muted);">Henüz kaynak isteği yapılmadı.</td></tr>';
+          return;
+        }
+        $('logBody').innerHTML = state.logs.map(l => {
+          const cls = l.level === 'err' ? 'err' : (l.level === 'partial' ? 'partial' : 'ok');
+          return `<tr>
+            <td style="color:var(--muted);">${l.time}</td>
+            <td style="font-weight:700;color:var(--white);">${escapeHtml(l.pair)}</td>
+            <td style="color:var(--cyan);">${escapeHtml(l.source)}</td>
+            <td style="font-weight:700;">${escapeHtml(l.tf)}</td>
+            <td style="color:var(--muted);">${escapeHtml(l.rangeStr)}</td>
+            <td style="font-weight:700;">${l.count}</td>
+            <td><span class="badge ${cls}">${escapeHtml(l.msg)}</span></td>
+          </tr>`;
+        }).join('');
+      }
+
+      function getSettings() {
+        return {
+          tiingo: (localStorage.getItem(STORE.tiingo) || '').trim(),
+          td: (localStorage.getItem(STORE.td) || '').trim(),
+          fmp: (localStorage.getItem(STORE.fmp) || '').trim(),
+          massive: (localStorage.getItem(STORE.massive) || '').trim(),
+          proxy: (localStorage.getItem(STORE.proxy) || '').trim(),
+          includeVol: localStorage.getItem(STORE.vol) !== '0'
+        };
+      }
+
+      function refreshSettingsUi() {
+        const s = getSettings();
+        $('tiingoKey').value = s.tiingo;
+        $('tdKey').value = s.td;
+        $('fmpKey').value = s.fmp;
+        $('massiveKey').value = s.massive;
+        $('customProxyInput').value = s.proxy;
+        $('volumeChk').checked = s.includeVol;
+
+        const setBadge = (id, has) => {
+          $(id).textContent = has ? 'Kayıtlı' : 'Yok';
+          $(id).className = `badge ${has ? 'ok' : ''}`;
+        };
+        setBadge('tiingoBadge', !!s.tiingo);
+        setBadge('tdBadge', !!s.td);
+        setBadge('fmpBadge', !!s.fmp);
+        setBadge('massiveBadge', !!s.massive);
+        $('proxyBadge').textContent = s.proxy ? 'Özel Proxy Aktif' : 'Hazır Proxy';
+        $('proxyBadge').className = `badge ${s.proxy ? 'ok' : ''}`;
+
+        const count = [s.tiingo, s.td, s.fmp, s.massive].filter(Boolean).length;
+        $('settingsKeyCount').textContent = `${count} Anahtar`;
+      }
+
+      function renderPairs() {
+        document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b.dataset.cat === state.cat));
+        const items = Object.values(PAIRS).filter(p => p.cat === state.cat);
+        $('pairGrid').innerHTML = '';
+        for (const item of items) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `pair-btn ${state.pair === item.code ? 'active' : ''}`;
+          btn.innerHTML = `<span class="pair-code">${item.code}</span><span class="pair-name">${item.name}</span>`;
+          btn.addEventListener('click', () => {
+            state.pair = item.code;
+            renderPairs();
+            updateSelectionInfo();
+          });
+          $('pairGrid').appendChild(btn);
+        }
+      }
+
+      function updateSelectionInfo() {
+        const p = PAIRS[state.pair];
+        $('selectionInfo').textContent = `Seçili: ${p.code} (${p.name}) • ${$('startDate').value} → ${$('endDate').value}`;
+      }
+
+      function applyQuickRange(range) {
+        const now = new Date();
+        const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const start = new Date(end.getTime());
+        if (range === '7d') {
+          start.setUTCDate(start.getUTCDate() - 6);
+        } else if (range === '1m' || range === '3m' || range === '6m') {
+          const months = range === '1m' ? 1 : (range === '3m' ? 3 : 6);
+          const origDay = start.getUTCDate();
+          start.setUTCDate(1);
+          start.setUTCMonth(start.getUTCMonth() - months);
+          const maxDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate();
+          start.setUTCDate(Math.min(origDay, maxDay));
+        } else if (range === '1y') {
+          const origDay = start.getUTCDate();
+          start.setUTCDate(1);
+          start.setUTCFullYear(start.getUTCFullYear() - 1);
+          const maxDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate();
+          start.setUTCDate(Math.min(origDay, maxDay));
+        }
+        $('startDate').value = toYMD(start);
+        $('endDate').value = toYMD(end);
+        document.querySelectorAll('.quick-btn').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+        updateSelectionInfo();
+      }
+
+      // Zaman dilimi dönüştürme ve UTC hizalama yardımcıları
+      const tzFmtCache = new Map();
+      function getTzParts(ts, tz) {
+        if (!tzFmtCache.has(tz)) {
+          tzFmtCache.set(tz, new Intl.DateTimeFormat('en-US', {
+            timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', hourCycle: 'h23'
+          }));
+        }
+        const out = {};
+        for (const p of tzFmtCache.get(tz).formatToParts(new Date(ts * 1000))) {
+          if (p.type !== 'literal') out[p.type] = p.value;
+        }
+        return {
+          year: Number(out.year), month: Number(out.month), day: Number(out.day),
+          hour: Number(out.hour) % 24, minute: Number(out.minute), second: Number(out.second || 0),
+          weekday: out.weekday
+        };
+      }
+
+      function parseTzDateTimeToUtcSec(str, tz) {
+        const m = String(str || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (!m) return null;
+        const [, y, mo, d, h, mi, se] = m;
+        if (!h) return Math.floor(Date.UTC(+y, +mo - 1, +d, 0, 0, 0) / 1000);
+        const naiveMs = Date.UTC(+y, +mo - 1, +d, +h, +mi, +(se || 0));
+        if (!tz || tz === 'UTC') return Math.floor(naiveMs / 1000);
+        try {
+          const p = getTzParts(Math.floor(naiveMs / 1000), tz);
+          const renderedMs = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+          return Math.floor((naiveMs - (renderedMs - naiveMs)) / 1000);
+        } catch (_) {
+          return Math.floor(naiveMs / 1000);
+        }
+      }
+
+      function toExchangeDateMidnight(ts, gmtoffset = 0, tz = '') {
+        if (tz && tz !== 'UTC') {
+          try {
+            let p = getTzParts(ts, tz);
+            if (p.hour >= 22 && p.minute === 0 && p.weekday !== 'Fri' && p.weekday !== 'Sat') p = getTzParts(ts + 7200, tz);
+            return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / 1000);
+          } catch (_) {}
+        }
+        const localTs = ts + (Number.isFinite(gmtoffset) ? gmtoffset : 0);
+        const d = new Date(localTs * 1000);
+        const wd = d.getUTCDay();
+        if (d.getUTCHours() >= 21 && d.getUTCMinutes() === 0 && wd !== 5 && wd !== 6) {
+          const n = new Date((localTs + 10800) * 1000);
+          return Math.floor(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()) / 1000);
+        }
+        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+      }
+
+      function getWeekMondayKey(ts) {
+        const d = new Date(ts * 1000);
+        const wd = d.getUTCDay();
+        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - (wd === 0 ? 6 : wd - 1)) / 1000);
+      }
+
+      function getMonthFirstKey(ts) {
+        const d = new Date(ts * 1000);
+        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000);
+      }
+
+      function sanitizeBars(bars, minTs = 0, maxTs = Infinity) {
+        if (!Array.isArray(bars) || !bars.length) return [];
+        const map = new Map();
+        for (const b of bars) {
+          const time = Math.floor(Number(b.time));
+          const open = Number(b.open);
+          const highRaw = Number(b.high);
+          const lowRaw = Number(b.low);
+          const close = Number(b.close);
+          const volume = Number.isFinite(Number(b.volume)) && Number(b.volume) >= 0 ? Number(b.volume) : 0;
+          if (!Number.isFinite(time) || time < 631152000 || time > 2208988800) continue;
+          if (time < minTs || time > maxTs) continue;
+          if (!Number.isFinite(open) || !Number.isFinite(highRaw) || !Number.isFinite(lowRaw) || !Number.isFinite(close)) continue;
+          if (open <= 0 || highRaw <= 0 || lowRaw <= 0 || close <= 0 || highRaw < lowRaw) continue;
+          const high = Math.max(highRaw, open, close);
+          const low = Math.min(lowRaw, open, close);
+          map.set(time, { time, open, high, low, close, volume });
+        }
+        return Array.from(map.values()).sort((a, b) => a.time - b.time);
+      }
+
+      function mergeBars(existing, incoming) {
+        const map = new Map();
+        for (const b of sanitizeBars(incoming || [])) map.set(b.time, b);
+        for (const b of sanitizeBars(existing || [])) map.set(b.time, b);
+        return Array.from(map.values()).sort((a, b) => a.time - b.time);
+      }
+
+      function aggregateBars(bars, bucketSec) {
+        if (!bars || !bars.length) return [];
+        const map = new Map();
+        for (const b of sanitizeBars(bars)) {
+          const key = Math.floor(b.time / bucketSec) * bucketSec;
+          const cur = map.get(key);
+          if (!cur) {
+            map.set(key, { time: key, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0 });
+          } else {
+            if (b.high > cur.high) cur.high = b.high;
+            if (b.low < cur.low) cur.low = b.low;
+            cur.close = b.close;
+            cur.volume += (b.volume || 0);
+          }
+        }
+        return Array.from(map.values()).sort((a, b) => a.time - b.time);
+      }
+
+      function buildCalendarBars(d1Bars, mode) {
+        if (!d1Bars || !d1Bars.length) return [];
+        const map = new Map();
+        for (const b of sanitizeBars(d1Bars)) {
+          const key = mode === 'W1' ? getWeekMondayKey(b.time) : getMonthFirstKey(b.time);
+          const cur = map.get(key);
+          if (!cur) {
+            map.set(key, { time: key, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0 });
+          } else {
+            if (b.high > cur.high) cur.high = b.high;
+            if (b.low < cur.low) cur.low = b.low;
+            cur.close = b.close;
+            cur.volume += (b.volume || 0);
+          }
+        }
+        return Array.from(map.values()).sort((a, b) => a.time - b.time);
+      }
+
+      function checkPriceConsistency(baseBars, candidateBars, maxRelDiff = 0.004) {
+        if (!baseBars?.length || !candidateBars?.length) return { ok: true, diff: 0 };
+        const candMap = new Map();
+        for (const b of candidateBars) candMap.set(b.time, b);
+        const diffs = [];
+        for (const b of baseBars) {
+          const m = candMap.get(b.time);
+          if (m && b.close > 0) {
+            diffs.push(Math.abs(m.close - b.close) / b.close);
+            if (diffs.length >= 30) break;
+          }
+        }
+        if (!diffs.length) {
+          for (const anchor of [baseBars[0], baseBars[baseBars.length - 1]]) {
+            let best = null, bestDist = 5 * 86400;
+            for (const c of candidateBars) {
+              const dist = Math.abs(c.time - anchor.time);
+              if (dist < bestDist) { bestDist = dist; best = c; }
+            }
+            if (best && anchor.close > 0) diffs.push(Math.abs(best.close - anchor.close) / anchor.close);
+          }
+        }
+        if (!diffs.length) return { ok: true, diff: 0 };
+        diffs.sort((a, b) => a - b);
+        const med = diffs[Math.floor(diffs.length / 2)];
+        return { ok: med <= maxRelDiff, diff: med };
+      }
+
+      function weekdaySecondsBetween(t1, t2) {
+        if (t2 <= t1) return 0;
+        let total = 0;
+        let cur = Math.floor(t1 / 86400) * 86400;
+        while (cur < t2) {
+          const next = cur + 86400;
+          const wd = new Date(cur * 1000).getUTCDay();
+          if (wd >= 1 && wd <= 5) {
+            const s = Math.max(t1, cur);
+            const e = Math.min(t2, next);
+            if (e > s) total += e - s;
+          }
+          cur = next;
+        }
+        return total;
+      }
+
+      function getMarketBounds(reqStart, reqEnd, tf) {
+        let effStart = reqStart;
+        const sd = new Date(effStart * 1000).getUTCDay();
+        if (sd === 6) effStart += 2 * 86400;
+        else if (sd === 0) effStart += 86400;
+
+        let effEnd = reqEnd;
+        const edObj = new Date(effEnd * 1000);
+        const ed = edObj.getUTCDay();
+        if (ed === 6) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 1, tf === 'D1' ? 0 : 21, 0, 0) / 1000);
+        else if (ed === 0 && edObj.getUTCHours() < 22) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 2, tf === 'D1' ? 0 : 21, 0, 0) / 1000);
+        else if (tf === 'D1') {
+          const now = new Date();
+          const todayMid = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
+          if (effEnd >= todayMid && now.getUTCHours() < 22) {
+            const prevDay = new Date((todayMid - 86400) * 1000);
+            const pwd = prevDay.getUTCDay();
+            effEnd = pwd === 0 ? todayMid - 3 * 86400 : (pwd === 6 ? todayMid - 2 * 86400 : todayMid - 86400);
+          }
+        }
+        return { effStart, effEnd };
+      }
+
+      function computeMissingRanges(bars, tf, reqStart, reqEnd, strictAssessment = false) {
+        const { effStart, effEnd } = getMarketBounds(reqStart, reqEnd, tf);
+        if (effStart >= effEnd) return [];
+        if (!bars || !bars.length) return [[reqStart, reqEnd]];
+
+        const gaps = [];
+        const tfSec = TF_SEC[tf] || 900;
+        if (tf === 'W1' || tf === 'MN1') {
+          const tol = tf === 'W1' ? 12 * 86400 : 36 * 86400;
+          if ((bars[0].time - effStart) > tol) gaps.push([reqStart, bars[0].time]);
+          if ((effEnd - bars[bars.length - 1].time) > tol) gaps.push([bars[bars.length - 1].time, reqEnd]);
+          return gaps;
+        }
+
+        // Tek günlük resmi tatilleri eksik saymamak için değerlendirmede eşik 44 saat, çekimde 32 saat
+        const edgeThresh = strictAssessment ? 44 * 3600 : 32 * 3600;
+        const innerThresh = tf === 'D1' ? 74 * 3600 : 50 * 3600;
+
+        if (weekdaySecondsBetween(effStart, bars[0].time) > edgeThresh) {
+          gaps.push([reqStart, Math.min(reqEnd, bars[0].time + tfSec)]);
+        }
+        for (let i = 1; i < bars.length; i++) {
+          if (weekdaySecondsBetween(bars[i - 1].time, bars[i].time) > innerThresh) {
+            gaps.push([Math.max(reqStart, bars[i - 1].time), Math.min(reqEnd, bars[i].time)]);
+          }
+        }
+        const lastT = bars[bars.length - 1].time;
+        if (weekdaySecondsBetween(lastT, effEnd) > edgeThresh) {
+          gaps.push([Math.max(reqStart, lastT - tfSec), reqEnd]);
+        }
+
+        if (gaps.length <= 1) return gaps;
+        gaps.sort((a, b) => a[0] - b[0]);
+        const merged = [gaps[0].slice()];
+        for (let i = 1; i < gaps.length; i++) {
+          const prev = merged[merged.length - 1];
+          if (gaps[i][0] <= prev[1] + 86400) prev[1] = Math.max(prev[1], gaps[i][1]);
+          else merged.push(gaps[i].slice());
+        }
+        return merged;
+      }
+
+      async function sleepAbort(ms, label = '') {
+        const end = Date.now() + ms;
+        while (Date.now() < end) {
+          if (state.abortFetch) return false;
+          const rem = Math.ceil((end - Date.now()) / 1000);
+          if (label) setStatus('busy', `${label} (${rem} sn)`);
+          await new Promise(r => setTimeout(r, Math.min(1000, Math.max(50, end - Date.now()))));
+        }
+        return !state.abortFetch;
+      }
+
+      async function runPool(items, concurrency, worker) {
+        let idx = 0;
+        const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+          while (idx < items.length && !state.abortFetch) {
+            const current = items[idx++];
+            await worker(current);
+          }
+        });
+        await Promise.all(runners);
+      }
+
+      function buildCustomProxyUrl(proxyBase, targetUrl) {
+        const base = String(proxyBase || '').trim();
+        const enc = encodeURIComponent(targetUrl);
+        if (base.includes('{url}')) return base.replace('{url}', enc);
+        if (base.endsWith('=') || base.endsWith('?')) return `${base}${enc}`;
+        if (base.includes('?')) return `${base}&url=${enc}`;
+        return `${base.replace(/\/+$/, '')}/?url=${enc}`;
+      }
+
+      function getCorsRoutes(targetUrl) {
+        const custom = getSettings().proxy;
+        const enc = encodeURIComponent(targetUrl);
+        const routes = [{ id: 'direct', url: targetUrl }];
+        if (custom) routes.push({ id: 'custom', url: buildCustomProxyUrl(custom, targetUrl) });
+        routes.push(
+          { id: 'allorigins', url: `https://api.allorigins.win/raw?url=${enc}` },
+          { id: 'corsproxy', url: `https://corsproxy.io/?url=${enc}` },
+          { id: 'codetabs', url: `https://api.codetabs.com/v1/proxy?quest=${enc}` }
+        );
+        return routes;
+      }
+
+      async function rawFetchJson(url, timeoutMs = 15000) {
+        const ctrl = new AbortController();
+        state.activeControllers.add(ctrl);
+        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+          const resp = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+          const text = await resp.text();
+          let parsed = null;
+          try { parsed = JSON.parse(text); } catch (_) {}
+
+          const hasApiFields = parsed && typeof parsed === 'object' && (
+            'chart' in parsed || 'results' in parsed || 'status' in parsed ||
+            'values' in parsed || 'bars' in parsed || 'detail' in parsed ||
+            'error' in parsed || 'Error Message' in parsed || Array.isArray(parsed)
+          );
+
+          if (!resp.ok) {
+            const msg = parsed?.chart?.error?.description || parsed?.error || parsed?.detail || parsed?.message || parsed?.['Error Message'] || `HTTP ${resp.status}`;
+            const err = new Error(msg);
+            err.httpStatus = resp.status;
+            err.parsed = parsed;
+            err.isApiResponse = hasApiFields || [400, 401, 402, 403, 404, 429].includes(resp.status);
+            throw err;
+          }
+          if (parsed === null) throw new Error('Geçersiz JSON yanıtı');
+          return parsed;
+        } finally {
+          clearTimeout(timer);
+          state.activeControllers.delete(ctrl);
+        }
+      }
+
+      async function fetchWithCors(targetUrl, timeoutMs = 15000) {
+        if (state.abortFetch) throw new Error('Durduruldu');
+        const host = new URL(targetUrl).hostname;
+        const routes = getCorsRoutes(targetUrl);
+        const memId = state.hostRouteMemory.get(host);
+        let ordered = routes;
+        if (memId) {
+          const found = routes.find(r => r.id === memId);
+          if (found) ordered = [found, ...routes.filter(r => r.id !== memId)];
+        }
+
+        let lastErr = null;
+        for (const route of ordered) {
+          if (state.abortFetch) throw new Error('Durduruldu');
+          try {
+            const data = await rawFetchJson(route.url, timeoutMs);
+            state.hostRouteMemory.set(host, route.id);
+            return data;
+          } catch (err) {
+            if (err.name === 'AbortError' && state.abortFetch) throw new Error('Durduruldu');
+            // Gerçek API hatası (401/403/404/429 JSON) alındıysa diğer proxy'lerle vakit kaybetme
+            if (err.isApiResponse && (err.parsed || [400, 401, 402, 404].includes(err.httpStatus))) {
+              if (!(route.id !== 'direct' && (err.httpStatus === 403 || err.httpStatus === 429) && !err.parsed)) {
+                state.hostRouteMemory.set(host, route.id);
+                throw err;
+              }
+            }
+            lastErr = err;
+          }
+        }
+        throw lastErr || new Error('Ağ veya CORS hatası');
+      }
+
+      // 1. YAHOO FINANCE
+      async function fetchYahooChart(ticker, interval, p1, p2) {
+        const qs = `period1=${p1}&period2=${p2}&interval=${encodeURIComponent(interval)}&includePrePost=true`;
+        const urls = [
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`,
+          `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`
+        ];
+        let lastErr = null;
+        for (const u of urls) {
+          try {
+            const json = await fetchWithCors(u, 15000);
+            if (json?.chart?.error) {
+              const e = new Error(json.chart.error.description || 'Yahoo API hatası');
+              e.isYahooFatal = true;
+              throw e;
+            }
+            const res = json?.chart?.result?.[0];
+            if (!res || !Array.isArray(res.timestamp) || !res.timestamp.length) {
+              const e = new Error('Boş veri');
+              e.isYahooEmpty = true;
+              throw e;
+            }
+            return res;
+          } catch (e) {
+            lastErr = e;
+            if (e.isYahooFatal || e.isYahooEmpty || e.httpStatus === 400 || e.httpStatus === 404) throw e;
+          }
+        }
+        throw lastErr || new Error('Yahoo erişim hatası');
+      }
+
+      function parseYahooBars(res, minTs, maxTs, isDaily, intervalSec) {
+        const tsArr = res.timestamp || [];
+        const q = res.indicators?.quote?.[0] || {};
+        const gmtoffset = Number(res.meta?.gmtoffset) || 0;
+        const tz = res.meta?.exchangeTimezoneName || '';
+        let h1Phase = 0;
+        if (!isDaily && intervalSec === 3600) {
+          let half = 0, whole = 0;
+          for (const t of tsArr) {
+            if (!Number.isFinite(t) || t % 60 !== 0) continue;
+            if ((t % 3600) === 1800) half++; else if ((t % 3600) === 0) whole++;
+          }
+          if (half > whole) h1Phase = 1800;
+        }
+        const map = new Map();
+        for (let i = 0; i < tsArr.length; i++) {
+          let time = tsArr[i];
+          const open = q.open?.[i], high = q.high?.[i], low = q.low?.[i], close = q.close?.[i], vol = q.volume?.[i];
+          if (!Number.isFinite(time) || !Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) continue;
+          if (open <= 0 || high <= 0 || low <= 0 || close <= 0 || high < low) continue;
+          if (isDaily) time = toExchangeDateMidnight(time, gmtoffset, tz);
+          else if (intervalSec > 0 && (time % 60 !== 0 || ((time - h1Phase) % intervalSec) !== 0)) {
+            time = Math.floor((time - h1Phase) / intervalSec) * intervalSec + h1Phase;
+          }
+          if (time < minTs || time > maxTs) continue;
+          const v = Number.isFinite(vol) && vol >= 0 ? vol : 0;
+          const prev = map.get(time);
+          if (!prev) {
+            map.set(time, { time, open, high: Math.max(high, open, close), low: Math.min(low, open, close), close, volume: v });
+          } else {
+            prev.high = Math.max(prev.high, high, open, close);
+            prev.low = Math.min(prev.low, low, open, close);
+            prev.close = close;
+            prev.volume = isDaily ? Math.max(prev.volume, v) : (prev.volume + v);
+          }
+        }
+        return Array.from(map.values()).sort((a, b) => a.time - b.time);
+      }
+
+      async function fetchYahooRange(ticker, tf, gs, ge) {
+        if (tf === 'D1') {
+          let lastErr = null;
+          for (let att = 0; att < 3; att++) {
+            if (state.abortFetch) break;
+            try {
+              const res = await fetchYahooChart(ticker, '1d', gs - 2 * 86400, ge + 2 * 86400);
+              return parseYahooBars(res, gs, ge, true, 0);
+            } catch (e) {
+              lastErr = e;
+              if (e.isYahooFatal || e.isYahooEmpty || e.httpStatus === 404) break;
+              if (att < 2) await new Promise(r => setTimeout(r, 350 * (att + 1)));
+            }
+          }
+          if (lastErr) throw lastErr;
+          return [];
+        }
+
+        const yMap = { M1: ['1m', 60, 6 * 86400], M5: ['5m', 300, 28 * 86400], M15: ['15m', 900, 28 * 86400], M30: ['30m', 1800, 28 * 86400], H1: ['1h', 3600, 180 * 86400] };
+        const [yInt, sec, chunkSec] = yMap[tf];
+        const map = new Map();
+        let lastErr = null;
+
+        for (let cur = gs; cur < ge && !state.abortFetch; cur += chunkSec) {
+          let s = cur;
+          const e = Math.min(ge, cur + chunkSec);
+          let ok = false;
+          for (let att = 0; att < 3; att++) {
+            if (state.abortFetch) break;
+            try {
+              const res = await fetchYahooChart(ticker, yInt, s, e + 60);
+              const bars = parseYahooBars(res, s, e, false, sec);
+              for (const b of bars) map.set(b.time, b);
+              ok = bars.length > 0;
+              break;
+            } catch (err) {
+              lastErr = err;
+              if (/within the last|not available for startTime/i.test(err.message || '')) {
+                s = Math.min(e - 3600, s + 86400);
+                continue;
+              }
+              if (err.isYahooEmpty || err.isYahooFatal || err.httpStatus === 404) break;
+              if (att < 2) await new Promise(r => setTimeout(r, 350 * (att + 1)));
+            }
+          }
+          if (!ok && state.abortFetch) break;
+        }
+        const out = sanitizeBars(Array.from(map.values()), gs, ge);
+        if (!out.length && lastErr) throw lastErr;
+        return out;
+      }
+
+      // 2. TIINGO FX
+      async function fetchTiingoRange(pair, tf, gs, ge, token) {
+        const freq = TIINGO_TF[tf];
+        if (!freq || !pair.tiingo) return { bars: [], note: '' };
+        const daysMap = { '1min': 8, '5min': 40, '15min': 120, '30min': 240, '1hour': 500, '1day': 1825 };
+        const chunkSec = (daysMap[freq] || 30) * 86400;
+        const map = new Map();
+        let cur = tf === 'D1' ? gs - 86400 : gs;
+        let note = '';
+
+        while (cur <= ge && !state.abortFetch) {
+          const next = Math.min(ge, cur + chunkSec - 1);
+          const url = `https://api.tiingo.com/tiingo/fx/${encodeURIComponent(pair.tiingo)}/prices?startDate=${toYMD(new Date(cur * 1000))}&endDate=${toYMD(new Date((next + 86400) * 1000))}&resampleFreq=${encodeURIComponent(freq)}&token=${encodeURIComponent(token)}`;
+          let rows = null;
+          let errLast = null;
+          for (let att = 0; att < 3; att++) {
+            try {
+              rows = await fetchWithCors(url, 15000);
+              if (!Array.isArray(rows)) {
+                const detail = rows?.detail || 'Tiingo geçersiz yanıt';
+                const err = new Error(detail);
+                if (/allocation|limit|exceeded|throttled|429/i.test(detail)) err.isTiingoLimit = true;
+                if (/token|authorization|401|403/i.test(detail)) err.isTiingoAuth = true;
+                throw err;
+              }
+              errLast = null;
+              break;
+            } catch (e) {
+              errLast = e;
+              if (e.httpStatus === 429 || /allocation|limit|exceeded|throttled/i.test(e.message || '')) e.isTiingoLimit = true;
+              if (e.httpStatus === 401 || e.httpStatus === 403 || /token|authorization/i.test(e.message || '')) e.isTiingoAuth = true;
+              if (e.isTiingoLimit || e.isTiingoAuth) break;
+              if (att < 2) await new Promise(r => setTimeout(r, 350 * (att + 1)));
+            }
+          }
+          if (errLast) {
+            const clean = errLast.isTiingoLimit ? 'Tiingo saatlik limit doldu' : (errLast.isTiingoAuth ? 'Tiingo token geçersiz' : errLast.message);
+            if (!map.size) {
+              const outErr = new Error(clean);
+              outErr.disableTiingo = errLast.isTiingoLimit || errLast.isTiingoAuth;
+              throw outErr;
+            }
+            note = clean;
+            break;
+          }
+          let maxTs = 0;
+          for (const r of rows) {
+            const ms = Date.parse(r.date);
+            if (!Number.isFinite(ms)) continue;
+            const time = Math.floor(ms / 1000);
+            if (time >= gs && time <= ge) {
+              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: 0 });
+            }
+            if (time > maxTs) maxTs = time;
+          }
+          if (rows.length >= 9800 && maxTs > cur && (next - maxTs) > 4 * 86400) {
+            cur = maxTs + 1;
+            continue;
+          }
+          if (next >= ge) break;
+          cur = next + 1;
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
+      }
+
+      // 3. TWELVE DATA (8 istek/dk korumalı)
+      async function waitTdSlot(label) {
+        const win = 62000;
+        while (!state.abortFetch) {
+          const now = Date.now();
+          state.tdTimes = state.tdTimes.filter(t => now - t < win);
+          if (state.tdTimes.length < 7) return true;
+          const wait = Math.max(1000, win - (now - state.tdTimes[0]) + 500);
+          if (!await sleepAbort(wait, `${label} Twelve Data 8/dk limiti bekleniyor`)) return false;
+        }
+        return false;
+      }
+
+      async function fetchTdRange(pair, tf, gs, ge, key) {
+        const tdInt = TD_TF[tf];
+        if (!tdInt || !pair.td) return { bars: [], note: '' };
+        const map = new Map();
+        const maxPages = tf === 'M1' ? 20 : 10;
+        let cursorEnd = ge;
+        let note = '';
+
+        for (let page = 0; page < maxPages && cursorEnd > gs && !state.abortFetch; page++) {
+          if (!await waitTdSlot(`${pair.code} ${tf}`)) break;
+          const sStr = isoUtc(gs).replace('T', ' ').replace('Z', '');
+          const eStr = isoUtc(cursorEnd).replace('T', ' ').replace('Z', '');
+          const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair.td)}&interval=${encodeURIComponent(tdInt)}&start_date=${encodeURIComponent(sStr)}&end_date=${encodeURIComponent(eStr)}&outputsize=5000&timezone=UTC&apikey=${encodeURIComponent(key)}`;
+
+          let json = null;
+          let errLast = null;
+          for (let att = 0; att < 3; att++) {
+            try {
+              state.tdTimes.push(Date.now());
+              json = await fetchWithCors(url, 15000);
+              if (json?.status === 'error') {
+                const msg = String(json.message || 'Twelve Data hatası');
+                if (/credits|minute|too many/i.test(msg) && !/daily|day/i.test(msg)) {
+                  if (!await sleepAbort(62000, `${pair.code} Twelve Data dakikalık kota bekleniyor`)) break;
+                  att--;
+                  continue;
+                }
+                const err = new Error(msg);
+                err.tdCode = Number(json.code || 0);
+                throw err;
+              }
+              errLast = null;
+              break;
+            } catch (e) {
+              errLast = e;
+              if (e.tdCode === 401 || e.tdCode === 403 || e.tdCode === 404 || /plan|upgrade|permission|apikey|daily/i.test(e.message || '')) break;
+              if (att < 2) await new Promise(r => setTimeout(r, 400));
+            }
+          }
+
+          if (errLast) {
+            const raw = errLast.message || '';
+            let clean = raw;
+            let disable = false;
+            if (/grow|pro|ultra|plan|upgrade|permission|not available on|symbol or figi/i.test(raw) || errLast.tdCode === 403 || errLast.tdCode === 404) {
+              clean = 'Twelve Data ücretsiz planda desteklemiyor';
+              disable = true;
+            } else if (/daily|per day/i.test(raw)) {
+              clean = 'Twelve Data günlük limit doldu';
+              disable = true;
+            } else if (/apikey|api key|unauthorized/i.test(raw) || errLast.tdCode === 401) {
+              clean = 'Twelve Data API anahtarı geçersiz';
+              disable = true;
+            }
+            if (!map.size) {
+              const outErr = new Error(clean);
+              outErr.disableTd = disable;
+              throw outErr;
+            }
+            note = clean;
+            break;
+          }
+
+          const vals = json?.values || [];
+          if (!Array.isArray(vals) || !vals.length) break;
+          let minTs = Infinity;
+          for (const r of vals) {
+            const iso = r.datetime.includes(' ') ? r.datetime.replace(' ', 'T') + 'Z' : r.datetime + 'T00:00:00Z';
+            const time = Math.floor(Date.parse(iso) / 1000);
+            if (Number.isFinite(time) && time >= gs && time <= ge) {
+              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || 0 });
+            }
+            if (Number.isFinite(time) && time < minTs) minTs = time;
+          }
+          if (vals.length < 4990 || !Number.isFinite(minTs) || minTs >= cursorEnd) break;
+          cursorEnd = minTs - 1;
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
+      }
+
+      // 4. FMP
+      async function fetchFmpRange(pair, tf, gs, ge, key) {
+        const fInt = FMP_TF[tf];
+        if (!fInt || !pair.fmp) return { bars: [], note: '' };
+        const map = new Map();
+        const parseErr = msg => {
+          if (/upgrade|plan|premium|subscription|restricted|402|403/i.test(msg)) return { msg: 'FMP ücretsiz planda desteklemiyor', disable: true };
+          if (/invalid api key|unauthorized|401/i.test(msg)) return { msg: 'FMP API anahtarı geçersiz', disable: true };
+          if (/limit|429/i.test(msg)) return { msg: 'FMP günlük limit doldu', disable: true };
+          return { msg, disable: false };
+        };
+
+        if (tf === 'D1') {
+          const url = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(pair.fmp)}&from=${toYMD(new Date(gs * 1000))}&to=${toYMD(new Date(ge * 1000))}&apikey=${encodeURIComponent(key)}`;
+          let rows = null;
+          for (let att = 0; att < 3; att++) {
+            try {
+              rows = await fetchWithCors(url, 15000);
+              if (!Array.isArray(rows)) throw new Error(rows?.['Error Message'] || rows?.message || 'FMP yanıt hatası');
+              break;
+            } catch (e) {
+              const info = parseErr(e.message || '');
+              if (info.disable || att === 2) {
+                const err = new Error(info.msg);
+                err.disableFmp = info.disable;
+                throw err;
+              }
+              await new Promise(r => setTimeout(r, 350));
+            }
+          }
+          const bars = (rows || []).map(r => ({
+            time: Math.floor(Date.parse(`${r.date}T00:00:00Z`) / 1000),
+            open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || 0
+          }));
+          return { bars: sanitizeBars(bars, gs, ge), note: '' };
+        }
+
+        const chunkDays = tf === 'M1' ? 7 : (tf === 'M5' ? 28 : 90);
+        const chunkSec = chunkDays * 86400;
+        const tz = pair.cat === 'index' ? pair.tz : 'America/New_York';
+        let note = '';
+
+        for (let cur = gs; cur <= ge && !state.abortFetch; cur += chunkSec) {
+          const next = Math.min(ge, cur + chunkSec - 1);
+          const url = `https://financialmodelingprep.com/stable/historical-chart/${encodeURIComponent(fInt)}?symbol=${encodeURIComponent(pair.fmp)}&from=${toYMD(new Date(cur * 1000))}&to=${toYMD(new Date((next + 86400) * 1000))}&apikey=${encodeURIComponent(key)}`;
+          let rows = null, errLast = null;
+          for (let att = 0; att < 3; att++) {
+            try {
+              rows = await fetchWithCors(url, 15000);
+              if (!Array.isArray(rows)) throw new Error(rows?.['Error Message'] || rows?.message || 'FMP yanıt hatası');
+              errLast = null;
+              break;
+            } catch (e) {
+              errLast = e;
+              const info = parseErr(e.message || '');
+              if (info.disable) break;
+              if (att < 2) await new Promise(r => setTimeout(r, 350));
+            }
+          }
+          if (errLast) {
+            const info = parseErr(errLast.message || '');
+            if (!map.size) {
+              const err = new Error(info.msg);
+              err.disableFmp = info.disable;
+              throw err;
+            }
+            note = info.msg;
+            break;
+          }
+          for (const r of rows) {
+            const time = parseTzDateTimeToUtcSec(r.date, tz);
+            if (time !== null && time >= gs && time <= ge) {
+              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || 0 });
+            }
+          }
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
+      }
+
+      // 5. MASSIVE (Yedek • 5 istek/dk korumalı)
+      async function waitMassiveSlot(label) {
+        const win = 62000;
+        while (!state.abortFetch) {
+          const now = Date.now();
+          state.massiveTimes = state.massiveTimes.filter(t => now - t < win);
+          if (state.massiveTimes.length < 5) return true;
+          const wait = Math.max(1000, win - (now - state.massiveTimes[0]) + 600);
+          if (!await sleepAbort(wait, `${label} Massive 5/dk limiti bekleniyor`)) return false;
+        }
+        return false;
+      }
+
+      async function fetchMassiveRange(pair, tf, gs, ge, key) {
+        const spec = MASSIVE_TF[tf];
+        if (!spec || !pair.massive) return { bars: [], note: '' };
+        const [mult, span] = spec;
+        const fromStr = toYMD(new Date(gs * 1000));
+        const toStr = toYMD(new Date(ge * 1000));
+        let nextUrl = `https://api.massive.com/v2/aggs/ticker/${encodeURIComponent(pair.massive)}/range/${mult}/${span}/${fromStr}/${toStr}?adjusted=true&sort=asc&limit=50000&apiKey=${encodeURIComponent(key)}`;
+        const map = new Map();
+        const isD1 = tf === 'D1', isW1 = tf === 'W1', isMN1 = tf === 'MN1';
+        const minAccept = isW1 ? getWeekMondayKey(gs) : (isMN1 ? getMonthFirstKey(gs) : gs);
+        let note = '';
+
+        for (let page = 0; page < 15 && nextUrl && !state.abortFetch; page++) {
+          if (!await waitMassiveSlot(`${pair.code} ${tf}`)) break;
+          let json = null, errLast = null;
+
+          for (let att = 0; att < 3; att++) {
+            try {
+              state.massiveTimes.push(Date.now());
+              json = await fetchWithCors(nextUrl, 15000);
+              if (json?.status === 'ERROR' || json?.status === 'NOT_AUTHORIZED' || json?.error) {
+                const err = new Error(json.error || json.message || 'Massive API hatası');
+                if (json.status === 'NOT_AUTHORIZED' || /not authorized|entitled|upgrade|plan/i.test(err.message)) err.httpStatus = 403;
+                throw err;
+              }
+              errLast = null;
+              break;
+            } catch (e) {
+              errLast = e;
+              if (e.httpStatus === 429) {
+                if (!await sleepAbort(62000, `${pair.code} Massive 429 limiti bekleniyor`)) break;
+                att--;
+                continue;
+              }
+              if (e.httpStatus === 401 || e.httpStatus === 403 || /not authorized|entitled|apiKey|invalid/i.test(e.message || '')) break;
+              if (att < 2) await new Promise(r => setTimeout(r, 400));
+            }
+          }
+
+          if (errLast) {
+            const raw = errLast.message || '';
+            const isAuth = errLast.httpStatus === 403 || /not authorized|entitled|upgrade|plan/i.test(raw);
+            let clean = raw;
+            let disablePair = false;
+            if (isAuth && pair.cat === 'index') {
+              clean = 'Massive endeks için ücretli plan gerekir';
+              disablePair = true;
+            } else if (isAuth) {
+              clean = 'Massive bu plan/dilim için yetki gerektirir';
+            } else if (errLast.httpStatus === 401) {
+              clean = 'Massive API anahtarı geçersiz';
+              disablePair = true;
+            }
+            if (!map.size) {
+              const err = new Error(clean);
+              err.disableMassive = disablePair;
+              throw err;
+            }
+            note = clean;
+            break;
+          }
+
+          const rows = json?.results || [];
+          for (const r of rows) {
+            let time = Math.floor(Number(r.t) / 1000);
+            if (!Number.isFinite(time)) continue;
+            if (isD1) time = toExchangeDateMidnight(time, 0, pair.tz);
+            else if (isW1) time = getWeekMondayKey(toExchangeDateMidnight(time, 0, pair.tz));
+            else if (isMN1) time = getMonthFirstKey(toExchangeDateMidnight(time, 0, pair.tz));
+            if (time >= minAccept && time <= ge) {
+              map.set(time, { time, open: Number(r.o), high: Number(r.h), low: Number(r.l), close: Number(r.c), volume: Number(r.v) || 0 });
+            }
+          }
+
+          if (json?.next_url) {
+            try {
+              const u = new URL(String(json.next_url));
+              if (!u.searchParams.has('apiKey')) u.searchParams.set('apiKey', key);
+              nextUrl = u.toString();
+            } catch (_) {
+              nextUrl = String(json.next_url) + (String(json.next_url).includes('?') ? '&' : '?') + `apiKey=${encodeURIComponent(key)}`;
+            }
+          } else {
+            nextUrl = '';
+          }
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), minAccept, ge), note };
+      }
+
+      // 6. BIQUOTE.IO
+      async function resolveBiquoteSym(pair) {
+        if (!pair.biquote) return null;
+        if (!state.biquoteSymbols) {
+          try {
+            const list = await fetchWithCors('https://biquote.io/api/symbols?quotedWithinDays=14', 10000);
+            state.biquoteSymbols = Array.isArray(list) ? new Set(list.map(x => String(x.name || '').toUpperCase())) : new Set();
+          } catch (_) {
+            state.biquoteSymbols = new Set();
+          }
+        }
+        const candidates = [pair.biquote, ...(pair.biquoteAlt || [])];
+        if (state.biquoteSymbols.size > 0) {
+          for (const c of candidates) if (state.biquoteSymbols.has(c.toUpperCase())) return c;
+        }
+        return candidates[0];
+      }
+
+      async function fetchBiquoteRange(pair, tf, gs, ge) {
+        const bInt = BIQUOTE_TF[tf];
+        if (!bInt) return { bars: [], note: '' };
+        const sym = await resolveBiquoteSym(pair);
+        if (!sym) return { bars: [], note: '' };
+
+        const map = new Map();
+        let cursorEnd = ge;
+        const maxPages = tf === 'M1' ? 12 : 14;
+        for (let page = 0; page < maxPages && cursorEnd > gs && !state.abortFetch; page++) {
+          const url = `https://biquote.io/api/${encodeURIComponent(sym)}/ohlc?interval=${encodeURIComponent(bInt)}&limit=1000&from=${encodeURIComponent(isoUtc(gs))}&to=${encodeURIComponent(isoUtc(cursorEnd))}`;
+          let json = null;
+          for (let att = 0; att < 3; att++) {
+            try { json = await fetchWithCors(url, 12000); break; }
+            catch (e) { if (att === 2) throw e; await new Promise(r => setTimeout(r, 300)); }
+          }
+          const rows = json?.bars || [];
+          if (!Array.isArray(rows) || !rows.length) break;
+          let minTs = Infinity;
+          for (const r of rows) {
+            if (r.isOpen) continue;
+            const ms = Date.parse(r.openTime);
+            if (!Number.isFinite(ms)) continue;
+            let time = Math.floor(ms / 1000);
+            if (tf === 'D1') time = toExchangeDateMidnight(time, 0, pair.tz);
+            if (time >= gs && time <= ge) {
+              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || Number(r.tickVolume) || 0 });
+            }
+            if (time < minTs) minTs = time;
+          }
+          if (rows.length < 950 || !Number.isFinite(minTs) || minTs >= cursorEnd) break;
+          cursorEnd = minTs - 1;
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
+      }
+
+      // Türetme kuralları: M3<-M1, M15/M30<-M5, H2/H4<-H1, W1/MN1<-D1 (ayrıca M5<-M1 sadece M5 boş/eksikse)
+      function applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd) {
+        const deriveFrom = (target, src, builder) => {
+          if (!tfBars[src]?.length) return;
+          const derived = builder(tfBars[src]);
+          if (!derived.length) return;
+          const hadAny = (tfBars[target]?.length || 0) > 0;
+          const gaps = computeMissingRanges(tfBars[target], target, reqStart, reqEnd, false);
+          if (!hadAny || gaps.length > 0) {
+            if (hadAny && !checkPriceConsistency(tfBars[target], derived, 0.004).ok) return;
+            const before = tfBars[target]?.length || 0;
+            tfBars[target] = mergeBars(tfBars[target], derived);
+            if (tfBars[target].length > before) {
+              if (!tfSources[target]) tfSources[target] = new Set();
+              for (const s of (tfSources[src] || [])) tfSources[target].add(hadAny ? s : `${s} (${src}→${target})`);
+              if (!computeMissingRanges(tfBars[target], target, reqStart, reqEnd, true).length && tfNotes[target]) {
+                tfNotes[target].clear();
+              }
+            }
+          }
+        };
+
+        deriveFrom('M3', 'M1', b => aggregateBars(b, 180));
+        deriveFrom('M5', 'M1', b => aggregateBars(b, 300));
+        deriveFrom('M15', 'M5', b => aggregateBars(b, 900));
+        deriveFrom('M30', 'M5', b => aggregateBars(b, 1800));
+        deriveFrom('H2', 'H1', b => aggregateBars(b, 7200));
+        deriveFrom('H4', 'H1', b => aggregateBars(b, 14400));
+        deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1'));
+        deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1'));
+      }
+
+      // ANA VERİ MOTORU
+      async function fetchAllData(pairKey, startStr, endStr) {
+        const pair = PAIRS[pairKey];
+        const cfg = getSettings();
+        const reqStart = Math.floor(Date.parse(`${startStr}T00:00:00Z`) / 1000);
+        const nowSec = Math.floor(Date.now() / 1000);
+        const endDateEnd = Math.floor(Date.parse(`${endStr}T23:59:59Z`) / 1000);
+        const reqEnd = Math.min(endDateEnd, nowSec);
+        if (!Number.isFinite(reqStart) || !Number.isFinite(reqEnd) || reqStart >= reqEnd) {
+          throw new Error('Geçersiz tarih aralığı');
+        }
+
+        const tfBars = {};
+        const tfSources = {};
+        const tfNotes = {};
+        const addSource = (tf, label) => {
+          if (!tfSources[tf]) tfSources[tf] = new Set();
+          tfSources[tf].add(label);
+        };
+        const addNote = (tf, note) => {
+          if (!note) return;
+          if (!tfNotes[tf]) tfNotes[tf] = new Set();
+          tfNotes[tf].add(note);
+        };
+
+        let baseRefBars = null;
+        const getBaseRef = () => {
+          for (const k of ['D1', 'H1', 'M15', 'M5', 'M1', 'H4']) {
+            if (tfBars[k]?.length) return tfBars[k];
+          }
+          return baseRefBars;
+        };
+
+        const acceptBars = (tf, bars, sourceLabel, gs, ge) => {
+          if (!bars || !bars.length) return { accepted: false, count: 0 };
+          const ref = getBaseRef();
+          if (ref?.length) {
+            const check = checkPriceConsistency(ref, bars, 0.004);
+            if (!check.ok) {
+              const pct = (check.diff * 100).toFixed(2);
+              const msg = `Fiyat sapması %${pct} (>%0.4), kaynak reddedildi`;
+              addLog(pair.code, sourceLabel, tf, `${shortDate(gs)}–${shortDate(ge)}`, bars.length, msg, 'err');
+              addNote(tf, `${sourceLabel}: ${msg}`);
+              return { accepted: false, count: 0 };
+            }
+          }
+          tfBars[tf] = mergeBars(tfBars[tf], bars);
+          if (!baseRefBars) baseRefBars = tfBars[tf];
+          addSource(tf, sourceLabel);
+          return { accepted: true, count: bars.length };
+        };
+
+        // ADIM 1: YAHOO FINANCE (Paralel max 3 istek)
+        setProgress(8, `${pair.code} • Yahoo Finance çekiliyor...`);
+        const limM1 = nowSec - (28 * 86400 + 43200);
+        const limM5 = nowSec - (58 * 86400 + 43200);
+        const limH1 = nowSec - (720 * 86400);
+
+        const yahooTfs = ['D1', 'H1', 'M30', 'M15', 'M5', 'M1'];
+        const runYahooTicker = async (ticker, isFallbackLabel = '') => {
+          await runPool(yahooTfs, 3, async tf => {
+            if (state.abortFetch) return;
+            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+            if (!gaps.length) return;
+
+            for (const [gs, ge] of gaps) {
+              if (state.abortFetch) break;
+              let effGs = gs;
+              let limitNote = '';
+              if (tf === 'M1') {
+                if (ge <= limM1) { addNote('M1', 'Yahoo M1 yalnızca son 29 gün'); continue; }
+                if (gs < limM1) { effGs = Math.max(gs, limM1); limitNote = 'Yahoo M1 yalnızca son 29 gün'; }
+              } else if (tf === 'M5' || tf === 'M15' || tf === 'M30') {
+                if (ge <= limM5) { addNote(tf, `Yahoo ${tf} yalnızca son 59 gün`); continue; }
+                if (gs < limM5) { effGs = Math.max(gs, limM5); limitNote = `Yahoo ${tf} yalnızca son 59 gün`; }
+              } else if (tf === 'H1') {
+                if (ge <= limH1) { addNote('H1', 'Yahoo H1 yalnızca son 720 gün'); continue; }
+                if (gs < limH1) { effGs = Math.max(gs, limH1); limitNote = 'Yahoo H1 yalnızca son 720 gün'; }
+              }
+
+              setStatus('busy', `${pair.code} Yahoo ${tf}...`);
+              const label = isFallbackLabel || 'Yahoo Finance';
+              try {
+                const bars = await fetchYahooRange(ticker, tf, effGs, ge);
+                const acc = acceptBars(tf, bars, label, effGs, ge);
+                if (acc.accepted) {
+                  addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, limitNote || 'Başarılı', limitNote ? 'partial' : 'ok');
+                } else if (!bars.length) {
+                  addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
+                }
+                if (limitNote) addNote(tf, limitNote);
+              } catch (e) {
+                addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, e.message, 'err');
+                addNote(tf, `Yahoo: ${e.message}`);
+              }
+            }
+          });
+        };
+
+        await runYahooTicker(pair.yahoo);
+        if (pair.yahooAlt && !state.abortFetch) {
+          const needAlt = yahooTfs.some(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
+          if (needAlt) await runYahooTicker(pair.yahooAlt, `Yahoo (${pair.yahooAlt})`);
+        }
+        applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
+        setProgress(30, `${pair.code} • Eksik aralıklar kontrol ediliyor...`);
+
+        // ADIM 2: YEDEK KAYNAKLAR (Tiingo -> Twelve Data -> FMP -> Massive -> biquote.io)
+        const providers = [
+          { id: 'tiingo', label: 'Tiingo FX', hasKey: !!cfg.tiingo, sym: pair.tiingo, tfs: ['D1', 'H1', 'M1', 'M5', 'M15', 'M30'], conc: 2 },
+          { id: 'twelvedata', label: 'Twelve Data', hasKey: !!cfg.td, sym: pair.td, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 1 },
+          { id: 'fmp', label: 'FMP', hasKey: !!cfg.fmp, sym: pair.fmp, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 3 },
+          { id: 'massive', label: 'Massive', hasKey: !!cfg.massive, sym: pair.massive, tfs: ['D1', 'W1', 'MN1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 1 },
+          { id: 'biquote', label: 'biquote.io', hasKey: true, sym: pair.biquote, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 3 }
+        ];
+
+        const disabled = {};
+        for (let pIdx = 0; pIdx < providers.length && !state.abortFetch; pIdx++) {
+          const prov = providers[pIdx];
+          if (!prov.hasKey || !prov.sym || disabled[prov.id]) continue;
+
+          const basePct = 35 + Math.round((pIdx / providers.length) * 55);
+          setProgress(basePct, `${pair.code} • ${prov.label} eksik aralıkları kontrol ediyor...`);
+
+          const runProviderTf = async tf => {
+            if (state.abortFetch || disabled[prov.id]) return;
+            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+            if (!gaps.length) return;
+
+            for (const [gs, ge] of gaps) {
+              if (state.abortFetch || disabled[prov.id]) break;
+              setStatus('busy', `${pair.code} ${prov.label} ${tf}...`);
+              try {
+                let res = { bars: [], note: '' };
+                if (prov.id === 'tiingo') res = await fetchTiingoRange(pair, tf, gs, ge, cfg.tiingo);
+                else if (prov.id === 'twelvedata') res = await fetchTdRange(pair, tf, gs, ge, cfg.td);
+                else if (prov.id === 'fmp') res = await fetchFmpRange(pair, tf, gs, ge, cfg.fmp);
+                else if (prov.id === 'massive') res = await fetchMassiveRange(pair, tf, gs, ge, cfg.massive);
+                else if (prov.id === 'biquote') res = await fetchBiquoteRange(pair, tf, gs, ge);
+
+                const acc = acceptBars(tf, res.bars, prov.label, gs, ge);
+                if (acc.accepted) {
+                  addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, res.note || 'Başarılı', res.note ? 'partial' : 'ok');
+                } else if (!res.bars?.length) {
+                  addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, res.note || 'Veri bulunamadı', 'partial');
+                }
+                if (res.note) addNote(tf, res.note);
+              } catch (e) {
+                addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
+                addNote(tf, e.message);
+                if (e.disableTiingo) disabled.tiingo = e.message;
+                if (e.disableTd) disabled.twelvedata = e.message;
+                if (e.disableFmp) disabled.fmp = e.message;
+                if (e.disableMassive) disabled.massive = e.message;
+              }
+            }
+          };
+
+          if (prov.id === 'tiingo') {
+            // Tiingo kotasını korumak için önce D1/H1/M1 çekip diğerlerini türet; eksik kalırsa M5..M30 çek
+            for (const tf of ['D1', 'H1', 'M1']) {
+              await runProviderTf(tf);
+              applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
+            }
+            await runPool(['M5', 'M15', 'M30'], 2, async tf => {
+              await runProviderTf(tf);
+            });
+            applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
+          } else {
+            await runPool(prov.tfs, prov.conc, async tf => {
+              await runProviderTf(tf);
+              if (tf === 'M1' || tf === 'M5' || tf === 'H1' || tf === 'D1') {
+                applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
+              }
+            });
+            applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
+          }
+        }
+
+        // ADIM 3: ALTIN / GÜMÜŞ İÇİN SON ÇARE VADELİ (Yalnızca hiç spot veri gelmemişse)
+        let isLastResortFutures = false;
+        const hasAnySpot = ALL_TF.some(tf => (tfBars[tf]?.length || 0) > 0);
+        if (pair.isSpotMetal && !hasAnySpot && pair.yahooLastResort && !state.abortFetch) {
+          isLastResortFutures = true;
+          setProgress(92, `${pair.code} • Spot bulunamadı, son çare vadeli (${pair.yahooLastResort}) çekiliyor...`);
+          await runYahooTicker(pair.yahooLastResort, `Son Çare Vadeli (${pair.yahooLastResort})`);
+          applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
+        }
+
+        // ADIM 4: SON TEMİZLİK VE DURUM DEĞERLENDİRMESİ
+        const meta = {};
+        for (const tf of ALL_TF) {
+          const minBound = tf === 'W1' ? getWeekMondayKey(reqStart) : (tf === 'MN1' ? getMonthFirstKey(reqStart) : reqStart);
+          if (tfBars[tf]?.length) tfBars[tf] = sanitizeBars(tfBars[tf], minBound, endDateEnd);
+
+          const bars = tfBars[tf] || [];
+          const srcList = Array.from(tfSources[tf] || []);
+          const notesList = Array.from(tfNotes[tf] || []);
+
+          if (!bars.length) {
+            meta[tf] = {
+              status: 'err',
+              statusText: 'Yok',
+              source: srcList.join(', ') || '-',
+              reason: notesList.join(' • ') || 'Hiçbir kaynaktan veri alınamadı'
+            };
+          } else {
+            const remGaps = computeMissingRanges(bars, tf, reqStart, reqEnd, true);
+            const futuresWarn = isLastResortFutures ? `Spot bulunamadı — son çare vadeli (${pair.yahooLastResort})` : '';
+            if (remGaps.length > 0) {
+              const partMsg = `Kısmi: ${shortDate(bars[0].time)} – ${shortDate(bars[bars.length - 1].time)} arası var`;
+              const fullReason = [partMsg, futuresWarn, ...notesList].filter(Boolean).join(' • ');
+              meta[tf] = {
+                status: 'partial',
+                statusText: 'Kısmi',
+                source: srcList.join(', '),
+                reason: fullReason
+              };
+            } else {
+              meta[tf] = {
+                status: isLastResortFutures ? 'partial' : 'ok',
+                statusText: isLastResortFutures ? 'Vadeli Yedek' : 'Tam',
+                source: srcList.join(', '),
+                reason: futuresWarn || 'Tam aralık kapsandı'
+              };
+            }
+          }
+        }
+
+        setProgress(100, state.abortFetch ? 'Durduruldu (alınan veriler gösteriliyor)' : 'Tamamlandı');
+        return { pair: pair.code, dec: pair.dec, startStr, endStr, tfBars, meta };
+      }
+
+      // CSV VE TABLO
+      function csvHeader(incVol) {
+        return incVol ? 'symbol,timeframe,time,open,high,low,close,volume' : 'symbol,timeframe,time,open,high,low,close';
+      }
+
+      function buildCsvRows(sym, tf, bars, dec, incVol) {
+        return bars.map(b => {
+          const base = `${sym},${tf},${isoUtc(b.time)},${b.open.toFixed(dec)},${b.high.toFixed(dec)},${b.low.toFixed(dec)},${b.close.toFixed(dec)}`;
+          return incVol ? `${base},${Math.round(b.volume || 0)}` : base;
+        });
+      }
+
+      function downloadTextFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }
+
+      // GRAFİK
+      function ensureChart() {
+        if (state.chart) return true;
+        if (typeof LightweightCharts === 'undefined') {
+          $('chartEl').innerHTML = '<div style="padding:20px;color:var(--muted);">Lightweight Charts yüklenemedi. Tablo ve CSV indirme normal çalışmaktadır.</div>';
+          return false;
+        }
+        const el = $('chartEl');
+        state.chart = LightweightCharts.createChart(el, {
+          width: el.clientWidth || 600,
+          height: 400,
+          layout: { background: { type: 'solid', color: '#080d1a' }, textColor: '#dce6f7', fontSize: 11 },
+          grid: { vertLines: { color: '#162038' }, horzLines: { color: '#162038' } },
+          rightPriceScale: { borderColor: '#253352' },
+          timeScale: { borderColor: '#253352', timeVisible: true, secondsVisible: false }
+        });
+        state.series = state.chart.addCandlestickSeries({
+          upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
+        });
+        new ResizeObserver(() => {
+          if (state.chart && el.clientWidth > 0) state.chart.resize(el.clientWidth, 400);
+        }).observe(el);
+        return true;
+      }
+
+      function renderResultView() {
+        if (!state.result) return;
+        const { pair, dec, startStr, endStr, tfBars, meta } = state.result;
+        const incVol = $('volumeChk').checked;
+        const avail = ALL_TF.filter(tf => (tfBars[tf]?.length || 0) > 0);
+        const totalBars = avail.reduce((sum, tf) => sum + tfBars[tf].length, 0);
+
+        $('resultSection').classList.add('visible');
+        $('resultTitle').textContent = `${pair} • ${avail.length}/11 Zaman Dilimi Hazır`;
+        $('resultSubtitle').textContent = `${startStr} → ${endStr} • Toplam ${totalBars.toLocaleString('tr-TR')} mum • Başlık: ${csvHeader(incVol)}`;
+        $('downloadMergedBtn').disabled = totalBars === 0;
+
+        if (!tfBars[state.activeTf]?.length && avail.length) {
+          state.activeTf = avail.includes('M15') ? 'M15' : (avail.includes('H1') ? 'H1' : avail[0]);
+        }
+
+        // 11 Zaman Dilimi Kartı
+        const grid = $('tfGrid');
+        grid.innerHTML = '';
+        for (const tf of ALL_TF) {
+          const bars = tfBars[tf] || [];
+          const m = meta[tf];
+          const card = document.createElement('div');
+          card.className = `tf-card ${tf === state.activeTf && bars.length ? 'active' : ''} ${!bars.length ? 'empty' : (m.status === 'partial' ? 'partial' : '')}`;
+
+          const spanStr = bars.length ? `${shortDate(bars[0].time)} – ${shortDate(bars[bars.length - 1].time)}` : 'Tarih aralığı yok';
+          const badgeCls = m.status === 'ok' ? 'ok' : (m.status === 'partial' ? 'partial' : 'err');
+
+          card.innerHTML = `
+            <div class="tf-top">
+              <span class="tf-name">${tf}</span>
+              <div class="tf-actions">
+                <span class="badge ${badgeCls}">${escapeHtml(m.statusText)}</span>
+                <button type="button" class="btn btn-sm tf-csv-btn" ${bars.length ? '' : 'disabled'}>CSV</button>
+              </div>
+            </div>
+            <div class="tf-meta">${bars.length.toLocaleString('tr-TR')} mum • ${spanStr}</div>
+            <div class="tf-src">Kaynak: ${escapeHtml(m.source)}</div>
+            <div class="tf-reason">${escapeHtml(m.reason)}</div>
+          `;
+
+          card.querySelector('.tf-csv-btn').addEventListener('click', e => {
+            e.stopPropagation();
+            const content = [csvHeader(incVol), ...buildCsvRows(pair, tf, bars, dec, incVol)].join('\n');
+            downloadTextFile(`${pair}_${tf}_${startStr}_${endStr}.csv`, content);
+          });
+
+          if (bars.length) {
+            card.addEventListener('click', () => {
+              state.activeTf = tf;
+              renderResultView();
+            });
+          }
+          grid.appendChild(card);
+        }
+
+        // Grafik ve Tablo
+        const activeBars = tfBars[state.activeTf] || [];
+        $('chartTitle').textContent = `${pair} • ${state.activeTf} (${activeBars.length.toLocaleString('tr-TR')} mum)`;
+        if (activeBars.length && ensureChart() && state.series) {
+          state.series.applyOptions({
+            priceFormat: { type: 'price', precision: dec, minMove: Number((1 / Math.pow(10, dec)).toFixed(dec)) }
+          });
+          state.series.setData(activeBars);
+          state.chart.timeScale().fitContent();
+        }
+
+        const last30 = activeBars.slice(-30).reverse();
+        $('tableInfo').textContent = `${pair} • ${state.activeTf} (son ${last30.length} mum)`;
+        $('tableHead').innerHTML = `<tr><th>symbol</th><th>timeframe</th><th>time</th><th>open</th><th>high</th><th>low</th><th>close</th>${incVol ? '<th>volume</th>' : ''}</tr>`;
+        $('tableBody').innerHTML = last30.length
+          ? last30.map(b => `<tr>
+              <td style="font-weight:700;color:var(--amber);">${pair}</td>
+              <td style="font-weight:700;color:var(--cyan);">${state.activeTf}</td>
+              <td>${isoUtc(b.time)}</td>
+              <td>${b.open.toFixed(dec)}</td>
+              <td>${b.high.toFixed(dec)}</td>
+              <td>${b.low.toFixed(dec)}</td>
+              <td style="font-weight:700;color:var(--white);">${b.close.toFixed(dec)}</td>
+              ${incVol ? `<td>${Math.round(b.volume || 0)}</td>` : ''}
+            </tr>`).join('')
+          : `<tr><td colspan="${incVol ? 8 : 7}" style="color:var(--muted);">Gösterilecek mum yok.</td></tr>`;
+      }
+
+      // OLAY DİNLEYİCİLERİ
+      $('settingsToggleBtn').addEventListener('click', () => {
+        $('settingsPanel').classList.toggle('open');
+      });
+
+      function bindKeyControls(inputId, storeKey, msgId, testFn) {
+        const prefix = inputId.replace(/Key$/, '');
+        $(`${prefix}SaveBtn`).addEventListener('click', () => {
+          const val = $(inputId).value.trim();
+          localStorage.setItem(storeKey, val);
+          refreshSettingsUi();
+          $(msgId).className = `msg-line ${val ? 'ok' : ''}`;
+          $(msgId).textContent = val ? 'Kaydedildi.' : 'Boş olarak kaydedildi.';
+        });
+        $(`${prefix}ClearBtn`).addEventListener('click', () => {
+          localStorage.removeItem(storeKey);
+          refreshSettingsUi();
+          $(msgId).className = 'msg-line';
+          $(msgId).textContent = 'Temizlendi.';
+        });
+        $(`${prefix}TestBtn`).addEventListener('click', async () => {
+          const val = $(inputId).value.trim();
+          if (!val) {
+            $(msgId).className = 'msg-line err';
+            $(msgId).textContent = 'Önce API anahtarı girin.';
+            return;
+          }
+          $(msgId).className = 'msg-line';
+          $(msgId).textContent = 'Test ediliyor...';
+          try {
+            const info = await testFn(val);
+            localStorage.setItem(storeKey, val);
+            refreshSettingsUi();
+            $(msgId).className = 'msg-line ok';
+            $(msgId).textContent = info;
+          } catch (e) {
+            $(msgId).className = 'msg-line err';
+            $(msgId).textContent = `Hata: ${e.message}`;
+          }
+        });
+      }
+
+      bindKeyControls('tiingoKey', STORE.tiingo, 'tiingoMsg', async key => {
+        const from = toYMD(new Date(Date.now() - 5 * 86400000));
+        const rows = await fetchWithCors(`https://api.tiingo.com/tiingo/fx/eurusd/prices?startDate=${from}&resampleFreq=1hour&token=${encodeURIComponent(key)}`, 12000);
+        if (!Array.isArray(rows)) throw new Error(rows?.detail || 'Geçersiz yanıt');
+        return `Başarılı: ${rows.length} örnek mum alındı.`;
+      });
+
+      bindKeyControls('tdKey', STORE.td, 'tdMsg', async key => {
+        const json = await fetchWithCors(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=1h&outputsize=2&apikey=${encodeURIComponent(key)}`, 12000);
+        if (json.status === 'error') throw new Error(json.message || 'Geçersiz anahtar');
+        if (!Array.isArray(json.values) || !json.values.length) throw new Error('Veri alınamadı');
+        return `Başarılı: EUR/USD doğrulandı (${json.values[0].datetime}).`;
+      });
+
+      bindKeyControls('fmpKey', STORE.fmp, 'fmpMsg', async key => {
+        const from = toYMD(new Date(Date.now() - 7 * 86400000));
+        const rows = await fetchWithCors(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=${from}&to=${toYMD(new Date())}&apikey=${encodeURIComponent(key)}`, 12000);
+        if (!Array.isArray(rows) || !rows.length) throw new Error(rows?.['Error Message'] || rows?.message || 'Veri alınamadı');
+        return `Başarılı: FMP bağlantısı doğrulandı (${rows[0].date}).`;
+      });
+
+      bindKeyControls('massiveKey', STORE.massive, 'massiveMsg', async key => {
+        const from = toYMD(new Date(Date.now() - 7 * 86400000));
+        const to = toYMD(new Date());
+        const json = await fetchWithCors(`https://api.massive.com/v2/aggs/ticker/C:EURUSD/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=10&apiKey=${encodeURIComponent(key)}`, 12000);
+        if (json?.status === 'ERROR' || json?.status === 'NOT_AUTHORIZED' || json?.error) throw new Error(json.error || json.message || 'Yetki/anahtar hatası');
+        return `Başarılı: Massive doğrulandı (${(json?.results || []).length} örnek bar).`;
+      });
+
+      $('proxySaveBtn').addEventListener('click', () => {
+        const val = $('customProxyInput').value.trim();
+        if (val && !val.startsWith('https://')) {
+          $('proxyMsg').className = 'msg-line err';
+          $('proxyMsg').textContent = 'Güvenlik kuralı gereği proxy adresi https:// ile başlamalıdır.';
+          return;
+        }
+        localStorage.setItem(STORE.proxy, val);
+        state.hostRouteMemory.clear();
+        refreshSettingsUi();
+        $('proxyMsg').className = `msg-line ${val ? 'ok' : ''}`;
+        $('proxyMsg').textContent = val ? 'Özel proxy kaydedildi.' : 'Temizlendi; hazır proxyler kullanılacak.';
+      });
+
+      $('proxyClearBtn').addEventListener('click', () => {
+        localStorage.removeItem(STORE.proxy);
+        state.hostRouteMemory.clear();
+        refreshSettingsUi();
+        $('proxyMsg').className = 'msg-line';
+        $('proxyMsg').textContent = 'Özel proxy kaldırıldı.';
+      });
+
+      $('resetAllSettingsBtn').addEventListener('click', () => {
+        Object.values(STORE).forEach(k => localStorage.removeItem(k));
+        state.hostRouteMemory.clear();
+        ['tiingoMsg', 'tdMsg', 'fmpMsg', 'massiveMsg', 'proxyMsg'].forEach(id => { $(id).textContent = ''; });
+        refreshSettingsUi();
+      });
+
+      document.querySelectorAll('.cat-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.cat = btn.dataset.cat;
+          const first = Object.values(PAIRS).find(p => p.cat === state.cat);
+          if (first) state.pair = first.code;
+          renderPairs();
+          updateSelectionInfo();
+        });
+      });
+
+      document.querySelectorAll('.quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyQuickRange(btn.dataset.range));
+      });
+
+      ['startDate', 'endDate'].forEach(id => {
+        $(id).addEventListener('change', () => {
+          document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+          updateSelectionInfo();
+        });
+      });
+
+      $('volumeChk').addEventListener('change', e => {
+        localStorage.setItem(STORE.vol, e.target.checked ? '1' : '0');
+        renderResultView();
+      });
+
+      $('clearLogBtn').addEventListener('click', () => {
+        state.logs = [];
+        renderLogs();
+      });
+
+      $('stopBtn').addEventListener('click', () => {
+        if (!state.fetching) return;
+        state.abortFetch = true;
+        $('stopBtn').disabled = true;
+        setStatus('busy', 'Durduruluyor...');
+        for (const ctrl of state.activeControllers) {
+          try { ctrl.abort(); } catch (_) {}
+        }
+      });
+
+      $('fetchBtn').addEventListener('click', async () => {
+        if (state.fetching) return;
+        state.fetching = true;
+        state.abortFetch = false;
+        $('fetchBtn').disabled = true;
+        $('stopBtn').disabled = false;
+        setStatus('busy', `${state.pair} verisi çekiliyor...`);
+        setProgress(2, `${state.pair} başlatılıyor...`);
+
+        try {
+          const data = await fetchAllData(state.pair, $('startDate').value, $('endDate').value);
+          state.result = data;
+          renderResultView();
+          const readyCount = ALL_TF.filter(tf => (data.tfBars[tf]?.length || 0) > 0).length;
+          setStatus('ok', state.abortFetch ? `Durduruldu (${readyCount}/11 Dilim)` : `Hazır (${readyCount}/11 Dilim)`);
+        } catch (e) {
+          setStatus('err', `Hata: ${e.message}`);
+          addLog(state.pair, 'Sistem', '-', `${$('startDate').value}–${$('endDate').value}`, 0, e.message, 'err');
+        } finally {
+          state.fetching = false;
+          state.abortFetch = false;
+          $('fetchBtn').disabled = false;
+          $('stopBtn').disabled = true;
+        }
+      });
+
+      $('downloadMergedBtn').addEventListener('click', () => {
+        if (!state.result) return;
+        const { pair, dec, startStr, endStr, tfBars } = state.result;
+        const incVol = $('volumeChk').checked;
+        const lines = [csvHeader(incVol)];
+        let countTf = 0;
+        for (const tf of ALL_TF) {
+          const bars = tfBars[tf];
+          if (!bars?.length) continue;
+          countTf++;
+          lines.push(...buildCsvRows(pair, tf, bars, dec, incVol));
+        }
+        downloadTextFile(`${pair}_BIRLESIK_${countTf}TF_${startStr}_${endStr}.csv`, lines.join('\n'));
+      });
+
+      refreshSettingsUi();
+      renderPairs();
+      applyQuickRange('1m');
+      renderLogs();
+    })();
+  </script>
+</body>
+</html>
