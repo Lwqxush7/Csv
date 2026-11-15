@@ -1,2188 +1,1445 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CFD Tarihsel Veri Merkezi</title>
-  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
-  <style>
-    :root {
-      --bg: #080d1a;
-      --surface: #10182b;
-      --surface-2: #162038;
-      --border: #253352;
-      --text: #dce6f7;
-      --muted: #8b9dc3;
-      --white: #ffffff;
-      --accent: #3b82f6;
-      --green: #10b981;
-      --amber: #f59e0b;
-      --red: #ef4444;
-      --cyan: #38bdf8;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
-      font-size: 14px;
-      line-height: 1.45;
-    }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 18px;
-    }
-    .header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-    .brand h1 { font-size: 17px; color: var(--white); font-weight: 700; }
-    .brand p { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .header-right { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 6px 12px; border-radius: 999px;
-      background: var(--surface-2); border: 1px solid var(--border);
-      font-size: 12px; font-weight: 600; color: var(--white);
-    }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
-    .dot.busy { background: var(--amber); }
-    .dot.err { background: var(--red); }
-
-    .btn {
-      appearance: none; border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 14px; background: var(--surface-2); color: var(--text);
-      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    }
-    .btn:hover:not(:disabled) { border-color: #4b6294; color: var(--white); }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn.active { border-color: var(--cyan); color: var(--white); background: rgba(56, 189, 248, 0.14); }
-    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--white); }
-    .btn-primary:hover:not(:disabled) { background: #2563eb; border-color: #2563eb; }
-    .btn-green { background: var(--green); border-color: var(--green); color: #052e20; }
-    .btn-green:hover:not(:disabled) { background: #059669; border-color: #059669; color: var(--white); }
-    .btn-danger { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
-    .btn-danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.25); }
-    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
-
-    .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
-      border: 1px solid var(--border); background: var(--surface-2); color: var(--muted);
-    }
-    .badge.ok { background: rgba(16, 185, 129, 0.14); border-color: rgba(16, 185, 129, 0.45); color: #34d399; }
-    .badge.partial { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.45); color: #fbbf24; }
-    .badge.err { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.45); color: #f87171; }
-
-    .settings-panel { display: none; flex-direction: column; gap: 14px; }
-    .settings-panel.open { display: flex; }
-    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .setting-box {
-      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
-      padding: 13px; display: flex; flex-direction: column; gap: 8px;
-    }
-    .setting-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .setting-head strong { font-size: 13px; color: var(--white); }
-    .setting-hint { font-size: 11.5px; color: var(--muted); }
-    .setting-row { display: flex; flex-wrap: wrap; gap: 6px; }
-    .msg-line { font-size: 11.5px; min-height: 16px; color: var(--muted); }
-    .msg-line.ok { color: #34d399; }
-    .msg-line.err { color: #f87171; }
-    .worker-details { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
-    .worker-details summary { cursor: pointer; color: var(--cyan); font-weight: 600; }
-    .worker-code {
-      margin-top: 6px; padding: 8px 10px; border-radius: 6px; background: var(--surface-2);
-      border: 1px solid var(--border); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px; color: var(--text); white-space: pre-wrap; user-select: all;
-    }
-
-    .input {
-      width: 100%; padding: 8px 10px; border-radius: 8px;
-      background: var(--bg); border: 1px solid var(--border); color: var(--white);
-      font-family: inherit; font-size: 13px; outline: none;
-    }
-    .input:focus { border-color: var(--accent); }
-
-    .cat-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    .cat-tab {
-      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
-      background: var(--surface-2); color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer;
-    }
-    .cat-tab:hover { color: var(--white); border-color: #4b6294; }
-    .cat-tab.active { background: var(--accent); border-color: var(--accent); color: var(--white); }
-
-    .pair-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-    .pair-btn {
-      padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border);
-      background: var(--bg); color: var(--text); text-align: left; cursor: pointer;
-      display: flex; flex-direction: column; gap: 2px;
-    }
-    .pair-btn:hover { border-color: #4b6294; }
-    .pair-btn.active { border-color: var(--cyan); background: rgba(56, 189, 248, 0.12); }
-    .pair-code { font-size: 14px; font-weight: 800; color: var(--white); }
-    .pair-name { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .date-row { display: grid; grid-template-columns: 1fr 1fr 2.2fr; gap: 12px; align-items: end; margin-bottom: 14px; }
-    .field { display: flex; flex-direction: column; gap: 5px; }
-    .field label { font-size: 12px; color: var(--muted); font-weight: 600; }
-    .quick-row { display: flex; flex-wrap: wrap; gap: 6px; }
-    .quick-btn {
-      padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
-      background: var(--bg); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer;
-    }
-    .quick-btn:hover { border-color: #4b6294; }
-    .quick-btn.active { border-color: var(--green); background: rgba(16, 185, 129, 0.14); color: #34d399; }
-
-    .action-bar {
-      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-      gap: 10px; padding-top: 12px; border-top: 1px solid var(--border);
-    }
-    .action-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    .chk-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; cursor: pointer; color: var(--text); }
-    .selection-info { font-size: 12px; color: var(--muted); }
-    .alert-line {
-      margin-top: 10px; padding: 8px 12px; border-radius: 8px; font-size: 12.5px; display: none;
-      background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5;
-    }
-    .alert-line.visible { display: block; }
-
-    .progress-wrap { margin-top: 12px; display: none; flex-direction: column; gap: 6px; }
-    .progress-wrap.visible { display: flex; }
-    .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
-    .progress-track { width: 100%; height: 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--green)); }
-
-    .results { display: none; flex-direction: column; gap: 16px; }
-    .results.visible { display: flex; }
-    .result-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-    .result-head h2 { font-size: 15px; color: var(--white); }
-    .result-head p { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-    .tf-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
-    .tf-card {
-      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
-      padding: 11px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 5px;
-    }
-    .tf-card:hover:not(.empty) { border-color: #4b6294; }
-    .tf-card.active { border-color: var(--cyan); background: rgba(56, 189, 248, 0.1); }
-    .tf-card.partial { border-color: rgba(245, 158, 11, 0.5); }
-    .tf-card.empty { opacity: 0.75; cursor: not-allowed; }
-    .tf-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-    .tf-name { font-size: 14px; font-weight: 800; color: var(--white); }
-    .tf-actions { display: flex; align-items: center; gap: 6px; }
-    .tf-meta { font-size: 11.5px; color: var(--text); }
-    .tf-src { font-size: 11px; color: var(--cyan); }
-    .tf-reason { font-size: 11px; color: var(--muted); line-height: 1.35; }
-    .tf-card.partial .tf-reason { color: #fbbf24; }
-    .tf-card.empty .tf-reason { color: #f87171; }
-
-    .chart-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-    .chart-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12.5px; color: var(--white); font-weight: 700; }
-    #chartEl { width: 100%; height: 400px; }
-
-    .table-wrap { overflow-x: auto; max-height: 280px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; text-align: left; }
-    th {
-      position: sticky; top: 0; background: var(--surface-2); color: var(--muted);
-      padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase;
-    }
-    td { padding: 7px 10px; border-bottom: 1px solid rgba(37, 51, 82, 0.6); white-space: nowrap; }
-
-    .log-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-    .log-head h3 { font-size: 14px; color: var(--white); }
-
-    @media (max-width: 960px) {
-      .pair-grid { grid-template-columns: repeat(3, 1fr); }
-      .tf-grid { grid-template-columns: repeat(2, 1fr); }
-      .date-row, .settings-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 600px) {
-      .pair-grid { grid-template-columns: repeat(2, 1fr); }
-      .tf-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFD Veri Merkezi</title>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{--bg:#0a0f1e;--card:#111a2e;--card2:#0d1526;--border:rgba(140,170,220,.15);--text:#c5d5f5;--muted:#8fa4c8;--white:#fff;--green:#55e5b1;--red:#ff829d;--gold:#f7b94b;--cyan:#56b4ff;--grid:rgba(140,170,220,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;font-size:14px}
+.wrap{max-width:1200px;margin:0 auto;padding:16px 14px 40px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#677CEB,#55E5B1);color:#0a0f1e;font-weight:900;font-size:12px;display:flex;align-items:center;justify-content:center}
+.brand h1{font-size:16px;font-weight:800;color:var(--white)}
+.brand p{font-size:11.5px;color:var(--muted);margin-top:2px}
+.status{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:999px;background:var(--card2);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--white)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.busy{background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pulse 1s infinite}
+.dot.err{background:var(--red);box-shadow:0 0 8px var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.step-title{font-size:13px;font-weight:800;color:var(--white);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.num{width:22px;height:22px;border-radius:6px;background:rgba(103,124,235,.2);border:1px solid rgba(103,124,235,.5);color:var(--cyan);font-size:11px;display:inline-flex;align-items:center;justify-content:center}
+.hint{font-size:11.5px;color:var(--muted)}
+.cat-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.cat-tab{padding:9px 16px;border-radius:10px;background:var(--card2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.cat-tab:hover{border-color:rgba(255,255,255,.25)}
+.cat-tab.active{background:rgba(86,180,255,.15);border-color:var(--cyan);color:var(--white)}
+.pairs-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.pair-btn{padding:11px 12px;border-radius:10px;background:var(--card2);border:1px solid var(--border);cursor:pointer;color:inherit;text-align:left;font-family:inherit;transition:.15s}
+.pair-btn:hover{border-color:rgba(255,255,255,.28)}
+.pair-btn.active{border-color:var(--cyan);background:rgba(86,180,255,.12)}
+.pair-code{font-size:13.5px;font-weight:800;color:var(--white);display:block}
+.pair-name{font-size:10.5px;color:var(--muted);margin-top:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.date-bar{display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px;align-items:end;margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:var(--muted)}
+.input,.select{width:100%;padding:9px 11px;border-radius:9px;background:var(--card2);border:1px solid var(--border);color:var(--white);font-size:12.5px;font-family:inherit;outline:none;color-scheme:dark}
+.input:focus,.select:focus{border-color:var(--cyan)}
+.quick-pills{display:flex;flex-wrap:wrap;gap:6px}
+.q-pill{padding:8px 11px;border-radius:9px;background:var(--card2);border:1px solid var(--border);color:var(--text);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.q-pill:hover{border-color:rgba(255,255,255,.3);color:var(--white)}
+.q-pill.active{background:rgba(85,229,177,.15);border-color:var(--green);color:var(--green)}
+.options-strip{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:9px;background:var(--card2);border:1px solid var(--grid);margin-bottom:12px;font-size:12px}
+.chk-label{display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:var(--text);font-weight:600}
+.chk-label input{cursor:pointer;accent-color:var(--cyan)}
+.action-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.btn{appearance:none;border:1px solid transparent;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,#677CEB,#4A63DF);color:#fff}
+.btn-primary:hover:not(:disabled){filter:brightness(1.1)}
+.btn-danger{background:rgba(255,130,157,.15);border-color:rgba(255,130,157,.55);color:var(--red)}
+.btn-green{background:linear-gradient(135deg,#55e5b1,#31c992);color:#0a0f1e}
+.btn-ghost{background:rgba(140,170,220,.08);border-color:var(--border);color:var(--text);padding:8px 12px;font-size:12px;font-weight:700}
+.btn-ghost:hover{background:rgba(140,170,220,.16);color:var(--white)}
+.progress-wrap{height:6px;background:var(--card2);border-radius:3px;overflow:hidden;margin-top:8px;display:none}
+.progress-wrap.active{display:block}
+.progress-fill{height:100%;background:linear-gradient(90deg,#56b4ff,#55e5b1);width:0%;transition:width .3s}
+#progressLabel{font-size:11.5px;color:var(--muted);margin-top:6px;min-height:16px}
+.result-card{display:none;flex-direction:column;gap:14px}
+.result-card.visible{display:flex}
+.merged-hero{padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,rgba(85,229,177,.1),rgba(103,124,235,.12));border:1px solid rgba(85,229,177,.4);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.merged-hero h2{font-size:14px;font-weight:800;color:var(--white);margin-bottom:3px}
+.merged-hero p{font-size:12px;color:var(--text)}
+.tf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.tf-box{padding:11px 12px;border-radius:11px;background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:3px}
+.tf-box:hover:not(.empty){border-color:rgba(255,255,255,.28)}
+.tf-box.active{border-color:var(--cyan);background:rgba(86,180,255,.12)}
+.tf-box.partial{border-color:rgba(247,185,75,.5)}
+.tf-box.empty{opacity:.65;cursor:default}
+.tf-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.tf-name{font-size:13px;font-weight:800;color:var(--white)}
+.tf-badge{font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px}
+.tf-badge.ok{background:rgba(85,229,177,.18);color:var(--green);border:1px solid rgba(85,229,177,.4)}
+.tf-badge.partial{background:rgba(247,185,75,.18);color:var(--gold);border:1px solid rgba(247,185,75,.4)}
+.tf-badge.empty{background:rgba(255,130,157,.18);color:var(--red);border:1px solid rgba(255,130,157,.4)}
+.tf-count{font-size:11px;color:var(--muted)}
+.tf-span{font-size:10.5px;color:var(--cyan)}
+.tf-src{font-size:10.5px;color:var(--muted)}
+.tf-note{font-size:10.5px;font-weight:700;margin-top:2px;line-height:1.3;color:var(--gold)}
+.tf-actions{display:flex;gap:6px;margin-top:6px}
+.tf-dl{padding:4px 8px;border-radius:6px;background:rgba(85,229,177,.14);border:1px solid rgba(85,229,177,.4);color:var(--green);font-size:10.5px;font-weight:800;cursor:pointer;font-family:inherit}
+.tf-dl:hover{background:rgba(85,229,177,.25)}
+.chart-toolbar{padding:9px 12px;border-radius:10px;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px}
+.chart-toolbar .active{color:var(--cyan);font-weight:700}
+.chart-container{width:100%;height:400px;border-radius:10px;overflow:hidden;background:var(--card2);border:1px solid var(--border);position:relative}
+.chart-msg{padding:80px 20px;text-align:center;color:var(--muted);font-size:13px}
+.table-box{overflow:auto;max-height:220px;border-radius:9px;border:1px solid var(--grid);background:var(--card2)}
+table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums;text-align:left}
+th{position:sticky;top:0;padding:8px 10px;background:#0d1526;color:var(--muted);font-size:10.5px;text-transform:uppercase;border-bottom:1px solid var(--border);z-index:1}
+td{padding:6px 10px;border-bottom:1px solid var(--grid);color:var(--text);white-space:nowrap}
+details{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+details summary{cursor:pointer;font-size:13.5px;font-weight:800;color:var(--white);list-style:none;display:flex;align-items:center;justify-content:space-between}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:'▾';color:var(--muted);font-size:12px;transition:.2s}
+details[open] summary::after{transform:rotate(180deg)}
+details > *:not(summary){margin-top:12px}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.settings-box{padding:13px 14px;border-radius:11px;background:var(--card2);border:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.settings-box h3{font-size:13px;font-weight:800;color:var(--white);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.settings-box .hint{font-size:11px;line-height:1.4}
+.badge{font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(140,170,220,.08);color:var(--muted)}
+.badge.ok{background:rgba(85,229,177,.15);border-color:rgba(85,229,177,.5);color:var(--green)}
+.badge.warn{background:rgba(247,185,75,.15);border-color:rgba(247,185,75,.5);color:var(--gold)}
+.settings-btns{display:flex;flex-wrap:wrap;gap:6px}
+.test-msg{font-size:11px;font-weight:600;min-height:14px}
+.test-msg.ok{color:var(--green)}
+.test-msg.err{color:var(--red)}
+.test-msg.info{color:var(--cyan)}
+.log-box{max-height:320px;overflow:auto;font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--card2);border-radius:9px;border:1px solid var(--grid);padding:8px 10px}
+.log-row{padding:3px 0;border-bottom:1px solid var(--grid);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.log-row:last-child{border-bottom:none}
+.log-time{color:var(--muted);font-size:10px;min-width:52px}
+.log-tf{color:var(--cyan);font-weight:700;min-width:32px}
+.log-src{color:var(--gold);min-width:80px}
+.log-msg{color:var(--text);flex:1;word-break:break-word}
+.log-msg.err{color:var(--red)}
+.log-msg.ok{color:var(--green)}
+.log-msg.partial{color:var(--gold)}
+.toast-box{position:fixed;bottom:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px}
+.toast{padding:10px 14px;border-radius:9px;background:#0d1526;border:1px solid var(--border);color:var(--white);font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.toast.ok{border-color:var(--green)}
+.toast.err{border-color:var(--red)}
+.toast.info{border-color:var(--cyan)}
+@media(max-width:960px){.pairs-grid{grid-template-columns:repeat(3,1fr)}.tf-grid{grid-template-columns:repeat(2,1fr)}.date-bar{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.pairs-grid{grid-template-columns:repeat(2,1fr)}.tf-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="card header">
-      <div class="brand">
-        <h1>📊 CFD Tarihsel Veri Merkezi</h1>
-        <p>15 Enstrüman (Forex, Endeks, Emtia) • 11 Zaman Dilimi • Sabit ISO UTC CSV</p>
-      </div>
-      <div class="header-right">
-        <button type="button" id="settingsToggleBtn" class="btn">⚙ Ayarlar <span id="settingsKeyCount" class="badge">0 Anahtar</span></button>
-        <div class="status-pill"><span id="statusDot" class="dot"></span><span id="statusText">Hazır</span></div>
-      </div>
-    </header>
-
-    <section id="settingsPanel" class="card settings-panel">
-      <div class="setting-head">
-        <strong style="font-size:15px;">⚙ API Anahtarları ve Proxy Ayarları (localStorage)</strong>
-        <button type="button" id="resetAllSettingsBtn" class="btn btn-danger btn-sm">Tümünü Sıfırla</button>
-      </div>
-      <div class="settings-grid">
-        <div class="setting-box">
-          <div class="setting-head"><strong>Tiingo API Token (Forex &amp; Altın/Gümüş)</strong><span id="tiingoBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Tarayıcı CORS başlığı göndermez; proxy üzerinden Forex, XAUUSD ve XAGUSD spot çeker.</div>
-          <input type="password" id="tiingoKey" class="input" placeholder="Tiingo token girin" autocomplete="off" />
-          <div class="setting-row">
-            <button type="button" id="tiingoSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
-            <button type="button" id="tiingoTestBtn" class="btn btn-sm">Test Et</button>
-            <button type="button" id="tiingoClearBtn" class="btn btn-danger btn-sm">Temizle</button>
-          </div>
-          <div id="tiingoMsg" class="msg-line"></div>
-        </div>
-
-        <div class="setting-box">
-          <div class="setting-head"><strong>Twelve Data API Key (Forex &amp; Emtia)</strong><span id="tdBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Doğrudan CORS destekler; 8 istek/dk korumasıyla çalışır.</div>
-          <input type="password" id="tdKey" class="input" placeholder="Twelve Data key girin" autocomplete="off" />
-          <div class="setting-row">
-            <button type="button" id="tdSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
-            <button type="button" id="tdTestBtn" class="btn btn-sm">Test Et</button>
-            <button type="button" id="tdClearBtn" class="btn btn-danger btn-sm">Temizle</button>
-          </div>
-          <div id="tdMsg" class="msg-line"></div>
-        </div>
-
-        <div class="setting-box">
-          <div class="setting-head"><strong>FMP API Key (Endeks, Forex &amp; Emtia)</strong><span id="fmpBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Doğrudan CORS destekler; ücretsiz planda bazı pariteler kısıtlı olabilir.</div>
-          <input type="password" id="fmpKey" class="input" placeholder="FMP key girin" autocomplete="off" />
-          <div class="setting-row">
-            <button type="button" id="fmpSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
-            <button type="button" id="fmpTestBtn" class="btn btn-sm">Test Et</button>
-            <button type="button" id="fmpClearBtn" class="btn btn-danger btn-sm">Temizle</button>
-          </div>
-          <div id="fmpMsg" class="msg-line"></div>
-        </div>
-
-        <div class="setting-box">
-          <div class="setting-head"><strong>Massive API Key (Yedek • 5 istek/dk)</strong><span id="massiveBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Doğrudan CORS destekler; url?apiKey=... ile Forex, Altın/Gümüş ve endeks yedeği.</div>
-          <input type="password" id="massiveKey" class="input" placeholder="Massive apiKey girin" autocomplete="off" />
-          <div class="setting-row">
-            <button type="button" id="massiveSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
-            <button type="button" id="massiveTestBtn" class="btn btn-sm">Test Et</button>
-            <button type="button" id="massiveClearBtn" class="btn btn-danger btn-sm">Temizle</button>
-          </div>
-          <div id="massiveMsg" class="msg-line"></div>
-        </div>
-
-        <div class="setting-box" style="grid-column: 1 / -1;">
-          <div class="setting-head"><strong>Özel CORS Proxy Adresim (Cloudflare Worker — İsteğe Bağlı)</strong><span id="proxyBadge" class="badge">Hazır Proxy</span></div>
-          <div class="setting-hint">Önce doğrudan denenir; olmazsa bu proxy, sonra Cors.dev, AllOrigins, CorsProxy.io ve CodeTabs sırayla denenir.</div>
-          <div class="setting-row" style="align-items:center;">
-            <input type="text" id="customProxyInput" class="input" style="flex:1; min-width:240px;" placeholder="https://worker-adiniz.workers.dev/?url=" autocomplete="off" />
-            <button type="button" id="proxySaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
-            <button type="button" id="proxyTestBtn" class="btn btn-sm">Test Et</button>
-            <button type="button" id="proxyClearBtn" class="btn btn-danger btn-sm">Temizle</button>
-          </div>
-          <div id="proxyMsg" class="msg-line"></div>
-          <details class="worker-details">
-            <summary>Hazır Cloudflare Worker proxy kodu (Yahoo ve Tiingo için kendi ücretsiz proxy'nizi kurmak isterseniz)</summary>
-            <pre class="worker-code">export default {
-  async fetch(req) {
-    const target = new URL(req.url).searchParams.get('url');
-    if (!target) return new Response('?url= gerekli', { status: 400 });
-    const res = await fetch(target, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const body = await res.text();
-    return new Response(body, { status: res.status, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': res.headers.get('Content-Type') || 'application/json' } });
-  }
-};</pre>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div id="catTabs" class="cat-tabs">
-        <button type="button" class="cat-tab" data-cat="forex">Forex (5)</button>
-        <button type="button" class="cat-tab" data-cat="index">Endeks (5)</button>
-        <button type="button" class="cat-tab active" data-cat="commodity">Emtia (5)</button>
-      </div>
-      <div id="pairGrid" class="pair-grid"></div>
-
-      <div class="date-row">
-        <div class="field">
-          <label for="startDate">Başlangıç Tarihi</label>
-          <input type="date" id="startDate" class="input" />
-        </div>
-        <div class="field">
-          <label for="endDate">Bitiş Tarihi</label>
-          <input type="date" id="endDate" class="input" />
-        </div>
-        <div class="field">
-          <label>Hızlı Aralık</label>
-          <div class="quick-row">
-            <button type="button" class="quick-btn" data-range="7d">7 Gün</button>
-            <button type="button" class="quick-btn active" data-range="1m">1 Ay</button>
-            <button type="button" class="quick-btn" data-range="3m">3 Ay</button>
-            <button type="button" class="quick-btn" data-range="6m">6 Ay</button>
-            <button type="button" class="quick-btn" data-range="1y">1 Yıl</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="action-bar">
-        <div class="action-left">
-          <button type="button" id="fetchBtn" class="btn btn-primary">▶ Veriyi Çek</button>
-          <button type="button" id="stopBtn" class="btn btn-danger" disabled>■ Durdur</button>
-          <label class="chk-label">
-            <input type="checkbox" id="volumeChk" checked />
-            <span>CSV'de volume sütunu olsun</span>
-          </label>
-        </div>
-        <div id="selectionInfo" class="selection-info"></div>
-      </div>
-
-      <div id="alertLine" class="alert-line"></div>
-
-      <div id="progressWrap" class="progress-wrap">
-        <div class="progress-meta">
-          <span id="progressText">Hazırlanıyor...</span>
-          <span id="progressPct">%0</span>
-        </div>
-        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-      </div>
-    </section>
-
-    <section id="resultSection" class="card results">
-      <div class="result-head">
-        <div>
-          <h2 id="resultTitle">Sonuçlar</h2>
-          <p id="resultSubtitle"></p>
-        </div>
-        <button type="button" id="downloadMergedBtn" class="btn btn-green">⬇ Tek Birleşik CSV İndir</button>
-      </div>
-
-      <div id="tfGrid" class="tf-grid"></div>
-
-      <div class="chart-box">
-        <div class="chart-head">
-          <span id="chartTitle">Mum Grafiği</span>
-          <span class="setting-hint">Karta tıklayarak zaman dilimini değiştirin</span>
-        </div>
-        <div id="chartEl"></div>
-      </div>
-
+<div class="wrap">
+  <header class="card header">
+    <div class="brand">
+      <div class="logo">CFD</div>
       <div>
-        <div class="log-head">
-          <h3>Son 30 Mum Önizleme</h3>
-          <span id="tableInfo" class="setting-hint"></span>
+        <h1>CFD Veri Merkezi</h1>
+        <p>15 Enstrüman · 11 Zaman Dilimi · Sabit CSV</p>
+      </div>
+    </div>
+    <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Hazır</span></div>
+  </header>
+
+  <section class="card">
+    <div class="step-title"><span class="num">1</span> Kategori &amp; Parite</div>
+    <div class="cat-tabs" id="catTabs">
+      <button type="button" class="cat-tab active" data-cat="forex">Forex</button>
+      <button type="button" class="cat-tab" data-cat="index">Endeks</button>
+      <button type="button" class="cat-tab" data-cat="commodity">Emtia</button>
+    </div>
+    <div class="pairs-grid" id="pairsGrid"></div>
+
+    <div class="step-title" style="margin-top:6px"><span class="num">2</span> Tarih Aralığı</div>
+    <div class="date-bar">
+      <div class="field"><label for="startDate">Başlangıç</label><input type="date" id="startDate" class="input"></div>
+      <div class="field"><label for="endDate">Bitiş</label><input type="date" id="endDate" class="input"></div>
+      <div class="field">
+        <label>Hızlı Seçim</label>
+        <div class="quick-pills">
+          <button type="button" class="q-pill" data-days="7">7 Gün</button>
+          <button type="button" class="q-pill" data-days="30">1 Ay</button>
+          <button type="button" class="q-pill" data-days="90">3 Ay</button>
+          <button type="button" class="q-pill" data-days="180">6 Ay</button>
+          <button type="button" class="q-pill" data-days="365">1 Yıl</button>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead id="tableHead"></thead>
-            <tbody id="tableBody"></tbody>
-          </table>
+      </div>
+    </div>
+
+    <div class="options-strip">
+      <label class="chk-label"><input type="checkbox" id="volumeChk" checked> CSV'de volume sütunu olsun</label>
+      <span class="hint" id="selectionHint">Seçim: —</span>
+    </div>
+
+    <div class="action-row">
+      <button type="button" id="fetchBtn" class="btn btn-primary">Veriyi Çek</button>
+      <button type="button" id="stopBtn" class="btn btn-danger" disabled>Durdur</button>
+    </div>
+    <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+    <div id="progressLabel"></div>
+  </section>
+
+  <section class="card result-card" id="resultCard">
+    <div class="merged-hero">
+      <div>
+        <h2 id="mergedTitle">Sonuç</h2>
+        <p id="mergedDesc">—</p>
+      </div>
+      <button type="button" id="downloadMergedBtn" class="btn btn-green">Tek Birleşik CSV İndir</button>
+    </div>
+    <div>
+      <div class="step-title" style="font-size:12px;color:var(--muted);margin-bottom:6px">Zaman Dilimleri — Karta tıklayınca grafik açılır</div>
+      <div class="tf-grid" id="tfGrid"></div>
+    </div>
+    <div class="chart-toolbar">
+      <span class="active" id="activeTfLabel">Aktif: —</span>
+      <span class="hint" id="chartHint">—</span>
+    </div>
+    <div class="chart-container" id="chartContainer"><div class="chart-msg">Bir zaman dilimine tıklayın</div></div>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>symbol</th><th>tf</th><th>time</th><th>open</th><th>high</th><th>low</th><th>close</th><th>volume</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <details id="settingsDetails">
+    <summary>Ayarlar — API Anahtarları &amp; Proxy</summary>
+    <div class="settings-grid">
+      <div class="settings-box">
+        <h3><span>Tiingo FX Token</span><span class="badge" id="tiingoBadge">Yok</span></h3>
+        <p class="hint">Forex + Altın/Gümüş (spot). M1 dahil yıllarca geçmiş.</p>
+        <input type="password" id="tiingoKeyInput" class="input" placeholder="Tiingo token">
+        <div class="settings-btns">
+          <button type="button" class="btn btn-ghost" data-save="tiingo">Kaydet</button>
+          <button type="button" class="btn btn-ghost" data-test="tiingo">Test</button>
+          <button type="button" class="btn btn-ghost" data-clear="tiingo">Temizle</button>
+        </div>
+        <div class="test-msg" id="tiingoMsg"></div>
+      </div>
+      <div class="settings-box">
+        <h3><span>Twelve Data Anahtarı</span><span class="badge" id="tdBadge">Yok</span></h3>
+        <p class="hint">Forex/Endeks/Emtia yedek. 8 istek/dk, 800/gün.</p>
+        <input type="password" id="tdKeyInput" class="input" placeholder="Twelve Data key">
+        <div class="settings-btns">
+          <button type="button" class="btn btn-ghost" data-save="td">Kaydet</button>
+          <button type="button" class="btn btn-ghost" data-test="td">Test</button>
+          <button type="button" class="btn btn-ghost" data-clear="td">Temizle</button>
+        </div>
+        <div class="test-msg" id="tdMsg"></div>
+      </div>
+      <div class="settings-box">
+        <h3><span>FMP Anahtarı</span><span class="badge" id="fmpBadge">Yok</span></h3>
+        <p class="hint">Endeks + Emtia + Forex yedek. 250 istek/gün.</p>
+        <input type="password" id="fmpKeyInput" class="input" placeholder="FMP key">
+        <div class="settings-btns">
+          <button type="button" class="btn btn-ghost" data-save="fmp">Kaydet</button>
+          <button type="button" class="btn btn-ghost" data-test="fmp">Test</button>
+          <button type="button" class="btn btn-ghost" data-clear="fmp">Temizle</button>
+        </div>
+        <div class="test-msg" id="fmpMsg"></div>
+      </div>
+      <div class="settings-box">
+        <h3><span>Massive Anahtarı</span><span class="badge" id="massiveBadge">Yok</span></h3>
+        <p class="hint">Son yedek. 5 istek/dk, ~2 yıl geçmiş.</p>
+        <input type="password" id="massiveKeyInput" class="input" placeholder="Massive API key">
+        <div class="settings-btns">
+          <button type="button" class="btn btn-ghost" data-save="massive">Kaydet</button>
+          <button type="button" class="btn btn-ghost" data-test="massive">Test</button>
+          <button type="button" class="btn btn-ghost" data-clear="massive">Temizle</button>
+        </div>
+        <div class="test-msg" id="massiveMsg"></div>
+      </div>
+      <div class="settings-box" style="grid-column:1/-1">
+        <h3><span>Kendi Proxy Adresim (İsteğe Bağlı)</span></h3>
+        <p class="hint">Cloudflare Worker URL'niz. Boşsa hazır proxy'ler sırayla denenir. Örnek: <code>https://benim.workers.dev/?url=</code></p>
+        <input type="text" id="proxyUrlInput" class="input" placeholder="https://benim-proxy.workers.dev/?url=">
+        <div class="settings-btns">
+          <button type="button" class="btn btn-ghost" data-save="proxy">Kaydet</button>
+          <button type="button" class="btn btn-ghost" data-clear="proxy">Temizle</button>
         </div>
       </div>
-    </section>
+    </div>
+  </details>
 
-    <section class="card">
-      <div class="log-head">
-        <h3>📋 Kaynak Günlüğü <span id="logCount" class="badge">0 Kayıt</span></h3>
-        <button type="button" id="clearLogBtn" class="btn btn-sm">Günlüğü Temizle</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Saat</th>
-              <th>Parite</th>
-              <th>Kaynak</th>
-              <th>Dilim</th>
-              <th>İstenen Aralık</th>
-              <th>Gelen Mum</th>
-              <th>Durum / Mesaj</th>
-            </tr>
-          </thead>
-          <tbody id="logBody">
-            <tr><td colspan="7" style="color:var(--muted);">Henüz kaynak isteği yapılmadı.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
+  <details id="logDetails" open>
+    <summary>Kaynak Günlüğü</summary>
+    <div class="log-box" id="sourceLog"><div class="hint">Henüz istek yok.</div></div>
+  </details>
+</div>
 
-  <script>
-    (() => {
-      'use strict';
+<div class="toast-box" id="toastBox"></div>
 
-      const ALL_TF = ['M1', 'M3', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'D1', 'W1', 'MN1'];
-      const TF_SEC = { M1: 60, M3: 180, M5: 300, M15: 900, M30: 1800, H1: 3600, H2: 7200, H4: 14400, D1: 86400, W1: 604800, MN1: 2592000 };
+<script>
+(function(){
+'use strict';
 
-      const PAIRS = {
-        EURUSD: { code: 'EURUSD', cat: 'forex', name: 'Euro / ABD Doları', dec: 5, yahoo: 'EURUSD=X', yahooAlt: null, tiingo: 'eurusd', td: 'EUR/USD', fmp: 'EURUSD', biquote: 'EURUSD', biquoteAlt: [], massive: 'C:EURUSD', tz: 'UTC' },
-        GBPUSD: { code: 'GBPUSD', cat: 'forex', name: 'Sterlin / ABD Doları', dec: 5, yahoo: 'GBPUSD=X', yahooAlt: null, tiingo: 'gbpusd', td: 'GBP/USD', fmp: 'GBPUSD', biquote: 'GBPUSD', biquoteAlt: [], massive: 'C:GBPUSD', tz: 'UTC' },
-        USDJPY: { code: 'USDJPY', cat: 'forex', name: 'ABD Doları / Japon Yeni', dec: 3, yahoo: 'USDJPY=X', yahooAlt: null, tiingo: 'usdjpy', td: 'USD/JPY', fmp: 'USDJPY', biquote: 'USDJPY', biquoteAlt: [], massive: 'C:USDJPY', tz: 'UTC' },
-        USDCHF: { code: 'USDCHF', cat: 'forex', name: 'ABD Doları / İsviçre Frangı', dec: 5, yahoo: 'USDCHF=X', yahooAlt: null, tiingo: 'usdchf', td: 'USD/CHF', fmp: 'USDCHF', biquote: 'USDCHF', biquoteAlt: [], massive: 'C:USDCHF', tz: 'UTC' },
-        AUDUSD: { code: 'AUDUSD', cat: 'forex', name: 'Avustralya Doları / USD', dec: 5, yahoo: 'AUDUSD=X', yahooAlt: null, tiingo: 'audusd', td: 'AUD/USD', fmp: 'AUDUSD', biquote: 'AUDUSD', biquoteAlt: [], massive: 'C:AUDUSD', tz: 'UTC' },
+/* ==================== CONSTANTS ==================== */
+var PAIRS = {
+  EURUSD:{cat:'forex',name:'Euro / USD',yahoo:'EURUSD=X',tiingo:'eurusd',td:'EUR/USD',fmp:'EURUSD',massive:'C:EURUSD',biquote:'EURUSD',dec:5},
+  GBPUSD:{cat:'forex',name:'Sterlin / USD',yahoo:'GBPUSD=X',tiingo:'gbpusd',td:'GBP/USD',fmp:'GBPUSD',massive:'C:GBPUSD',biquote:'GBPUSD',dec:5},
+  USDJPY:{cat:'forex',name:'USD / JPY',yahoo:'USDJPY=X',tiingo:'usdjpy',td:'USD/JPY',fmp:'USDJPY',massive:'C:USDJPY',biquote:'USDJPY',dec:3},
+  USDCHF:{cat:'forex',name:'USD / CHF',yahoo:'USDCHF=X',tiingo:'usdchf',td:'USD/CHF',fmp:'USDCHF',massive:'C:USDCHF',biquote:'USDCHF',dec:5},
+  AUDUSD:{cat:'forex',name:'AUD / USD',yahoo:'AUDUSD=X',tiingo:'audusd',td:'AUD/USD',fmp:'AUDUSD',massive:'C:AUDUSD',biquote:'AUDUSD',dec:5},
+  NAS100:{cat:'index',name:'Nasdaq 100',yahoo:'^NDX',yahooFb:'NQ=F',fmp:'^NDX',massive:'I:NDX',biquote:'USTEC',dec:2},
+  SP500:{cat:'index',name:'S&P 500',yahoo:'^GSPC',yahooFb:'ES=F',fmp:'^GSPC',massive:'I:SPX',biquote:'US500',dec:2},
+  US30:{cat:'index',name:'Dow Jones 30',yahoo:'^DJI',yahooFb:'YM=F',fmp:'^DJI',massive:'I:DJI',biquote:'US30',dec:2},
+  GER40:{cat:'index',name:'DAX 40',yahoo:'^GDAXI',fmp:'^GDAXI',biquote:'DE30',dec:2},
+  UK100:{cat:'index',name:'FTSE 100',yahoo:'^FTSE',fmp:'^FTSE',biquote:'UK100',dec:2},
+  XAUUSD:{cat:'commodity',name:'Altın (Spot)',yahoo:'XAUUSD=X',yahooFb:'GC=F',tiingo:'xauusd',td:'XAU/USD',fmp:'GCUSD',massive:'C:XAUUSD',biquote:'XAUUSD',dec:2,isMetal:true},
+  XAGUSD:{cat:'commodity',name:'Gümüş (Spot)',yahoo:'XAGUSD=X',yahooFb:'SI=F',tiingo:'xagusd',td:'XAG/USD',fmp:'SIUSD',massive:'C:XAGUSD',biquote:'XAGUSD',dec:3,isMetal:true},
+  USOIL:{cat:'commodity',name:'WTI Ham Petrol',yahoo:'CL=F',td:'WTI/USD',fmp:'CLUSD',biquote:'USOIL',dec:2},
+  UKOIL:{cat:'commodity',name:'Brent Ham Petrol',yahoo:'BZ=F',td:'XBR/USD',fmp:'BZUSD',biquote:'UKOIL',dec:2},
+  NATGAS:{cat:'commodity',name:'Doğalgaz',yahoo:'NG=F',td:'NG/USD',fmp:'NGUSD',biquote:'NATGAS',dec:3}
+};
 
-        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: '^NDX', yahooAlt: 'NQ=F', tiingo: null, td: null, fmp: '^NDX', biquote: 'USTEC', biquoteAlt: ['NAS100', 'US100'], massive: 'I:NDX', tz: 'America/New_York' },
-        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: '^GSPC', yahooAlt: 'ES=F', tiingo: null, td: null, fmp: '^GSPC', biquote: 'US500', biquoteAlt: ['SP500', 'SPX500'], massive: 'I:SPX', tz: 'America/New_York' },
-        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: '^DJI', yahooAlt: 'YM=F', tiingo: null, td: null, fmp: '^DJI', biquote: 'US30', biquoteAlt: ['DJ30'], massive: 'I:DJI', tz: 'America/New_York' },
-        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: '^GDAXI', yahooAlt: null, tiingo: null, td: null, fmp: '^GDAXI', biquote: 'DE30', biquoteAlt: ['DE40', 'GER40'], massive: null, tz: 'Europe/Berlin' },
-        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: '^FTSE', yahooAlt: null, tiingo: null, td: null, fmp: '^FTSE', biquote: 'UK100', biquoteAlt: ['FTSE100'], massive: null, tz: 'Europe/London' },
+var TF_LIST = ['M1','M3','M5','M15','M30','H1','H2','H4','D1','W1','MN1'];
+var TF_SEC = {M1:60,M3:180,M5:300,M15:900,M30:1800,H1:3600,H2:7200,H4:14400,D1:86400,W1:604800,MN1:2592000};
+var ALWAYS_DERIVE = {M3:'M1', H2:'H1', H4:'H1'};
+var CAN_DERIVE = {M15:'M5', M30:'M5', W1:'D1', MN1:'D1'};
 
-        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'XAUUSD=X', yahooLastResort: 'GC=F', isSpotMetal: true, tiingo: 'xauusd', td: 'XAU/USD', fmp: 'GCUSD', biquote: 'XAUUSD', biquoteAlt: [], massive: 'C:XAUUSD', tz: 'UTC' },
-        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'XAGUSD=X', yahooLastResort: 'SI=F', isSpotMetal: true, tiingo: 'xagusd', td: 'XAG/USD', fmp: 'SIUSD', biquote: 'XAGUSD', biquoteAlt: [], massive: 'C:XAGUSD', tz: 'UTC' },
-        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooAlt: null, tiingo: null, td: 'WTI/USD', fmp: 'CLUSD', biquote: 'USOIL', biquoteAlt: ['WTI'], massive: null, tz: 'America/New_York' },
-        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooAlt: null, tiingo: null, td: 'XBR/USD', fmp: 'BZUSD', biquote: 'UKOIL', biquoteAlt: ['BRENT'], massive: null, tz: 'Europe/London' },
-        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooAlt: null, tiingo: null, td: 'NG/USD',  fmp: 'NGUSD', biquote: 'NATGAS', biquoteAlt: ['NGAS'], massive: null, tz: 'America/New_York' }
-      };
+var YAHOO_INT = {M1:'1m',M5:'5m',M15:'15m',M30:'30m',H1:'60m',D1:'1d',W1:'1wk',MN1:'1mo'};
+var YAHOO_MAX_DAYS = {M1:29,M5:59,M15:59,M30:59,H1:720};
+var TD_INT = {M1:'1min',M5:'5min',M15:'15min',M30:'30min',H1:'1h',D1:'1day'};
+var TIINGO_INT = {M1:'1min',M5:'5min',M15:'15min',M30:'30min',H1:'1hour',D1:'1day'};
+var FMP_INT = {M1:'1min',M5:'5min',M15:'15min',M30:'30min',H1:'1hour',D1:'1day'};
+var MASSIVE_INT = {M1:['1','minute'],M5:['5','minute'],M15:['15','minute'],M30:['30','minute'],H1:['1','hour'],D1:['1','day'],W1:['1','week'],MN1:['1','month']};
+var BIQUOTE_INT = {M1:'1m',M5:'5m',M15:'15m',M30:'30m',H1:'1h',D1:'1d'};
 
-      const STORE = {
-        tiingo: 'cfd_key_tiingo',
-        td: 'cfd_key_twelvedata',
-        fmp: 'cfd_key_fmp',
-        massive: 'cfd_key_massive',
-        proxy: 'cfd_custom_proxy',
-        vol: 'cfd_include_volume'
-      };
+var SK = {tiingo:'cfd_tiingo_key',td:'cfd_td_key',fmp:'cfd_fmp_key',massive:'cfd_massive_key',proxy:'cfd_proxy_url',vol:'cfd_volume'};
 
-      const TIINGO_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1hour', D1: '1day' };
-      const TD_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1h', H4: '4h', D1: '1day' };
-      const FMP_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1hour', H4: '4hour', D1: '1day' };
-      const MASSIVE_TF = {
-        M1: [1, 'minute'], M5: [5, 'minute'], M15: [15, 'minute'], M30: [30, 'minute'],
-        H1: [1, 'hour'], H4: [4, 'hour'], D1: [1, 'day'], W1: [1, 'week'], MN1: [1, 'month']
-      };
-      const BIQUOTE_TF = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', H4: '4h', D1: '1d' };
+/* ==================== STATE ==================== */
+var state = {
+  selectedPair:'EURUSD',
+  openCat:'forex',
+  startDate:0,
+  endDate:0,
+  results:{},
+  sourceLog:[],
+  abort:false,
+  isFetching:false,
+  chart:null,
+  chartSeries:null,
+  activeTf:null,
+  workingProxy:null
+};
 
-      const state = {
-        cat: 'commodity',
-        pair: 'XAUUSD',
-        abortFetch: false,
-        fetching: false,
-        activeControllers: new Set(),
-        hostRouteMemory: new Map(),
-        hostDiscoveryLocks: new Map(),
-        tdTimes: [],
-        massiveTimes: [],
-        biquoteSymbols: null,
-        logs: [],
-        result: null,
-        activeTf: 'M15',
-        chart: null,
-        series: null
-      };
+/* ==================== UTILS ==================== */
+function $(id){ return document.getElementById(id); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function toYMD(d){ return d.getUTCFullYear()+'-'+pad2(d.getUTCMonth()+1)+'-'+pad2(d.getUTCDate()); }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+function fmtDate(ts){ if(!ts) return '—'; var d=new Date(ts*1000); return pad2(d.getUTCDate())+'.'+pad2(d.getUTCMonth()+1)+'.'+d.getUTCFullYear(); }
+function fmtDateTime(ts){ if(!ts) return '—'; var d=new Date(ts*1000); return pad2(d.getUTCDate())+'.'+pad2(d.getUTCMonth()+1)+'.'+d.getUTCFullYear()+' '+pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes()); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
-      const $ = id => document.getElementById(id);
-      const pad2 = n => String(n).padStart(2, '0');
-      const toYMD = d => `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
-      const isoUtc = ts => new Date(ts * 1000).toISOString().replace('.000Z', 'Z');
-      const shortDate = ts => {
-        const d = new Date(ts * 1000);
-        return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}.${String(d.getUTCFullYear()).slice(-2)}`;
-      };
-      const nowTimeStr = () => {
-        const d = new Date();
-        return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-      };
+function toast(msg, type){
+  type = type || 'info';
+  var el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  $('toastBox').appendChild(el);
+  setTimeout(function(){ try{ el.remove(); }catch(e){} }, 4000);
+}
 
-      const safeGet = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
-      const safeSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
-      const safeDel = k => { try { localStorage.removeItem(k); } catch (_) {} };
+function setStatus(mode, text){
+  var cls = 'dot';
+  if(mode === 'busy') cls += ' busy';
+  else if(mode === 'err') cls += ' err';
+  $('statusDot').className = cls;
+  $('statusText').textContent = text;
+}
 
-      function setStatus(mode, text) {
-        $('statusDot').className = `dot ${mode === 'busy' ? 'busy' : mode === 'err' ? 'err' : ''}`;
-        $('statusText').textContent = text;
+function logAdd(tf, src, msg, cls){
+  state.sourceLog.push({tf:tf, src:src, msg:msg, cls:cls||'', time:new Date()});
+  if(state.sourceLog.length > 500) state.sourceLog = state.sourceLog.slice(-400);
+  renderLog();
+}
+
+function renderLog(){
+  var el = $('sourceLog');
+  if(!state.sourceLog.length){ el.innerHTML = '<div class="hint">Henüz istek yok.</div>'; return; }
+  var html = '';
+  var items = state.sourceLog.slice(-300);
+  for(var i=0; i<items.length; i++){
+    var l = items[i];
+    var t = l.time;
+    var ts = pad2(t.getHours())+':'+pad2(t.getMinutes())+':'+pad2(t.getSeconds());
+    html += '<div class="log-row"><span class="log-time">'+ts+'</span><span class="log-tf">'+escapeHtml(l.tf)+'</span><span class="log-src">'+escapeHtml(l.src)+'</span><span class="log-msg '+l.cls+'">'+escapeHtml(l.msg)+'</span></div>';
+  }
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ==================== SETTINGS ==================== */
+function getCfg(){
+  return {
+    tiingo: (localStorage.getItem(SK.tiingo)||'').trim(),
+    td: (localStorage.getItem(SK.td)||'').trim(),
+    fmp: (localStorage.getItem(SK.fmp)||'').trim(),
+    massive: (localStorage.getItem(SK.massive)||'').trim(),
+    proxy: (localStorage.getItem(SK.proxy)||'').trim()
+  };
+}
+
+function setBadge(id, has){
+  var el = $(id);
+  if(!el) return;
+  el.textContent = has ? 'Kayıtlı' : 'Yok';
+  el.className = 'badge ' + (has ? 'ok' : 'warn');
+}
+
+function refreshSettingsUi(){
+  var c = getCfg();
+  if($('tiingoKeyInput')) $('tiingoKeyInput').value = c.tiingo;
+  if($('tdKeyInput')) $('tdKeyInput').value = c.td;
+  if($('fmpKeyInput')) $('fmpKeyInput').value = c.fmp;
+  if($('massiveKeyInput')) $('massiveKeyInput').value = c.massive;
+  if($('proxyUrlInput')) $('proxyUrlInput').value = c.proxy;
+  setBadge('tiingoBadge', !!c.tiingo);
+  setBadge('tdBadge', !!c.td);
+  setBadge('fmpBadge', !!c.fmp);
+  setBadge('massiveBadge', !!c.massive);
+}
+
+/* ==================== PROXY ==================== */
+function buildProxyUrl(target, baseProxy){
+  var enc = encodeURIComponent(target);
+  var p = baseProxy || getCfg().proxy;
+  if(!p) return null;
+  if(p.indexOf('{url}') >= 0) return p.replace('{url}', enc);
+  if(p.indexOf('?url=') >= 0 || p.indexOf('&url=') >= 0) return p + enc;
+  if(p.slice(-1) === '=' || p.slice(-1) === '?' || p.slice(-1) === '/') return p + enc;
+  return p + '?url=' + enc;
+}
+
+function proxyList(target){
+  var cfg = getCfg();
+  var list = [];
+  if(cfg.proxy){ list.push({name:'Özel Proxy', url:buildProxyUrl(target, cfg.proxy)}); }
+  if(state.workingProxy){
+    try{
+      var wu = state.workingProxy(target);
+      if(wu){ list.push({name:'Önbellek', url:wu}); }
+    }catch(e){}
+  }
+  list.push({name:'AllOrigins', url:'https://api.allorigins.win/raw?url='+encodeURIComponent(target)});
+  list.push({name:'CodeTabs', url:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(target)});
+  list.push({name:'CorsProxy.io', url:'https://corsproxy.io/?'+encodeURIComponent(target)});
+  list.push({name:'ThingProxy', url:'https://thingproxy.freeboard.io/fetch/'+target});
+  list.push({name:'Doğrudan', url:target});
+  return list;
+}
+
+function rememberProxy(fn){
+  state.workingProxy = fn;
+}
+
+async function fetchJsonViaProxy(targetUrl, timeoutMs){
+  timeoutMs = timeoutMs || 12000;
+  var proxies = proxyList(targetUrl);
+  var lastErr = null;
+  for(var i=0; i<proxies.length; i++){
+    if(state.abort) throw new Error('Durduruldu');
+    var p = proxies[i];
+    try{
+      var ctrl = new AbortController();
+      var timer = setTimeout(function(){ ctrl.abort(); }, timeoutMs);
+      var res = await fetch(p.url, { signal: ctrl.signal, cache: 'no-store' });
+      clearTimeout(timer);
+      var text = await res.text();
+      var data;
+      try{ data = JSON.parse(text); }catch(e){ throw new Error('Geçersiz JSON'); }
+      if(data && data.chart && data.chart.error){
+        var e1 = new Error(data.chart.error.description || 'Yahoo API hatası');
+        e1.isApiError = true;
+        throw e1;
       }
-
-      function showAlert(msg = '') {
-        const el = $('alertLine');
-        if (!msg) { el.classList.remove('visible'); el.textContent = ''; return; }
-        el.textContent = msg;
-        el.classList.add('visible');
+      if(data && data.status === 'error'){
+        var e2 = new Error(data.message || 'API hatası');
+        e2.isApiError = true;
+        throw e2;
       }
-
-      function setProgress(pct, text) {
-        $('progressWrap').classList.add('visible');
-        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
-        $('progressFill').style.width = `${clamped}%`;
-        $('progressPct').textContent = `%${clamped}`;
-        if (text) $('progressText').textContent = text;
+      if(data && data.code && String(data.code) !== '0'){
+        var e3 = new Error(data.msg || 'API hatası');
+        e3.isApiError = true;
+        throw e3;
       }
-
-      function escapeHtml(str) {
-        return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-      }
-
-      function addLog(pair, source, tf, rangeStr, count, msg, level = 'ok') {
-        state.logs.unshift({ time: nowTimeStr(), pair, source, tf, rangeStr, count, msg, level });
-        if (state.logs.length > 300) state.logs.pop();
-        renderLogs();
-      }
-
-      function renderLogs() {
-        $('logCount').textContent = `${state.logs.length} Kayıt`;
-        if (!state.logs.length) {
-          $('logBody').innerHTML = '<tr><td colspan="7" style="color:var(--muted);">Henüz kaynak isteği yapılmadı.</td></tr>';
-          return;
-        }
-        $('logBody').innerHTML = state.logs.map(l => {
-          const cls = l.level === 'err' ? 'err' : (l.level === 'partial' ? 'partial' : 'ok');
-          return `<tr>
-            <td style="color:var(--muted);">${l.time}</td>
-            <td style="font-weight:700;color:var(--white);">${escapeHtml(l.pair)}</td>
-            <td style="color:var(--cyan);">${escapeHtml(l.source)}</td>
-            <td style="font-weight:700;">${escapeHtml(l.tf)}</td>
-            <td style="color:var(--muted);">${escapeHtml(l.rangeStr)}</td>
-            <td style="font-weight:700;">${l.count}</td>
-            <td><span class="badge ${cls}">${escapeHtml(l.msg)}</span></td>
-          </tr>`;
-        }).join('');
-      }
-
-      function getSettings() {
-        return {
-          tiingo: (safeGet(STORE.tiingo) || '').trim(),
-          td: (safeGet(STORE.td) || '').trim(),
-          fmp: (safeGet(STORE.fmp) || '').trim(),
-          massive: (safeGet(STORE.massive) || '').trim(),
-          proxy: (safeGet(STORE.proxy) || '').trim(),
-          includeVol: safeGet(STORE.vol) !== '0'
-        };
-      }
-
-      function refreshSettingsUi() {
-        const s = getSettings();
-        $('tiingoKey').value = s.tiingo;
-        $('tdKey').value = s.td;
-        $('fmpKey').value = s.fmp;
-        $('massiveKey').value = s.massive;
-        $('customProxyInput').value = s.proxy;
-        $('volumeChk').checked = s.includeVol;
-
-        const setBadge = (id, has) => {
-          $(id).textContent = has ? 'Kayıtlı' : 'Yok';
-          $(id).className = `badge ${has ? 'ok' : ''}`;
-        };
-        setBadge('tiingoBadge', !!s.tiingo);
-        setBadge('tdBadge', !!s.td);
-        setBadge('fmpBadge', !!s.fmp);
-        setBadge('massiveBadge', !!s.massive);
-        $('proxyBadge').textContent = s.proxy ? 'Özel Proxy Aktif' : 'Hazır Proxy';
-        $('proxyBadge').className = `badge ${s.proxy ? 'ok' : ''}`;
-
-        const count = [s.tiingo, s.td, s.fmp, s.massive].filter(Boolean).length;
-        $('settingsKeyCount').textContent = `${count} Anahtar`;
-      }
-
-      function renderPairs() {
-        document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b.dataset.cat === state.cat));
-        const items = Object.values(PAIRS).filter(p => p.cat === state.cat);
-        $('pairGrid').innerHTML = '';
-        for (const item of items) {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = `pair-btn ${state.pair === item.code ? 'active' : ''}`;
-          btn.innerHTML = `<span class="pair-code">${item.code}</span><span class="pair-name">${item.name}</span>`;
-          btn.addEventListener('click', () => {
-            state.pair = item.code;
-            renderPairs();
-            updateSelectionInfo();
+      if(!p.url.startsWith('http')) throw new Error('Invalid proxy');
+      if(p.name !== 'Doğrudan'){
+        var name = p.name;
+        var isCustom = name === 'Özel Proxy';
+        var cachedBase = isCustom ? getCfg().proxy : (name === 'AllOrigins' ? 'https://api.allorigins.win/raw?url=' : null);
+        if(cachedBase){
+          rememberProxy(function(t){
+            if(name === 'AllOrigins') return 'https://api.allorigins.win/raw?url='+encodeURIComponent(t);
+            return buildProxyUrl(t, cachedBase);
           });
-          $('pairGrid').appendChild(btn);
         }
       }
+      return data;
+    }catch(err){
+      if(err.isApiError) throw err;
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Tüm proxy\'ler başarısız');
+}
 
-      function updateSelectionInfo() {
-        const p = PAIRS[state.pair];
-        $('selectionInfo').textContent = `Seçili: ${p.code} (${p.name}) • ${$('startDate').value} → ${$('endDate').value}`;
+/* ==================== SANITIZE / AGGREGATE ==================== */
+function sanitizeBars(bars, minTs, maxTs){
+  if(!Array.isArray(bars) || !bars.length) return [];
+  minTs = minTs || 0; maxTs = maxTs || Infinity;
+  var map = new Map();
+  for(var i=0; i<bars.length; i++){
+    var b = bars[i];
+    var time = Math.floor(Number(b.time));
+    var o = Number(b.open), h = Number(b.high), l = Number(b.low), c = Number(b.close);
+    var v = Number.isFinite(Number(b.volume)) ? Math.max(0, Number(b.volume)) : 0;
+    if(!Number.isFinite(time) || time < 631152000 || time > 2208988800) continue;
+    if(time < minTs || time > maxTs) continue;
+    if(![o,h,l,c].every(function(x){ return Number.isFinite(x) && x > 0; })) continue;
+    if(h < l) continue;
+    var bar = { time:time, open:o, high:Math.max(h,o,c), low:Math.min(l,o,c), close:c, volume:v };
+    var prev = map.get(time);
+    if(prev){
+      if(h > prev.high) prev.high = h;
+      if(l < prev.low) prev.low = l;
+      prev.close = c;
+      prev.volume = Math.max(prev.volume, v);
+    } else {
+      map.set(time, bar);
+    }
+  }
+  return Array.from(map.values()).sort(function(a,b){ return a.time - b.time; });
+}
+
+function aggregateBars(bars, bucketSec){
+  if(!Array.isArray(bars) || !bars.length) return [];
+  var clean = sanitizeBars(bars);
+  var map = new Map();
+  for(var i=0; i<clean.length; i++){
+    var b = clean[i];
+    var key = Math.floor(b.time / bucketSec) * bucketSec;
+    var cur = map.get(key);
+    if(!cur){
+      map.set(key, { time:key, open:b.open, high:b.high, low:b.low, close:b.close, volume:b.volume });
+    } else {
+      if(b.high > cur.high) cur.high = b.high;
+      if(b.low < cur.low) cur.low = b.low;
+      cur.close = b.close;
+      cur.volume += b.volume;
+    }
+  }
+  return Array.from(map.values()).sort(function(a,b){ return a.time - b.time; });
+}
+
+function aggregateCalendar(bars, mode){
+  if(!Array.isArray(bars) || !bars.length) return [];
+  var clean = sanitizeBars(bars);
+  var map = new Map();
+  for(var i=0; i<clean.length; i++){
+    var b = clean[i];
+    var d = new Date(b.time * 1000);
+    var key;
+    if(mode === 'W1'){
+      var wd = d.getUTCDay();
+      var off = (wd === 0 ? 6 : wd - 1);
+      key = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - off)) / 1000);
+    } else {
+      key = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)) / 1000);
+    }
+    var cur = map.get(key);
+    if(!cur){
+      map.set(key, { time:key, open:b.open, high:b.high, low:b.low, close:b.close, volume:b.volume });
+    } else {
+      if(b.high > cur.high) cur.high = b.high;
+      if(b.low < cur.low) cur.low = b.low;
+      cur.close = b.close;
+      cur.volume += b.volume;
+    }
+  }
+  return Array.from(map.values()).sort(function(a,b){ return a.time - b.time; });
+}
+
+function deriveTf(tf, parentBars){
+  if(tf === 'W1' || tf === 'MN1') return aggregateCalendar(parentBars, tf);
+  return aggregateBars(parentBars, TF_SEC[tf]);
+}
+
+/* ==================== PROVIDERS ==================== */
+async function fetchYahooRange(ticker, interval, startSec, endSec){
+  var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker)
+    + '?period1=' + startSec + '&period2=' + (endSec + 60)
+    + '&interval=' + encodeURIComponent(interval) + '&includePrePost=false';
+  var data = await fetchJsonViaProxy(url, 12000);
+  if(!data || !data.chart || !data.chart.result || !data.chart.result[0]) return [];
+  var res = data.chart.result[0];
+  var tsArr = res.timestamp;
+  if(!tsArr || !tsArr.length) return [];
+  var q = res.indicators && res.indicators.quote && res.indicators.quote[0];
+  if(!q) return [];
+  var out = [];
+  for(var i=0; i<tsArr.length; i++){
+    var t = tsArr[i];
+    var o = q.open ? q.open[i] : null;
+    var h = q.high ? q.high[i] : null;
+    var l = q.low ? q.low[i] : null;
+    var c = q.close ? q.close[i] : null;
+    var v = q.volume ? q.volume[i] : 0;
+    if(!Number.isFinite(t) || !Number.isFinite(o) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(c)) continue;
+    if(o <= 0 || h <= 0 || l <= 0 || c <= 0 || h < l) continue;
+    out.push({ time:t, open:o, high:h, low:l, close:c, volume:v||0 });
+  }
+  return out;
+}
+
+async function fetchYahooTf(pair, tf){
+  var interval = YAHOO_INT[tf];
+  if(!interval) return [];
+  var startSec = state.startDate;
+  var endSec = state.endDate;
+  var maxDays = YAHOO_MAX_DAYS[tf];
+  if(maxDays){
+    var spanDays = (endSec - startSec) / 86400;
+    if(spanDays > maxDays){
+      startSec = endSec - maxDays * 86400;
+      logAdd(tf, 'yahoo', 'Limit: '+tf+' yalnızca son '+maxDays+' gün ('+fmtDate(startSec)+' başlangıç)', 'partial');
+    }
+  }
+  var chunkSec;
+  if(tf === 'M1') chunkSec = 6 * 86400;
+  else if(tf === 'M5' || tf === 'M15' || tf === 'M30') chunkSec = 30 * 86400;
+  else if(tf === 'H1') chunkSec = 180 * 86400;
+  else chunkSec = 0;
+  var allBars = [];
+  var tickers = [pair.yahoo];
+  if(pair.yahooFb) tickers.push(pair.yahooFb);
+  for(var ti=0; ti<tickers.length; ti++){
+    if(allBars.length) break;
+    var ticker = tickers[ti];
+    if(ti > 0 && pair.isMetal) logAdd(tf, 'yahoo', 'Spot yok, vadeli '+ticker+' deneniyor (vadeli fiyat!)', 'partial');
+    try{
+      if(chunkSec === 0){
+        var bars = await fetchYahooRange(ticker, interval, startSec, endSec);
+        if(bars.length) allBars = bars;
+      } else {
+        var cursor = startSec;
+        while(cursor < endSec){
+          if(state.abort) break;
+          var chunkEnd = Math.min(cursor + chunkSec, endSec);
+          try{
+            var cb = await fetchYahooRange(ticker, interval, cursor, chunkEnd);
+            if(cb.length) allBars = allBars.concat(cb);
+          }catch(e){
+            logAdd(tf, 'yahoo', 'Chunk hatası: '+e.message, 'err');
+          }
+          cursor = chunkEnd;
+          if(cursor < endSec) await sleep(120);
+        }
       }
+    }catch(err){
+      logAdd(tf, 'yahoo', 'Hata: '+err.message, 'err');
+    }
+  }
+  return sanitizeBars(allBars, startSec, endSec);
+}
 
-      function applyQuickRange(range) {
-        const now = new Date();
-        const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-        const start = new Date(end.getTime());
-        if (range === '7d') {
-          start.setUTCDate(start.getUTCDate() - 6);
-        } else if (range === '1m' || range === '3m' || range === '6m') {
-          const months = range === '1m' ? 1 : (range === '3m' ? 3 : 6);
-          const origDay = start.getUTCDate();
-          start.setUTCDate(1);
-          start.setUTCMonth(start.getUTCMonth() - months);
-          const maxDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate();
-          start.setUTCDate(Math.min(origDay, maxDay));
-        } else if (range === '1y') {
-          const origDay = start.getUTCDate();
-          start.setUTCDate(1);
-          start.setUTCFullYear(start.getUTCFullYear() - 1);
-          const maxDay = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate();
-          start.setUTCDate(Math.min(origDay, maxDay));
-        }
-        $('startDate').value = toYMD(start);
-        $('endDate').value = toYMD(end);
-        document.querySelectorAll('.quick-btn').forEach(b => b.classList.toggle('active', b.dataset.range === range));
-        updateSelectionInfo();
+async function fetchTiingoTf(pair, tf){
+  var cfg = getCfg();
+  if(!pair.tiingo || !cfg.tiingo) return [];
+  var freq = TIINGO_INT[tf];
+  if(!freq) return [];
+  var chunkDaysMap = { '1min':8, '5min':28, '15min':85, '30min':160, '1hour':365, '1day':1825 };
+  var chunkSec = (chunkDaysMap[freq] || 30) * 86400;
+  var startSec = state.startDate, endSec = state.endDate;
+  if(tf === 'M1'){ var spanM1 = (endSec - startSec)/86400; if(spanM1 > 180) startSec = endSec - 180*86400; }
+  var allBars = [];
+  var cursor = startSec;
+  while(cursor <= endSec){
+    if(state.abort) break;
+    var next = Math.min(endSec, cursor + chunkSec - 1);
+    var url = 'https://api.tiingo.com/tiingo/fx/' + encodeURIComponent(pair.tiingo) + '/prices'
+      + '?startDate=' + toYMD(new Date(cursor*1000))
+      + '&endDate=' + toYMD(new Date((next+86400)*1000))
+      + '&resampleFreq=' + encodeURIComponent(freq)
+      + '&token=' + encodeURIComponent(cfg.tiingo);
+    try{
+      var data = await fetchJsonViaProxy(url, 15000);
+      if(!Array.isArray(data)) throw new Error((data && data.detail) || 'Tiingo yanıt hatası');
+      for(var i=0; i<data.length; i++){
+        var r = data[i];
+        var tms = Date.parse(r.date);
+        if(!Number.isFinite(tms)) continue;
+        var t = Math.floor(tms/1000);
+        if(t < startSec || t > endSec) continue;
+        allBars.push({ time:t, open:Number(r.open), high:Number(r.high), low:Number(r.low), close:Number(r.close), volume:0 });
       }
+    }catch(err){
+      if(allBars.length === 0) throw err;
+      logAdd(tf, 'tiingo', 'Kısmi: '+err.message, 'partial');
+      break;
+    }
+    if(next >= endSec) break;
+    cursor = next + 1;
+    await sleep(150);
+  }
+  return sanitizeBars(allBars, startSec, endSec);
+}
 
-      const tzFmtCache = new Map();
-      function getTzParts(ts, tz) {
-        if (!tzFmtCache.has(tz)) {
-          tzFmtCache.set(tz, new Intl.DateTimeFormat('en-US', {
-            timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', hourCycle: 'h23'
-          }));
-        }
-        const out = {};
-        for (const p of tzFmtCache.get(tz).formatToParts(new Date(ts * 1000))) {
-          if (p.type !== 'literal') out[p.type] = p.value;
-        }
-        return {
-          year: Number(out.year), month: Number(out.month), day: Number(out.day),
-          hour: Number(out.hour) % 24, minute: Number(out.minute), second: Number(out.second || 0),
-          weekday: out.weekday
+async function fetchTDTf(pair, tf){
+  var cfg = getCfg();
+  if(!pair.td || !cfg.td) return [];
+  var interval = TD_INT[tf];
+  if(!interval) return [];
+  var startSec = state.startDate, endSec = state.endDate;
+  var cursorEnd = endSec;
+  var maxPages = 20;
+  var allBars = [];
+  for(var page=0; page<maxPages && cursorEnd > startSec; page++){
+    if(state.abort) break;
+    if(tf === 'M1' && page > 8) break;
+    var sStr = new Date(startSec*1000).toISOString().replace('T',' ').slice(0,19);
+    var eStr = new Date(cursorEnd*1000).toISOString().replace('T',' ').slice(0,19);
+    var url = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(pair.td)
+      + '&interval=' + encodeURIComponent(interval)
+      + '&start_date=' + encodeURIComponent(sStr)
+      + '&end_date=' + encodeURIComponent(eStr)
+      + '&outputsize=5000&timezone=UTC&apikey=' + encodeURIComponent(cfg.td);
+    var data;
+    try{
+      data = await fetchJsonViaProxy(url, 15000);
+    }catch(err){
+      if(allBars.length === 0) throw new Error('Twelve Data: '+err.message);
+      logAdd(tf, 'twelvedata', 'Kısmi: '+err.message, 'partial');
+      break;
+    }
+    if(data && data.status === 'error'){
+      var msg = data.message || 'TD hatası';
+      if(/grow|pro|ultra|plan|upgrade|permission/i.test(msg)) throw new Error('Twelve Data ücretsiz planda '+pair.td+' desteklemiyor');
+      if(/apikey|invalid/i.test(msg)) throw new Error('Twelve Data anahtarı geçersiz');
+      if(/limit|429|credit/i.test(msg)) throw new Error('Twelve Data kotası doldu');
+      throw new Error('Twelve Data: '+msg);
+    }
+    var vals = (data && data.values) || [];
+    if(!vals.length) break;
+    var minTs = Infinity;
+    for(var i=0; i<vals.length; i++){
+      var row = vals[i];
+      var dt = row.datetime;
+      var iso = dt.indexOf(' ') >= 0 ? dt.replace(' ','T')+'Z' : dt+'T00:00:00Z';
+      var t = Math.floor(Date.parse(iso)/1000);
+      if(!Number.isFinite(t) || t < startSec || t > endSec) continue;
+      allBars.push({ time:t, open:parseFloat(row.open), high:parseFloat(row.high), low:parseFloat(row.low), close:parseFloat(row.close), volume:parseFloat(row.volume)||0 });
+      if(t < minTs) minTs = t;
+    }
+    if(vals.length < 4990 || !Number.isFinite(minTs) || minTs >= cursorEnd) break;
+    cursorEnd = minTs - 1;
+    await sleep(150);
+  }
+  return sanitizeBars(allBars, startSec, endSec);
+}
+
+async function fetchFMPTf(pair, tf){
+  var cfg = getCfg();
+  if(!pair.fmp || !cfg.fmp) return [];
+  var interval = FMP_INT[tf];
+  if(!interval) return [];
+  var startSec = state.startDate, endSec = state.endDate;
+  var chunkSec;
+  if(tf === 'M1') chunkSec = 10*86400;
+  else if(tf === 'M5') chunkSec = 30*86400;
+  else chunkSec = 90*86400;
+  var allBars = [];
+  var cursor = startSec;
+  while(cursor <= endSec){
+    if(state.abort) break;
+    var next = Math.min(endSec, cursor + chunkSec - 1);
+    var url = 'https://financialmodelingprep.com/stable/historical-chart/' + encodeURIComponent(interval)
+      + '?symbol=' + encodeURIComponent(pair.fmp)
+      + '&from=' + toYMD(new Date(cursor*1000))
+      + '&to=' + toYMD(new Date((next+86400)*1000))
+      + '&apikey=' + encodeURIComponent(cfg.fmp);
+    try{
+      var data = await fetchJsonViaProxy(url, 15000);
+      if(!Array.isArray(data)) throw new Error((data && (data['Error Message'] || data.message)) || 'FMP yanıt hatası');
+      for(var i=0; i<data.length; i++){
+        var r = data[i];
+        var dtStr = String(r.date||'').replace(' ','T');
+        if(!/Z$/.test(dtStr)) dtStr += 'Z';
+        var t = Math.floor(Date.parse(dtStr)/1000);
+        if(!Number.isFinite(t) || t < startSec || t > endSec) continue;
+        allBars.push({ time:t, open:Number(r.open), high:Number(r.high), low:Number(r.low), close:Number(r.close), volume:Number(r.volume)||0 });
+      }
+    }catch(err){
+      if(allBars.length === 0) throw new Error('FMP: '+err.message);
+      logAdd(tf, 'fmp', 'Kısmi: '+err.message, 'partial');
+      break;
+    }
+    if(next >= endSec) break;
+    cursor = next + 1;
+    await sleep(150);
+  }
+  return sanitizeBars(allBars, startSec, endSec);
+}
+
+async function fetchMassiveTf(pair, tf){
+  var cfg = getCfg();
+  if(!pair.massive || !cfg.massive) return [];
+  if(pair.massive === '-') return [];
+  var map = MASSIVE_INT[tf];
+  if(!map) return [];
+  var mult = map[0], unit = map[1];
+  var startSec = state.startDate, endSec = state.endDate;
+  var url = 'https://api.massive.com/v2/aggs/ticker/' + encodeURIComponent(pair.massive)
+    + '/range/' + mult + '/' + unit + '/'
+    + toYMD(new Date(startSec*1000)) + '/' + toYMD(new Date(endSec*1000))
+    + '?adjusted=true&sort=asc&limit=50000&apiKey=' + encodeURIComponent(cfg.massive);
+  var allBars = [];
+  var nextUrl = url;
+  var pageCount = 0;
+  while(nextUrl && pageCount < 10){
+    if(state.abort) break;
+    pageCount++;
+    var data;
+    try{
+      data = await fetchJsonViaProxy(nextUrl, 15000);
+    }catch(err){
+      if(allBars.length === 0) throw new Error('Massive: '+err.message);
+      logAdd(tf, 'massive', 'Kısmi: '+err.message, 'partial');
+      break;
+    }
+    if(data && data.status === 'ERROR'){
+      throw new Error('Massive: ' + (data.error || data.message || 'hata'));
+    }
+    if(data && data.status === 'DELAYED'){
+      logAdd(tf, 'massive', 'Gecikmeli veri', 'partial');
+    }
+    var results = (data && data.results) || [];
+    for(var i=0; i<results.length; i++){
+      var r = results[i];
+      var t = Math.floor(Number(r.t) / 1000);
+      if(!Number.isFinite(t) || t < startSec || t > endSec) continue;
+      allBars.push({ time:t, open:Number(r.o), high:Number(r.h), low:Number(r.l), close:Number(r.c), volume:Number(r.v)||0 });
+    }
+    if(data && data.next_url){
+      nextUrl = data.next_url + '&apiKey=' + encodeURIComponent(cfg.massive);
+    } else {
+      nextUrl = null;
+    }
+  }
+  return sanitizeBars(allBars, startSec, endSec);
+}
+
+/* ==================== PROVIDER SELECTION ==================== */
+function providersForPair(pairCode){
+  var p = PAIRS[pairCode];
+  var cfg = getCfg();
+  var list = ['yahoo'];
+  if(p.tiingo && cfg.tiingo) list.push('tiingo');
+  if(p.td && cfg.td) list.push('twelvedata');
+  if(p.fmp && cfg.fmp) list.push('fmp');
+  if(p.massive && p.massive !== '-' && cfg.massive) list.push('massive');
+  if(p.biquote) list.push('biquote');
+  return list;
+}
+
+async function fetchFromProvider(prov, pair, tf){
+  if(prov === 'yahoo') return await fetchYahooTf(pair, tf);
+  if(prov === 'tiingo') return await fetchTiingoTf(pair, tf);
+  if(prov === 'twelvedata') return await fetchTDTf(pair, tf);
+  if(prov === 'fmp') return await fetchFMPTf(pair, tf);
+  if(prov === 'massive') return await fetchMassiveTf(pair, tf);
+  if(prov === 'biquote') return [];
+  return [];
+}
+
+/* ==================== MAIN FETCH ==================== */
+function updateProgress(ratio, label){
+  $('progressFill').style.width = Math.min(100, Math.round(ratio*100)) + '%';
+  if(label) $('progressLabel').textContent = label;
+}
+
+async function fetchTf(tf, pair, pairCode){
+  if(state.results[tf]) return;
+
+  if(ALWAYS_DERIVE[tf]){
+    var parent = ALWAYS_DERIVE[tf];
+    if(!state.results[parent]){
+      try{ await fetchTf(parent, pair, pairCode); }catch(e){}
+    }
+    var pBars = state.results[parent] && state.results[parent].bars;
+    if(pBars && pBars.length){
+      var derived = deriveTf(tf, pBars);
+      if(derived.length){
+        state.results[tf] = {
+          bars: derived,
+          source: 'Türetilmiş ('+parent+')',
+          status: 'Tam',
+          note: parent+' verisinden türetildi'
         };
+        logAdd(tf, 'türet', derived.length + ' mum ('+parent+'→'+tf+')', 'ok');
+        return;
       }
+    }
+    state.results[tf] = { bars:[], source:'—', status:'Yok', note:'Üst dilim ('+parent+') verisi yok' };
+    logAdd(tf, 'türet', 'Üst dilim yok', 'err');
+    return;
+  }
 
-      function parseTzDateTimeToUtcSec(str, tz) {
-        const m = String(str || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
-        if (!m) return null;
-        const [, y, mo, d, h, mi, se] = m;
-        if (!h) return Math.floor(Date.UTC(+y, +mo - 1, +d, 0, 0, 0) / 1000);
-        const naiveMs = Date.UTC(+y, +mo - 1, +d, +h, +mi, +(se || 0));
-        if (!tz || tz === 'UTC') return Math.floor(naiveMs / 1000);
-        try {
-          const p = getTzParts(Math.floor(naiveMs / 1000), tz);
-          const renderedMs = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
-          return Math.floor((naiveMs - (renderedMs - naiveMs)) / 1000);
-        } catch (_) {
-          return Math.floor(naiveMs / 1000);
-        }
+  var providers = providersForPair(pairCode);
+  var allBars = [];
+  var source = '';
+  var lastErr = '';
+
+  for(var i=0; i<providers.length; i++){
+    if(state.abort) break;
+    var prov = providers[i];
+    try{
+      var bars = await fetchFromProvider(prov, pair, tf);
+      if(bars && bars.length){
+        allBars = bars;
+        source = prov;
+        logAdd(tf, prov, bars.length + ' mum alındı', 'ok');
+        break;
       }
+    }catch(err){
+      lastErr = err.message;
+      logAdd(tf, prov, err.message, 'err');
+    }
+  }
 
-      function toExchangeDateMidnight(ts, gmtoffset = 0, tz = '') {
-        if (tz && tz !== 'UTC') {
-          try {
-            let p = getTzParts(ts, tz);
-            if (p.hour >= 22 && p.minute === 0 && p.weekday !== 'Fri' && p.weekday !== 'Sat') p = getTzParts(ts + 7200, tz);
-            return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / 1000);
-          } catch (_) {}
-        }
-        const localTs = ts + (Number.isFinite(gmtoffset) ? gmtoffset : 0);
-        const d = new Date(localTs * 1000);
-        const wd = d.getUTCDay();
-        if (d.getUTCHours() >= 21 && d.getUTCMinutes() === 0 && wd !== 5 && wd !== 6) {
-          const n = new Date((localTs + 10800) * 1000);
-          return Math.floor(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()) / 1000);
-        }
-        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+  if(!allBars.length && CAN_DERIVE[tf]){
+    var parent2 = CAN_DERIVE[tf];
+    if(!state.results[parent2]){
+      try{ await fetchTf(parent2, pair, pairCode); }catch(e){}
+    }
+    var p2Bars = state.results[parent2] && state.results[parent2].bars;
+    if(p2Bars && p2Bars.length){
+      var d2 = deriveTf(tf, p2Bars);
+      if(d2.length){
+        allBars = d2;
+        source = 'Türetilmiş ('+parent2+')';
+        logAdd(tf, 'türet', d2.length + ' mum ('+parent2+'→'+tf+')', 'ok');
       }
-
-      function getWeekMondayKey(ts) {
-        const d = new Date(ts * 1000);
-        const wd = d.getUTCDay();
-        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - (wd === 0 ? 6 : wd - 1)) / 1000);
-      }
-
-      function getMonthFirstKey(ts) {
-        const d = new Date(ts * 1000);
-        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000);
-      }
-
-      function sanitizeBars(bars, minTs = 0, maxTs = Infinity) {
-        if (!Array.isArray(bars) || !bars.length) return [];
-        const map = new Map();
-        for (const b of bars) {
-          const time = Math.floor(Number(b.time));
-          const open = Number(b.open);
-          const highRaw = Number(b.high);
-          const lowRaw = Number(b.low);
-          const close = Number(b.close);
-          const volume = Number.isFinite(Number(b.volume)) && Number(b.volume) >= 0 ? Number(b.volume) : 0;
-          if (!Number.isFinite(time) || time < 631152000 || time > 2208988800) continue;
-          if (time < minTs || time > maxTs) continue;
-          if (!Number.isFinite(open) || !Number.isFinite(highRaw) || !Number.isFinite(lowRaw) || !Number.isFinite(close)) continue;
-          if (open <= 0 || highRaw <= 0 || lowRaw <= 0 || close <= 0 || highRaw < lowRaw) continue;
-          const high = Math.max(highRaw, open, close);
-          const low = Math.min(lowRaw, open, close);
-          map.set(time, { time, open, high, low, close, volume });
-        }
-        return Array.from(map.values()).sort((a, b) => a.time - b.time);
-      }
-
-      function mergeBars(existing, incoming) {
-        const map = new Map();
-        for (const b of sanitizeBars(incoming || [])) map.set(b.time, b);
-        for (const b of sanitizeBars(existing || [])) map.set(b.time, b);
-        return Array.from(map.values()).sort((a, b) => a.time - b.time);
-      }
-
-      function aggregateBars(bars, bucketSec) {
-        if (!bars || !bars.length) return [];
-        const map = new Map();
-        for (const b of sanitizeBars(bars)) {
-          const key = Math.floor(b.time / bucketSec) * bucketSec;
-          const cur = map.get(key);
-          if (!cur) {
-            map.set(key, { time: key, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0 });
-          } else {
-            if (b.high > cur.high) cur.high = b.high;
-            if (b.low < cur.low) cur.low = b.low;
-            cur.close = b.close;
-            cur.volume += (b.volume || 0);
-          }
-        }
-        return Array.from(map.values()).sort((a, b) => a.time - b.time);
-      }
-
-      function buildCalendarBars(d1Bars, mode) {
-        if (!d1Bars || !d1Bars.length) return [];
-        const map = new Map();
-        for (const b of sanitizeBars(d1Bars)) {
-          const key = mode === 'W1' ? getWeekMondayKey(b.time) : getMonthFirstKey(b.time);
-          const cur = map.get(key);
-          if (!cur) {
-            map.set(key, { time: key, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0 });
-          } else {
-            if (b.high > cur.high) cur.high = b.high;
-            if (b.low < cur.low) cur.low = b.low;
-            cur.close = b.close;
-            cur.volume += (b.volume || 0);
-          }
-        }
-        return Array.from(map.values()).sort((a, b) => a.time - b.time);
-      }
-
-      function checkPriceConsistency(baseBars, candidateBars, maxRelDiff = 0.004) {
-        if (!baseBars?.length || !candidateBars?.length) return { ok: true, diff: 0 };
-        const candMap = new Map();
-        for (const b of candidateBars) candMap.set(b.time, b);
-        const diffs = [];
-        for (const b of baseBars) {
-          const m = candMap.get(b.time);
-          if (m && b.close > 0) {
-            diffs.push(Math.abs(m.close - b.close) / b.close);
-            if (diffs.length >= 30) break;
-          }
-        }
-        if (!diffs.length) {
-          for (const anchor of [baseBars[0], baseBars[baseBars.length - 1]]) {
-            let best = null, bestDist = 5 * 86400;
-            for (const c of candidateBars) {
-              const dist = Math.abs(c.time - anchor.time);
-              if (dist < bestDist) { bestDist = dist; best = c; }
-            }
-            if (best && anchor.close > 0) diffs.push(Math.abs(best.close - anchor.close) / anchor.close);
-          }
-        }
-        if (!diffs.length) return { ok: true, diff: 0 };
-        diffs.sort((a, b) => a - b);
-        const med = diffs[Math.floor(diffs.length / 2)];
-        return { ok: med <= maxRelDiff, diff: med };
-      }
-
-      function weekdaySecondsBetween(t1, t2) {
-        if (t2 <= t1) return 0;
-        let total = 0;
-        let cur = Math.floor(t1 / 86400) * 86400;
-        while (cur < t2) {
-          const next = cur + 86400;
-          const wd = new Date(cur * 1000).getUTCDay();
-          if (wd >= 1 && wd <= 5) {
-            const s = Math.max(t1, cur);
-            const e = Math.min(t2, next);
-            if (e > s) total += e - s;
-          }
-          cur = next;
-        }
-        return total;
-      }
-
-      function getMarketBounds(reqStart, reqEnd, tf) {
-        let effStart = reqStart;
-        const sd = new Date(effStart * 1000).getUTCDay();
-        if (sd === 6) effStart += 2 * 86400;
-        else if (sd === 0) effStart += 86400;
-
-        let effEnd = reqEnd;
-        const edObj = new Date(effEnd * 1000);
-        const ed = edObj.getUTCDay();
-        if (ed === 6) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 1, tf === 'D1' ? 0 : 21, 0, 0) / 1000);
-        else if (ed === 0 && edObj.getUTCHours() < 22) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 2, tf === 'D1' ? 0 : 21, 0, 0) / 1000);
-        else if (tf === 'D1') {
-          const now = new Date();
-          const todayMid = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
-          if (effEnd >= todayMid && now.getUTCHours() < 22) {
-            const prevDay = new Date((todayMid - 86400) * 1000);
-            const pwd = prevDay.getUTCDay();
-            effEnd = pwd === 0 ? todayMid - 3 * 86400 : (pwd === 6 ? todayMid - 2 * 86400 : todayMid - 86400);
-          }
-        }
-        return { effStart, effEnd };
-      }
-
-      function computeMissingRanges(bars, tf, reqStart, reqEnd, strictAssessment = false) {
-        const { effStart, effEnd } = getMarketBounds(reqStart, reqEnd, tf);
-        if (effStart >= effEnd) return (bars && bars.length) || strictAssessment ? [] : [[reqStart, reqEnd]];
-        if (!bars || !bars.length) return [[reqStart, reqEnd]];
-
-        const gaps = [];
-        const tfSec = TF_SEC[tf] || 900;
-        if (tf === 'W1' || tf === 'MN1') {
-          const tol = tf === 'W1' ? 12 * 86400 : 36 * 86400;
-          if ((bars[0].time - effStart) > tol) gaps.push([reqStart, bars[0].time]);
-          if ((effEnd - bars[bars.length - 1].time) > tol) gaps.push([bars[bars.length - 1].time, reqEnd]);
-          return gaps;
-        }
-
-        const edgeThresh = strictAssessment ? 44 * 3600 : 32 * 3600;
-        const innerThresh = tf === 'D1' ? 74 * 3600 : 50 * 3600;
-
-        if (weekdaySecondsBetween(effStart, bars[0].time) > edgeThresh) {
-          gaps.push([reqStart, Math.min(reqEnd, bars[0].time + tfSec)]);
-        }
-        for (let i = 1; i < bars.length; i++) {
-          if (weekdaySecondsBetween(bars[i - 1].time, bars[i].time) > innerThresh) {
-            gaps.push([Math.max(reqStart, bars[i - 1].time), Math.min(reqEnd, bars[i].time)]);
-          }
-        }
-        const lastT = bars[bars.length - 1].time;
-        if (weekdaySecondsBetween(lastT, effEnd) > edgeThresh) {
-          gaps.push([Math.max(reqStart, lastT - tfSec), reqEnd]);
-        }
-
-        if (gaps.length <= 1) return gaps;
-        gaps.sort((a, b) => a[0] - b[0]);
-        const merged = [gaps[0].slice()];
-        for (let i = 1; i < gaps.length; i++) {
-          const prev = merged[merged.length - 1];
-          if (gaps[i][0] <= prev[1] + 86400) prev[1] = Math.max(prev[1], gaps[i][1]);
-          else merged.push(gaps[i].slice());
-        }
-        return merged;
-      }
-
-      async function sleepAbort(ms, label = '') {
-        const end = Date.now() + ms;
-        while (Date.now() < end) {
-          if (state.abortFetch) return false;
-          const rem = Math.ceil((end - Date.now()) / 1000);
-          if (label) setStatus('busy', `${label} (${rem} sn)`);
-          await new Promise(r => setTimeout(r, Math.min(1000, Math.max(50, end - Date.now()))));
-        }
-        return !state.abortFetch;
-      }
-
-      async function waitRateSlot(timesArr, maxCalls, winMs, label) {
-        while (!state.abortFetch) {
-          const now = Date.now();
-          while (timesArr.length && now - timesArr[0] >= winMs) timesArr.shift();
-          if (timesArr.length < maxCalls) return true;
-          const waitMs = Math.max(1000, winMs - (now - timesArr[0]) + 500);
-          if (!await sleepAbort(waitMs, label)) return false;
-        }
-        return false;
-      }
-
-      async function runPool(items, concurrency, worker) {
-        let idx = 0;
-        const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-          while (idx < items.length && !state.abortFetch) {
-            const current = items[idx++];
-            await worker(current);
-          }
-        });
-        await Promise.all(runners);
-      }
-
-      function buildCustomProxyUrl(proxyBase, targetUrl) {
-        const base = String(proxyBase || '').trim();
-        const enc = encodeURIComponent(targetUrl);
-        if (base.includes('{url}')) return base.replace('{url}', enc);
-        if (base.endsWith('=') || base.endsWith('?')) return `${base}${enc}`;
-        if (base.includes('?')) return `${base}&url=${enc}`;
-        return `${base.replace(/\/+$/, '')}/?url=${enc}`;
-      }
-
-      function getCorsRoutes(targetUrl) {
-        const custom = getSettings().proxy;
-        const enc = encodeURIComponent(targetUrl);
-        const routes = [{ id: 'direct', url: targetUrl }];
-        if (custom) routes.push({ id: 'custom', url: buildCustomProxyUrl(custom, targetUrl) });
-        routes.push(
-          { id: 'corsdev', url: `https://proxy.cors.dev/${targetUrl}` },
-          { id: 'allorigins', url: `https://api.allorigins.win/raw?url=${enc}` },
-          { id: 'corsproxy', url: `https://corsproxy.io/?url=${enc}` },
-          { id: 'codetabs', url: `https://api.codetabs.com/v1/proxy?quest=${enc}` }
-        );
-        return routes;
-      }
-
-      async function rawFetchJson(url, timeoutMs, isDirect) {
-        const ctrl = new AbortController();
-        state.activeControllers.add(ctrl);
-        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-        try {
-          const resp = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-          const text = await resp.text();
-          let parsed = null;
-          try { parsed = JSON.parse(text); } catch (_) {}
-
-          // Proxy'lerin kendi 403/429 JSON hatalarını hedef API hatasıyla karıştırmamak için gerçek API imzalarını kontrol et
-          const looksLikeTargetApi = parsed && typeof parsed === 'object' && (
-            'chart' in parsed || 'results' in parsed || 'request_id' in parsed ||
-            'values' in parsed || 'bars' in parsed || 'Error Message' in parsed ||
-            ('status' in parsed && 'code' in parsed) || ('detail' in parsed) || Array.isArray(parsed)
-          );
-
-          if (!resp.ok) {
-            const msg = parsed?.chart?.error?.description || parsed?.error || parsed?.detail || parsed?.message || parsed?.['Error Message'] || `HTTP ${resp.status}`;
-            const err = new Error(msg);
-            err.httpStatus = resp.status;
-            err.parsed = parsed;
-            err.isTargetApiError = isDirect ? (parsed !== null || [400, 401, 402, 403, 404, 429].includes(resp.status)) : looksLikeTargetApi;
-            throw err;
-          }
-          if (parsed === null) throw new Error('Geçersiz JSON yanıtı');
-          return parsed;
-        } finally {
-          clearTimeout(timer);
-          state.activeControllers.delete(ctrl);
-        }
-      }
-
-      async function probeRoutes(host, orderedRoutes, timeoutMs) {
-        let lastErr = null;
-        for (const route of orderedRoutes) {
-          if (state.abortFetch) throw new Error('Durduruldu');
-          const waitMs = route.id === 'direct' ? Math.min(timeoutMs, 8000) : Math.min(timeoutMs, 7500);
-          try {
-            const data = await rawFetchJson(route.url, waitMs, route.id === 'direct');
-            state.hostRouteMemory.set(host, route.id);
-            if (host === 'query1.finance.yahoo.com' && !state.hostRouteMemory.has('query2.finance.yahoo.com')) {
-              state.hostRouteMemory.set('query2.finance.yahoo.com', route.id);
-            }
-            return data;
-          } catch (err) {
-            if (state.abortFetch || err.name === 'AbortError' && state.abortFetch) throw new Error('Durduruldu');
-            if (err.isTargetApiError) {
-              state.hostRouteMemory.set(host, route.id);
-              throw err;
-            }
-            lastErr = err;
-          }
-        }
-        const transportErr = lastErr || new Error('Ağ veya CORS proxy hatası');
-        transportErr.isTransportError = true;
-        throw transportErr;
-      }
-
-      async function fetchWithCors(targetUrl, timeoutMs = 8000) {
-        if (state.abortFetch) throw new Error('Durduruldu');
-        const host = new URL(targetUrl).hostname;
-        const routes = getCorsRoutes(targetUrl);
-
-        if (!state.hostRouteMemory.has(host)) {
-          if (state.hostDiscoveryLocks.has(host)) {
-            await state.hostDiscoveryLocks.get(host);
-          } else {
-            let release;
-            const lock = new Promise(r => { release = r; });
-            state.hostDiscoveryLocks.set(host, lock);
-            try {
-              return await probeRoutes(host, routes, timeoutMs);
-            } finally {
-              state.hostDiscoveryLocks.delete(host);
-              release();
-            }
-          }
-        }
-
-        const memId = state.hostRouteMemory.get(host);
-        const ordered = memId
-          ? [...routes.filter(r => r.id === memId), ...routes.filter(r => r.id !== memId)]
-          : routes;
-        return await probeRoutes(host, ordered, timeoutMs);
-      }
-
-      // 1. YAHOO FINANCE
-      async function fetchYahooChart(ticker, interval, p1, p2) {
-        const qs = `period1=${p1}&period2=${p2}&interval=${encodeURIComponent(interval)}&includePrePost=true`;
-        const urls = [
-          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`,
-          `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`
-        ];
-        let lastErr = null;
-        for (const u of urls) {
-          try {
-            const json = await fetchWithCors(u, 8000);
-            if (json?.chart?.error) {
-              const e = new Error(json.chart.error.description || 'Yahoo API hatası');
-              e.isYahooFatal = true;
-              throw e;
-            }
-            const res = json?.chart?.result?.[0];
-            if (!res || !Array.isArray(res.timestamp) || !res.timestamp.length) {
-              const e = new Error('Boş veri');
-              e.isYahooEmpty = true;
-              throw e;
-            }
-            return res;
-          } catch (e) {
-            lastErr = e;
-            if (e.isYahooFatal || e.isYahooEmpty || e.httpStatus === 400 || e.httpStatus === 404) throw e;
-          }
-        }
-        throw lastErr || new Error('Yahoo erişim hatası');
-      }
-
-      function parseYahooBars(res, minTs, maxTs, isDaily, intervalSec) {
-        const tsArr = res.timestamp || [];
-        const q = res.indicators?.quote?.[0] || {};
-        const gmtoffset = Number(res.meta?.gmtoffset) || 0;
-        const tz = res.meta?.exchangeTimezoneName || '';
-        let h1Phase = 0;
-        if (!isDaily && intervalSec === 3600) {
-          let half = 0, whole = 0;
-          for (const t of tsArr) {
-            if (!Number.isFinite(t) || t % 60 !== 0) continue;
-            if ((t % 3600) === 1800) half++; else if ((t % 3600) === 0) whole++;
-          }
-          if (half > whole) h1Phase = 1800;
-        }
-        const map = new Map();
-        for (let i = 0; i < tsArr.length; i++) {
-          let time = tsArr[i];
-          const open = q.open?.[i], high = q.high?.[i], low = q.low?.[i], close = q.close?.[i], vol = q.volume?.[i];
-          if (!Number.isFinite(time) || !Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) continue;
-          if (open <= 0 || high <= 0 || low <= 0 || close <= 0 || high < low) continue;
-          if (isDaily) time = toExchangeDateMidnight(time, gmtoffset, tz);
-          else if (intervalSec > 0 && (time % 60 !== 0 || ((time - h1Phase) % intervalSec) !== 0)) {
-            time = Math.floor((time - h1Phase) / intervalSec) * intervalSec + h1Phase;
-          }
-          if (time < minTs || time > maxTs) continue;
-          const v = Number.isFinite(vol) && vol >= 0 ? vol : 0;
-          const prev = map.get(time);
-          if (!prev) {
-            map.set(time, { time, open, high: Math.max(high, open, close), low: Math.min(low, open, close), close, volume: v });
-          } else {
-            prev.high = Math.max(prev.high, high, open, close);
-            prev.low = Math.min(prev.low, low, open, close);
-            prev.close = close;
-            prev.volume = isDaily ? Math.max(prev.volume, v) : (prev.volume + v);
-          }
-        }
-        return Array.from(map.values()).sort((a, b) => a.time - b.time);
-      }
-
-      async function fetchYahooRange(ticker, tf, gs, ge, onChunkDone) {
-        if (tf === 'D1') {
-          let lastErr = null;
-          for (let att = 0; att < 3; att++) {
-            if (state.abortFetch) break;
-            try {
-              const res = await fetchYahooChart(ticker, '1d', gs - 2 * 86400, ge + 2 * 86400);
-              return parseYahooBars(res, gs, ge, true, 0);
-            } catch (e) {
-              lastErr = e;
-              if (e.isYahooFatal || e.isYahooEmpty || e.httpStatus === 404 || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 300 * (att + 1)));
-            }
-          }
-          if (lastErr) throw lastErr;
-          return [];
-        }
-
-        const yMap = { M1: ['1m', 60, 6 * 86400], M5: ['5m', 300, 28 * 86400], M15: ['15m', 900, 28 * 86400], M30: ['30m', 1800, 28 * 86400], H1: ['1h', 3600, 180 * 86400] };
-        const [yInt, sec, chunkSec] = yMap[tf];
-        const map = new Map();
-        let lastErr = null;
-        let stopChunks = false;
-        const totalChunks = Math.max(1, Math.ceil((ge - gs) / chunkSec));
-        let chunkIdx = 0;
-
-        for (let cur = gs; cur < ge && !state.abortFetch && !stopChunks; cur += chunkSec) {
-          chunkIdx++;
-          let s = cur;
-          const e = Math.min(ge, cur + chunkSec);
-          for (let att = 0; att < 3; att++) {
-            if (state.abortFetch) break;
-            try {
-              const res = await fetchYahooChart(ticker, yInt, s, e + 60);
-              const bars = parseYahooBars(res, s, e, false, sec);
-              for (const b of bars) map.set(b.time, b);
-              lastErr = null;
-              break;
-            } catch (err) {
-              lastErr = err;
-              if (/within the last|not available for startTime/i.test(err.message || '')) {
-                s = Math.min(e - 3600, s + 86400);
-                continue;
-              }
-              if (err.httpStatus === 404 || err.isYahooFatal || err.isTransportError) {
-                stopChunks = true;
-                break;
-              }
-              if (err.isYahooEmpty) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 300 * (att + 1)));
-            }
-          }
-          if (onChunkDone) onChunkDone(chunkIdx, totalChunks);
-        }
-
-        const out = sanitizeBars(Array.from(map.values()), gs, ge);
-        if (!out.length && lastErr) throw lastErr;
-        return out;
-      }
-
-      // 2. TIINGO FX
-      async function fetchTiingoRange(pair, tf, gs, ge, token) {
-        const freq = TIINGO_TF[tf];
-        if (!freq || !pair.tiingo) return { bars: [], note: '' };
-        const daysMap = { '1min': 8, '5min': 40, '15min': 120, '30min': 240, '1hour': 500, '1day': 1825 };
-        const chunkSec = (daysMap[freq] || 30) * 86400;
-        const map = new Map();
-        let cur = tf === 'D1' ? gs - 86400 : gs;
-        let note = '';
-
-        while (cur <= ge && !state.abortFetch) {
-          const next = Math.min(ge, cur + chunkSec - 1);
-          const url = `https://api.tiingo.com/tiingo/fx/${encodeURIComponent(pair.tiingo)}/prices?startDate=${toYMD(new Date(cur * 1000))}&endDate=${toYMD(new Date((next + 86400) * 1000))}&resampleFreq=${encodeURIComponent(freq)}&token=${encodeURIComponent(token)}`;
-          let rows = null, errLast = null;
-          for (let att = 0; att < 3; att++) {
-            try {
-              rows = await fetchWithCors(url, 9000);
-              if (!Array.isArray(rows)) {
-                const detail = rows?.detail || 'Tiingo geçersiz yanıt';
-                const err = new Error(detail);
-                if (/allocation|limit|exceeded|throttled|429/i.test(detail)) err.isTiingoLimit = true;
-                if (/token|authorization|401|403/i.test(detail)) err.isTiingoAuth = true;
-                throw err;
-              }
-              errLast = null;
-              break;
-            } catch (e) {
-              errLast = e;
-              if (e.httpStatus === 429 || /allocation|limit|exceeded|throttled/i.test(e.message || '')) e.isTiingoLimit = true;
-              if (e.httpStatus === 401 || e.httpStatus === 403 || /token|authorization/i.test(e.message || '')) e.isTiingoAuth = true;
-              if (e.isTiingoLimit || e.isTiingoAuth || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 350 * (att + 1)));
-            }
-          }
-          if (errLast) {
-            const clean = errLast.isTiingoLimit ? 'Tiingo saatlik limit doldu' : (errLast.isTiingoAuth ? 'Tiingo token geçersiz' : errLast.message);
-            if (!map.size) {
-              const outErr = new Error(clean);
-              outErr.disableTiingo = errLast.isTiingoLimit || errLast.isTiingoAuth || errLast.isTransportError;
-              throw outErr;
-            }
-            note = clean;
-            break;
-          }
-          let maxTs = 0;
-          for (const r of rows) {
-            const ms = Date.parse(r.date);
-            if (!Number.isFinite(ms)) continue;
-            const time = Math.floor(ms / 1000);
-            if (time >= gs && time <= ge) {
-              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: 0 });
-            }
-            if (time > maxTs) maxTs = time;
-          }
-          if (rows.length >= 9800 && maxTs > cur && (next - maxTs) > 4 * 86400) {
-            cur = maxTs + 1;
-            continue;
-          }
-          if (next >= ge) break;
-          cur = next + 1;
-        }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
-      }
-
-      // 3. TWELVE DATA (8 istek/dk korumalı)
-      async function fetchTdRange(pair, tf, gs, ge, key) {
-        const tdInt = TD_TF[tf];
-        if (!tdInt || !pair.td) return { bars: [], note: '' };
-        const map = new Map();
-        const maxPages = tf === 'M1' ? 20 : 10;
-        let cursorEnd = ge;
-        let note = '';
-
-        for (let page = 0; page < maxPages && cursorEnd > gs && !state.abortFetch; page++) {
-          if (!await waitRateSlot(state.tdTimes, 7, 62000, `${pair.code} ${tf} Twelve Data 8/dk limiti bekleniyor`)) break;
-          const sStr = isoUtc(gs).replace('T', ' ').replace('Z', '');
-          const eStr = isoUtc(cursorEnd).replace('T', ' ').replace('Z', '');
-          const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair.td)}&interval=${encodeURIComponent(tdInt)}&start_date=${encodeURIComponent(sStr)}&end_date=${encodeURIComponent(eStr)}&outputsize=5000&timezone=UTC&apikey=${encodeURIComponent(key)}`;
-
-          let json = null, errLast = null;
-          for (let att = 0; att < 3; att++) {
-            try {
-              state.tdTimes.push(Date.now());
-              json = await fetchWithCors(url, 9000);
-              if (json?.status === 'error') {
-                const msg = String(json.message || 'Twelve Data hatası');
-                if (/credits|minute|too many/i.test(msg) && !/daily|day/i.test(msg)) {
-                  if (!await sleepAbort(62000, `${pair.code} Twelve Data dakikalık kota bekleniyor`)) break;
-                  att--;
-                  continue;
-                }
-                const err = new Error(msg);
-                err.tdCode = Number(json.code || 0);
-                throw err;
-              }
-              errLast = null;
-              break;
-            } catch (e) {
-              errLast = e;
-              if (e.tdCode === 401 || e.tdCode === 403 || e.tdCode === 404 || /plan|upgrade|permission|apikey|daily/i.test(e.message || '') || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 400));
-            }
-          }
-
-          if (errLast) {
-            const raw = errLast.message || '';
-            let clean = raw;
-            let disable = false;
-            if (/grow|pro|ultra|plan|upgrade|permission|not available on|symbol or figi/i.test(raw) || errLast.tdCode === 403 || errLast.tdCode === 404) {
-              clean = 'Twelve Data ücretsiz planda desteklemiyor';
-              disable = true;
-            } else if (/daily|per day/i.test(raw)) {
-              clean = 'Twelve Data günlük limit doldu';
-              disable = true;
-            } else if (/apikey|api key|unauthorized/i.test(raw) || errLast.tdCode === 401) {
-              clean = 'Twelve Data API anahtarı geçersiz';
-              disable = true;
-            }
-            if (!map.size) {
-              const outErr = new Error(clean);
-              outErr.disableTd = disable;
-              throw outErr;
-            }
-            note = clean;
-            break;
-          }
-
-          const vals = json?.values || [];
-          if (!Array.isArray(vals) || !vals.length) break;
-          let minTs = Infinity;
-          for (const r of vals) {
-            const iso = r.datetime.includes(' ') ? r.datetime.replace(' ', 'T') + 'Z' : r.datetime + 'T00:00:00Z';
-            const time = Math.floor(Date.parse(iso) / 1000);
-            if (Number.isFinite(time) && time >= gs && time <= ge) {
-              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || 0 });
-            }
-            if (Number.isFinite(time) && time < minTs) minTs = time;
-          }
-          if (vals.length < 4990 || !Number.isFinite(minTs) || minTs >= cursorEnd) break;
-          cursorEnd = minTs - 1;
-        }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
-      }
-
-      // 4. FMP
-      async function fetchFmpRange(pair, tf, gs, ge, key) {
-        const fInt = FMP_TF[tf];
-        if (!fInt || !pair.fmp) return { bars: [], note: '' };
-        const map = new Map();
-        const parseErr = msg => {
-          if (/upgrade|plan|premium|subscription|restricted|402|403/i.test(msg)) return { msg: 'FMP ücretsiz planda desteklemiyor', disable: true };
-          if (/invalid api key|unauthorized|401/i.test(msg)) return { msg: 'FMP API anahtarı geçersiz', disable: true };
-          if (/limit|429/i.test(msg)) return { msg: 'FMP günlük limit doldu', disable: true };
-          return { msg, disable: false };
-        };
-
-        if (tf === 'D1') {
-          const url = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(pair.fmp)}&from=${toYMD(new Date(gs * 1000))}&to=${toYMD(new Date(ge * 1000))}&apikey=${encodeURIComponent(key)}`;
-          let rows = null;
-          for (let att = 0; att < 3; att++) {
-            try {
-              rows = await fetchWithCors(url, 9000);
-              if (!Array.isArray(rows)) throw new Error(rows?.['Error Message'] || rows?.message || 'FMP yanıt hatası');
-              break;
-            } catch (e) {
-              const info = parseErr(e.message || '');
-              if (info.disable || e.isTransportError || att === 2) {
-                const err = new Error(info.msg);
-                err.disableFmp = info.disable;
-                throw err;
-              }
-              await new Promise(r => setTimeout(r, 350));
-            }
-          }
-          const bars = (rows || []).map(r => ({
-            time: Math.floor(Date.parse(`${r.date}T00:00:00Z`) / 1000),
-            open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || 0
-          }));
-          return { bars: sanitizeBars(bars, gs, ge), note: '' };
-        }
-
-        const chunkDays = tf === 'M1' ? 7 : (tf === 'M5' ? 28 : 90);
-        const chunkSec = chunkDays * 86400;
-        const tz = pair.cat === 'index' ? pair.tz : 'America/New_York';
-        let note = '';
-
-        for (let cur = gs; cur <= ge && !state.abortFetch; cur += chunkSec) {
-          const next = Math.min(ge, cur + chunkSec - 1);
-          const url = `https://financialmodelingprep.com/stable/historical-chart/${encodeURIComponent(fInt)}?symbol=${encodeURIComponent(pair.fmp)}&from=${toYMD(new Date(cur * 1000))}&to=${toYMD(new Date((next + 86400) * 1000))}&apikey=${encodeURIComponent(key)}`;
-          let rows = null, errLast = null;
-          for (let att = 0; att < 3; att++) {
-            try {
-              rows = await fetchWithCors(url, 9000);
-              if (!Array.isArray(rows)) throw new Error(rows?.['Error Message'] || rows?.message || 'FMP yanıt hatası');
-              errLast = null;
-              break;
-            } catch (e) {
-              errLast = e;
-              const info = parseErr(e.message || '');
-              if (info.disable || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 350));
-            }
-          }
-          if (errLast) {
-            const info = parseErr(errLast.message || '');
-            if (!map.size) {
-              const err = new Error(info.msg);
-              err.disableFmp = info.disable;
-              throw err;
-            }
-            note = info.msg;
-            break;
-          }
-          for (const r of rows) {
-            const time = parseTzDateTimeToUtcSec(r.date, tz);
-            if (time !== null && time >= gs && time <= ge) {
-              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || 0 });
-            }
-          }
-        }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
-      }
-
-      // 5. MASSIVE (Yedek • 5 istek/dk korumalı)
-      async function fetchMassiveRange(pair, tf, gs, ge, key) {
-        const spec = MASSIVE_TF[tf];
-        if (!spec || !pair.massive) return { bars: [], note: '' };
-        const [mult, span] = spec;
-        const fromStr = toYMD(new Date(gs * 1000));
-        const toStr = toYMD(new Date(ge * 1000));
-        let nextUrl = `https://api.massive.com/v2/aggs/ticker/${encodeURIComponent(pair.massive)}/range/${mult}/${span}/${fromStr}/${toStr}?adjusted=true&sort=asc&limit=50000&apiKey=${encodeURIComponent(key)}`;
-        const map = new Map();
-        const isD1 = tf === 'D1', isW1 = tf === 'W1', isMN1 = tf === 'MN1';
-        const minAccept = isW1 ? getWeekMondayKey(gs) : (isMN1 ? getMonthFirstKey(gs) : gs);
-        let note = '';
-
-        for (let page = 0; page < 15 && nextUrl && !state.abortFetch; page++) {
-          if (!await waitRateSlot(state.massiveTimes, 5, 62000, `${pair.code} ${tf} Massive 5/dk limiti bekleniyor`)) break;
-          let json = null, errLast = null;
-
-          for (let att = 0; att < 3; att++) {
-            try {
-              state.massiveTimes.push(Date.now());
-              json = await fetchWithCors(nextUrl, 9000);
-              if (json?.status === 'ERROR' || json?.status === 'NOT_AUTHORIZED' || json?.error) {
-                const err = new Error(json.error || json.message || 'Massive API hatası');
-                if (json.status === 'NOT_AUTHORIZED' || /not authorized|entitled|upgrade|plan/i.test(err.message)) err.httpStatus = 403;
-                throw err;
-              }
-              errLast = null;
-              break;
-            } catch (e) {
-              errLast = e;
-              if (e.httpStatus === 429) {
-                if (!await sleepAbort(62000, `${pair.code} Massive 429 limiti bekleniyor`)) break;
-                att--;
-                continue;
-              }
-              if (e.httpStatus === 401 || e.httpStatus === 403 || /not authorized|entitled|apiKey|invalid/i.test(e.message || '') || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 400));
-            }
-          }
-
-          if (errLast) {
-            const raw = errLast.message || '';
-            const isAuth = errLast.httpStatus === 403 || /not authorized|entitled|upgrade|plan/i.test(raw);
-            let clean = raw;
-            let disablePair = false;
-            let disableIntraday = false;
-            if (isAuth && pair.cat === 'index') {
-              clean = 'Massive endeks için ücretli plan gerekir';
-              disablePair = true;
-            } else if (isAuth) {
-              clean = 'Massive bu plan/dilim için yetki gerektirir';
-              if (span === 'minute' || span === 'hour') disableIntraday = true;
-            } else if (errLast.httpStatus === 401) {
-              clean = 'Massive API anahtarı geçersiz';
-              disablePair = true;
-            }
-            if (!map.size) {
-              const err = new Error(clean);
-              err.disableMassive = disablePair;
-              err.disableMassiveIntraday = disableIntraday;
-              throw err;
-            }
-            note = clean;
-            break;
-          }
-
-          const rows = json?.results || [];
-          for (const r of rows) {
-            let time = Math.floor(Number(r.t) / 1000);
-            if (!Number.isFinite(time)) continue;
-            if (isD1) time = toExchangeDateMidnight(time, 0, pair.tz);
-            else if (isW1) time = getWeekMondayKey(toExchangeDateMidnight(time, 0, pair.tz));
-            else if (isMN1) time = getMonthFirstKey(toExchangeDateMidnight(time, 0, pair.tz));
-            if (time >= minAccept && time <= ge) {
-              map.set(time, { time, open: Number(r.o), high: Number(r.h), low: Number(r.l), close: Number(r.c), volume: Number(r.v) || 0 });
-            }
-          }
-
-          if (json?.next_url) {
-            try {
-              const u = new URL(String(json.next_url));
-              if (!u.searchParams.has('apiKey')) u.searchParams.set('apiKey', key);
-              nextUrl = u.toString();
-            } catch (_) {
-              nextUrl = String(json.next_url) + (String(json.next_url).includes('?') ? '&' : '?') + `apiKey=${encodeURIComponent(key)}`;
-            }
-          } else {
-            nextUrl = '';
-          }
-        }
-        return { bars: sanitizeBars(Array.from(map.values()), minAccept, ge), note };
-      }
-
-      // 6. BIQUOTE.IO
-      async function resolveBiquoteSym(pair) {
-        if (!pair.biquote) return null;
-        if (!state.biquoteSymbols) {
-          try {
-            const list = await fetchWithCors('https://biquote.io/api/symbols?quotedWithinDays=14', 8000);
-            state.biquoteSymbols = Array.isArray(list) ? new Set(list.map(x => String(x.name || '').toUpperCase())) : new Set();
-          } catch (_) {
-            state.biquoteSymbols = new Set();
-          }
-        }
-        const candidates = [pair.biquote, ...(pair.biquoteAlt || [])];
-        if (state.biquoteSymbols.size > 0) {
-          for (const c of candidates) if (state.biquoteSymbols.has(c.toUpperCase())) return c;
-        }
-        return candidates[0];
-      }
-
-      async function fetchBiquoteRange(pair, tf, gs, ge) {
-        const bInt = BIQUOTE_TF[tf];
-        if (!bInt) return { bars: [], note: '' };
-        const sym = await resolveBiquoteSym(pair);
-        if (!sym) return { bars: [], note: '' };
-
-        const map = new Map();
-        let cursorStart = gs;
-        let cursorEnd = ge;
-        const maxPages = tf === 'M1' ? 12 : 14;
-
-        for (let page = 0; page < maxPages && cursorStart < cursorEnd && !state.abortFetch; page++) {
-          const url = `https://biquote.io/api/${encodeURIComponent(sym)}/ohlc?interval=${encodeURIComponent(bInt)}&limit=1000&from=${encodeURIComponent(isoUtc(cursorStart))}&to=${encodeURIComponent(isoUtc(cursorEnd))}`;
-          let json = null;
-          for (let att = 0; att < 3; att++) {
-            try { json = await fetchWithCors(url, 8000); break; }
-            catch (e) { if (e.httpStatus === 404 || e.isTransportError || att === 2) throw e; await new Promise(r => setTimeout(r, 300)); }
-          }
-          const rows = json?.bars || [];
-          if (!Array.isArray(rows) || !rows.length) break;
-
-          let minTs = Infinity, maxTs = -Infinity;
-          for (const r of rows) {
-            if (r.isOpen) continue;
-            const ms = Date.parse(r.openTime);
-            if (!Number.isFinite(ms)) continue;
-            let time = Math.floor(ms / 1000);
-            if (tf === 'D1') time = toExchangeDateMidnight(time, 0, pair.tz);
-            if (time >= gs && time <= ge) {
-              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || Number(r.tickVolume) || 0 });
-            }
-            if (time < minTs) minTs = time;
-            if (time > maxTs) maxTs = time;
-          }
-          if (rows.length < 950 || !Number.isFinite(minTs) || !Number.isFinite(maxTs)) break;
-          // Sunucu from'dan ileri veya to'dan geri sıralı dönebilir; her iki yönü de destekle
-          if ((minTs - cursorStart) <= (cursorEnd - maxTs)) {
-            if (maxTs < cursorStart) break;
-            cursorStart = maxTs + 1;
-          } else {
-            if (minTs > cursorEnd) break;
-            cursorEnd = minTs - 1;
-          }
-        }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
-      }
-
-      // Türetme kuralları: M3<-M1, M15/M30<-M5, H2/H4<-H1, W1/MN1<-D1
-      function applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd) {
-        const deriveFrom = (target, src, builder) => {
-          if (!tfBars[src]?.length) return;
-          const derived = builder(tfBars[src]);
-          if (!derived.length) return;
-          const hadAny = (tfBars[target]?.length || 0) > 0;
-          const gaps = computeMissingRanges(tfBars[target], target, reqStart, reqEnd, false);
-          if (!hadAny || gaps.length > 0) {
-            if (hadAny && !checkPriceConsistency(tfBars[target], derived, 0.004).ok) return;
-            const before = tfBars[target]?.length || 0;
-            tfBars[target] = mergeBars(tfBars[target], derived);
-            if (tfBars[target].length > before) {
-              if (!tfSources[target]) tfSources[target] = new Set();
-              for (const s of (tfSources[src] || [])) tfSources[target].add(hadAny ? s : `${s} (${src}→${target})`);
-              if (!computeMissingRanges(tfBars[target], target, reqStart, reqEnd, true).length && tfNotes[target]) {
-                tfNotes[target].clear();
-              }
-            }
-          }
-        };
-
-        deriveFrom('M3', 'M1', b => aggregateBars(b, 180));
-        deriveFrom('M5', 'M1', b => aggregateBars(b, 300));
-        deriveFrom('M15', 'M5', b => aggregateBars(b, 900));
-        deriveFrom('M30', 'M5', b => aggregateBars(b, 1800));
-        deriveFrom('H2', 'H1', b => aggregateBars(b, 7200));
-        deriveFrom('H4', 'H1', b => aggregateBars(b, 14400));
-        deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1'));
-        deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1'));
-      }
-
-      async function fetchAllData(pairKey, startStr, endStr) {
-        const pair = PAIRS[pairKey];
-        const cfg = getSettings();
-        const reqStart = Math.floor(Date.parse(`${startStr}T00:00:00Z`) / 1000);
-        const nowSec = Math.floor(Date.now() / 1000);
-        const endDateEnd = Math.floor(Date.parse(`${endStr}T23:59:59Z`) / 1000);
-        const reqEnd = Math.min(endDateEnd, nowSec);
-        if (!Number.isFinite(reqStart) || !Number.isFinite(reqEnd) || reqStart >= reqEnd) {
-          throw new Error('Başlangıç tarihi bitiş tarihinden küçük olmalıdır');
-        }
-
-        const tfBars = {};
-        const tfSources = {};
-        const tfNotes = {};
-        const addSource = (tf, label) => {
-          if (!tfSources[tf]) tfSources[tf] = new Set();
-          tfSources[tf].add(label);
-        };
-        const addNote = (tf, note) => {
-          if (!note) return;
-          if (!tfNotes[tf]) tfNotes[tf] = new Set();
-          tfNotes[tf].add(note);
-        };
-
-        let baseRefBars = null;
-        const getBaseRef = () => {
-          for (const k of ['D1', 'H1', 'M15', 'M5', 'M1', 'H4']) {
-            if (tfBars[k]?.length) return tfBars[k];
-          }
-          return baseRefBars;
-        };
-
-        const acceptBars = (tf, bars, sourceLabel, gs, ge) => {
-          if (!bars || !bars.length) return { accepted: false, count: 0 };
-          const ref = getBaseRef();
-          if (ref?.length) {
-            const check = checkPriceConsistency(ref, bars, 0.004);
-            if (!check.ok) {
-              const pct = (check.diff * 100).toFixed(2);
-              const msg = `Fiyat sapması %${pct} (>%0.4), kaynak reddedildi`;
-              addLog(pair.code, sourceLabel, tf, `${shortDate(gs)}–${shortDate(ge)}`, bars.length, msg, 'err');
-              addNote(tf, `${sourceLabel}: ${msg}`);
-              return { accepted: false, count: 0 };
-            }
-          }
-          tfBars[tf] = mergeBars(tfBars[tf], bars);
-          if (!baseRefBars) baseRefBars = tfBars[tf];
-          addSource(tf, sourceLabel);
-          return { accepted: true, count: bars.length };
-        };
-
-        // ADIM 1: YAHOO FINANCE
-        let pct = 5;
-        setProgress(pct, `${pair.code} • Yahoo Finance bağlanıyor...`);
-        const limM1 = nowSec - (28 * 86400 + 43200);
-        const limM5 = nowSec - (58 * 86400 + 43200);
-        const limH1 = nowSec - (720 * 86400);
-        const yahooTfs = ['D1', 'H1', 'M30', 'M15', 'M5', 'M1'];
-
-        const runYahooTicker = async (ticker, isFallbackLabel = '') => {
-          let transportFails = 0;
-          let reachable = false;
-          let yahooDead = false;
-
-          await runPool(yahooTfs, 3, async tf => {
-            if (state.abortFetch || yahooDead) return;
-            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
-            if (!gaps.length) { pct = Math.min(34, pct + 4); setProgress(pct, `${pair.code} • Yahoo ${tf} hazır`); return; }
-
-            for (const [gs, ge] of gaps) {
-              if (state.abortFetch || yahooDead) break;
-              let effGs = gs;
-              let limitNote = '';
-              if (tf === 'M1') {
-                if (ge <= limM1) { addNote('M1', 'Yahoo M1 yalnızca son 29 gün'); continue; }
-                if (gs < limM1) { effGs = Math.max(gs, limM1); limitNote = 'Yahoo M1 yalnızca son 29 gün'; }
-              } else if (tf === 'M5' || tf === 'M15' || tf === 'M30') {
-                if (ge <= limM5) { addNote(tf, `Yahoo ${tf} yalnızca son 59 gün`); continue; }
-                if (gs < limM5) { effGs = Math.max(gs, limM5); limitNote = `Yahoo ${tf} yalnızca son 59 gün`; }
-              } else if (tf === 'H1') {
-                if (ge <= limH1) { addNote('H1', 'Yahoo H1 yalnızca son 720 gün'); continue; }
-                if (gs < limH1) { effGs = Math.max(gs, limH1); limitNote = 'Yahoo H1 yalnızca son 720 gün'; }
-              }
-
-              setStatus('busy', `${pair.code} Yahoo ${tf}...`);
-              const label = isFallbackLabel || 'Yahoo Finance';
-              try {
-                const bars = await fetchYahooRange(ticker, tf, effGs, ge, (c, tot) => {
-                  pct = Math.min(34, pct + Math.max(1, Math.round(4 / tot)));
-                  setProgress(pct, `${pair.code} • ${label} ${tf} (${c}/${tot})...`);
-                });
-                reachable = true;
-                const acc = acceptBars(tf, bars, label, effGs, ge);
-                if (acc.accepted) {
-                  addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, limitNote || 'Başarılı', limitNote ? 'partial' : 'ok');
-                } else if (!bars.length) {
-                  addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
-                }
-                if (limitNote) addNote(tf, limitNote);
-              } catch (e) {
-                if (e.isTransportError) {
-                  transportFails++;
-                  if (!reachable && transportFails >= 2) yahooDead = true;
-                } else {
-                  reachable = true;
-                }
-                addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, e.message, 'err');
-                addNote(tf, `Yahoo: ${e.message}`);
-              }
-            }
-            pct = Math.min(35, pct + 4);
-            setProgress(pct, `${pair.code} • Yahoo ${tf} tamamlandı`);
-          });
-        };
-
-        await runYahooTicker(pair.yahoo);
-        if (pair.yahooAlt && !state.abortFetch) {
-          const needAlt = yahooTfs.some(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
-          if (needAlt) await runYahooTicker(pair.yahooAlt, `Yahoo (${pair.yahooAlt})`);
-        }
-        applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
-        setProgress(38, `${pair.code} • Eksik aralıklar taranıyor...`);
-
-        // ADIM 2: YEDEK KAYNAKLAR (Tiingo -> Twelve Data -> FMP -> Massive -> biquote.io)
-        const providers = [
-          { id: 'tiingo', label: 'Tiingo FX', hasKey: !!cfg.tiingo, sym: pair.tiingo, tfs: ['D1', 'H1', 'M1', 'M5', 'M15', 'M30'], conc: 2 },
-          { id: 'twelvedata', label: 'Twelve Data', hasKey: !!cfg.td, sym: pair.td, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 1 },
-          { id: 'fmp', label: 'FMP', hasKey: !!cfg.fmp, sym: pair.fmp, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 3 },
-          { id: 'massive', label: 'Massive', hasKey: !!cfg.massive, sym: pair.massive, tfs: ['D1', 'W1', 'MN1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 1 },
-          { id: 'biquote', label: 'biquote.io', hasKey: true, sym: pair.biquote, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 3 }
-        ];
-
-        const disabled = {};
-        let massiveIntradayBlocked = false;
-
-        for (let pIdx = 0; pIdx < providers.length && !state.abortFetch; pIdx++) {
-          const prov = providers[pIdx];
-          if (!prov.hasKey || !prov.sym || disabled[prov.id]) continue;
-
-          const startPct = 40 + Math.round((pIdx / providers.length) * 50);
-          const spanPct = Math.round(50 / providers.length);
-          setProgress(startPct, `${pair.code} • ${prov.label} kontrol ediliyor...`);
-
-          const runProviderTf = async (tf, idxInProv, totalInProv) => {
-            if (state.abortFetch || disabled[prov.id]) return;
-            if (prov.id === 'massive' && massiveIntradayBlocked && ['H4', 'H1', 'M30', 'M15', 'M5', 'M1'].includes(tf)) return;
-
-            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
-            if (!gaps.length) return;
-
-            for (const [gs, ge] of gaps) {
-              if (state.abortFetch || disabled[prov.id]) break;
-              setStatus('busy', `${pair.code} ${prov.label} ${tf}...`);
-              setProgress(startPct + Math.round(((idxInProv + 0.5) / totalInProv) * spanPct), `${pair.code} • ${prov.label} ${tf} çekiliyor...`);
-              try {
-                let res = { bars: [], note: '' };
-                if (prov.id === 'tiingo') res = await fetchTiingoRange(pair, tf, gs, ge, cfg.tiingo);
-                else if (prov.id === 'twelvedata') res = await fetchTdRange(pair, tf, gs, ge, cfg.td);
-                else if (prov.id === 'fmp') res = await fetchFmpRange(pair, tf, gs, ge, cfg.fmp);
-                else if (prov.id === 'massive') res = await fetchMassiveRange(pair, tf, gs, ge, cfg.massive);
-                else if (prov.id === 'biquote') res = await fetchBiquoteRange(pair, tf, gs, ge);
-
-                const acc = acceptBars(tf, res.bars, prov.label, gs, ge);
-                if (acc.accepted) {
-                  addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, res.note || 'Başarılı', res.note ? 'partial' : 'ok');
-                } else if (!res.bars?.length) {
-                  addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, res.note || 'Veri bulunamadı', 'partial');
-                }
-                if (res.note) addNote(tf, res.note);
-              } catch (e) {
-                addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
-                addNote(tf, e.message);
-                if (e.disableTiingo) disabled.tiingo = e.message;
-                if (e.disableTd) disabled.twelvedata = e.message;
-                if (e.disableFmp) disabled.fmp = e.message;
-                if (e.disableMassive) disabled.massive = e.message;
-                if (e.disableMassiveIntraday) {
-                  massiveIntradayBlocked = true;
-                  for (const iTf of ['H4', 'H1', 'M30', 'M15', 'M5', 'M1']) addNote(iTf, e.message);
-                }
-              }
-            }
-          };
-
-          if (prov.id === 'tiingo') {
-            const firstPass = ['D1', 'H1', 'M1'];
-            for (let i = 0; i < firstPass.length; i++) {
-              await runProviderTf(firstPass[i], i, 6);
-              applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
-            }
-            const restPass = ['M5', 'M15', 'M30'];
-            await runPool(restPass, 2, async tf => {
-              await runProviderTf(tf, 3 + restPass.indexOf(tf), 6);
-            });
-            applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
-          } else {
-            await runPool(prov.tfs, prov.conc, async tf => {
-              await runProviderTf(tf, prov.tfs.indexOf(tf), prov.tfs.length);
-              if (tf === 'M1' || tf === 'M5' || tf === 'H1' || tf === 'D1') {
-                applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
-              }
-            });
-            applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
-          }
-        }
-
-        // ADIM 3: ALTIN / GÜMÜŞ İÇİN SON ÇARE VADELİ (Yalnızca hiç spot veri yoksa)
-        let isLastResortFutures = false;
-        const hasAnySpot = ALL_TF.some(tf => (tfBars[tf]?.length || 0) > 0);
-        if (pair.isSpotMetal && !hasAnySpot && pair.yahooLastResort && !state.abortFetch) {
-          isLastResortFutures = true;
-          setProgress(93, `${pair.code} • Spot bulunamadı, son çare vadeli (${pair.yahooLastResort}) çekiliyor...`);
-          await runYahooTicker(pair.yahooLastResort, `Son Çare Vadeli (${pair.yahooLastResort})`);
-          applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd);
-        }
-
-        // ADIM 4: SON TEMİZLİK VE KART DEĞERLENDİRMESİ
-        const meta = {};
-        for (const tf of ALL_TF) {
-          const minBound = tf === 'W1' ? getWeekMondayKey(reqStart) : (tf === 'MN1' ? getMonthFirstKey(reqStart) : reqStart);
-          if (tfBars[tf]?.length) tfBars[tf] = sanitizeBars(tfBars[tf], minBound, endDateEnd);
-
-          const bars = tfBars[tf] || [];
-          const srcList = Array.from(tfSources[tf] || []);
-          const notesList = Array.from(tfNotes[tf] || []);
-
-          if (!bars.length) {
-            meta[tf] = {
-              status: 'err',
-              statusText: 'Yok',
-              source: srcList.join(', ') || '-',
-              reason: notesList.join(' • ') || (state.abortFetch ? 'İşlem durduruldu' : 'Hiçbir kaynaktan veri alınamadı')
-            };
-          } else {
-            const remGaps = computeMissingRanges(bars, tf, reqStart, reqEnd, true);
-            const futuresWarn = isLastResortFutures ? `Spot bulunamadı — son çare vadeli (${pair.yahooLastResort})` : '';
-            if (remGaps.length > 0) {
-              const partMsg = `Kısmi: ${shortDate(bars[0].time)} – ${shortDate(bars[bars.length - 1].time)} arası var`;
-              meta[tf] = {
-                status: 'partial',
-                statusText: 'Kısmi',
-                source: srcList.join(', '),
-                reason: [partMsg, futuresWarn, ...notesList].filter(Boolean).join(' • ')
-              };
-            } else {
-              meta[tf] = {
-                status: isLastResortFutures ? 'partial' : 'ok',
-                statusText: isLastResortFutures ? 'Vadeli Yedek' : 'Tam',
-                source: srcList.join(', '),
-                reason: futuresWarn || 'Tam aralık kapsandı'
-              };
-            }
-          }
-        }
-
-        setProgress(100, state.abortFetch ? 'Durduruldu (alınan veriler gösteriliyor)' : 'Tamamlandı');
-        return { pair: pair.code, dec: pair.dec, startStr, endStr, tfBars, meta };
-      }
-
-      // CSV VE TABLO
-      function csvHeader(incVol) {
-        return incVol ? 'symbol,timeframe,time,open,high,low,close,volume' : 'symbol,timeframe,time,open,high,low,close';
-      }
-
-      function buildCsvRows(sym, tf, bars, dec, incVol) {
-        return bars.map(b => {
-          const base = `${sym},${tf},${isoUtc(b.time)},${b.open.toFixed(dec)},${b.high.toFixed(dec)},${b.low.toFixed(dec)},${b.close.toFixed(dec)}`;
-          return incVol ? `${base},${Math.round(b.volume || 0)}` : base;
-        });
-      }
-
-      function downloadTextFile(filename, content) {
-        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-      }
-
-      // GRAFİK
-      function ensureChart() {
-        if (state.chart) {
-          const el = $('chartEl');
-          if (el.clientWidth > 0) state.chart.resize(el.clientWidth, 400);
-          return true;
-        }
-        if (typeof LightweightCharts === 'undefined') {
-          $('chartEl').innerHTML = '<div style="padding:20px;color:var(--muted);">Lightweight Charts yüklenemedi. Tablo ve CSV indirme normal çalışmaktadır.</div>';
-          return false;
-        }
-        const el = $('chartEl');
-        state.chart = LightweightCharts.createChart(el, {
-          width: el.clientWidth || 600,
-          height: 400,
-          layout: { background: { type: 'solid', color: '#080d1a' }, textColor: '#dce6f7', fontSize: 11 },
-          grid: { vertLines: { color: '#162038' }, horzLines: { color: '#162038' } },
-          rightPriceScale: { borderColor: '#253352' },
-          timeScale: { borderColor: '#253352', timeVisible: true, secondsVisible: false }
-        });
-        state.series = state.chart.addCandlestickSeries({
-          upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
-        });
-        new ResizeObserver(() => {
-          if (state.chart && el.clientWidth > 0) state.chart.resize(el.clientWidth, 400);
-        }).observe(el);
-        return true;
-      }
-
-      function renderResultView() {
-        if (!state.result) return;
-        const { pair, dec, startStr, endStr, tfBars, meta } = state.result;
-        const incVol = $('volumeChk').checked;
-        const avail = ALL_TF.filter(tf => (tfBars[tf]?.length || 0) > 0);
-        const totalBars = avail.reduce((sum, tf) => sum + tfBars[tf].length, 0);
-
-        $('resultSection').classList.add('visible');
-        $('resultTitle').textContent = `${pair} • ${avail.length}/11 Zaman Dilimi Hazır`;
-        $('resultSubtitle').textContent = `${startStr} → ${endStr} • Toplam ${totalBars.toLocaleString('tr-TR')} mum • Başlık: ${csvHeader(incVol)}`;
-        $('downloadMergedBtn').disabled = totalBars === 0;
-
-        if (!tfBars[state.activeTf]?.length && avail.length) {
-          state.activeTf = avail.includes('M15') ? 'M15' : (avail.includes('H1') ? 'H1' : avail[0]);
-        }
-
-        const grid = $('tfGrid');
-        grid.innerHTML = '';
-        for (const tf of ALL_TF) {
-          const bars = tfBars[tf] || [];
-          const m = meta[tf];
-          const card = document.createElement('div');
-          card.className = `tf-card ${tf === state.activeTf && bars.length ? 'active' : ''} ${!bars.length ? 'empty' : (m.status === 'partial' ? 'partial' : '')}`;
-
-          const spanStr = bars.length ? `${shortDate(bars[0].time)} – ${shortDate(bars[bars.length - 1].time)}` : 'Tarih aralığı yok';
-          const badgeCls = m.status === 'ok' ? 'ok' : (m.status === 'partial' ? 'partial' : 'err');
-
-          card.innerHTML = `
-            <div class="tf-top">
-              <span class="tf-name">${tf}</span>
-              <div class="tf-actions">
-                <span class="badge ${badgeCls}">${escapeHtml(m.statusText)}</span>
-                <button type="button" class="btn btn-sm tf-csv-btn" ${bars.length ? '' : 'disabled'}>CSV</button>
-              </div>
-            </div>
-            <div class="tf-meta">${bars.length.toLocaleString('tr-TR')} mum • ${spanStr}</div>
-            <div class="tf-src">Kaynak: ${escapeHtml(m.source)}</div>
-            <div class="tf-reason">${escapeHtml(m.reason)}</div>
-          `;
-
-          card.querySelector('.tf-csv-btn').addEventListener('click', e => {
-            e.stopPropagation();
-            const content = [csvHeader(incVol), ...buildCsvRows(pair, tf, bars, dec, incVol)].join('\n');
-            downloadTextFile(`${pair}_${tf}_${startStr}_${endStr}.csv`, content);
-          });
-
-          if (bars.length) {
-            card.addEventListener('click', () => {
-              state.activeTf = tf;
-              renderResultView();
-            });
-          }
-          grid.appendChild(card);
-        }
-
-        const activeBars = tfBars[state.activeTf] || [];
-        $('chartTitle').textContent = `${pair} • ${state.activeTf} (${activeBars.length.toLocaleString('tr-TR')} mum)`;
-        if (ensureChart() && state.series) {
-          state.series.applyOptions({
-            priceFormat: { type: 'price', precision: dec, minMove: Number((1 / Math.pow(10, dec)).toFixed(dec)) }
-          });
-          state.series.setData(activeBars);
-          if (activeBars.length) state.chart.timeScale().fitContent();
-        }
-
-        const last30 = activeBars.slice(-30).reverse();
-        $('tableInfo').textContent = `${pair} • ${state.activeTf} (son ${last30.length} mum)`;
-        $('tableHead').innerHTML = `<tr><th>symbol</th><th>timeframe</th><th>time</th><th>open</th><th>high</th><th>low</th><th>close</th>${incVol ? '<th>volume</th>' : ''}</tr>`;
-        $('tableBody').innerHTML = last30.length
-          ? last30.map(b => `<tr>
-              <td style="font-weight:700;color:var(--amber);">${pair}</td>
-              <td style="font-weight:700;color:var(--cyan);">${state.activeTf}</td>
-              <td>${isoUtc(b.time)}</td>
-              <td>${b.open.toFixed(dec)}</td>
-              <td>${b.high.toFixed(dec)}</td>
-              <td>${b.low.toFixed(dec)}</td>
-              <td style="font-weight:700;color:var(--white);">${b.close.toFixed(dec)}</td>
-              ${incVol ? `<td>${Math.round(b.volume || 0)}</td>` : ''}
-            </tr>`).join('')
-          : `<tr><td colspan="${incVol ? 8 : 7}" style="color:var(--muted);">Gösterilecek mum yok.</td></tr>`;
-      }
-
-      // OLAY DİNLEYİCİLERİ
-      $('settingsToggleBtn').addEventListener('click', () => {
-        const isOpen = $('settingsPanel').classList.toggle('open');
-        $('settingsToggleBtn').classList.toggle('active', isOpen);
+    }
+  }
+
+  if(!allBars.length){
+    state.results[tf] = { bars:[], source:'—', status:'Yok', note: lastErr || 'Veri alınamadı' };
+    logAdd(tf, 'sonuç', 'Yok — ' + (lastErr || 'veri yok'), 'err');
+    return;
+  }
+
+  allBars = sanitizeBars(allBars, state.startDate, state.endDate + 86400);
+  if(!allBars.length){
+    state.results[tf] = { bars:[], source:source, status:'Yok', note:'Aralıkta mum yok' };
+    logAdd(tf, 'sonuç', 'Aralıkta mum yok', 'err');
+    return;
+  }
+
+  var firstTs = allBars[0].time;
+  var lastTs = allBars[allBars.length-1].time;
+  var tol = Math.max(3*86400, 3*TF_SEC[tf]);
+  var isPartial = (firstTs - state.startDate) > tol;
+  var note = '';
+  if(isPartial) note = 'Veri '+fmtDate(firstTs)+' tarihinden itibaren var';
+
+  state.results[tf] = {
+    bars: allBars,
+    source: source,
+    status: isPartial ? 'Kısmi' : 'Tam',
+    note: note,
+    firstTs: firstTs,
+    lastTs: lastTs
+  };
+  logAdd(tf, 'sonuç', allBars.length+' mum, '+fmtDate(firstTs)+' → '+fmtDate(lastTs), isPartial ? 'partial' : 'ok');
+}
+
+async function runFetch(){
+  if(state.isFetching) return;
+  var cfg = getCfg();
+  state.abort = false;
+  state.isFetching = true;
+  state.results = {};
+  state.sourceLog = [];
+  renderLog();
+  $('resultCard').classList.remove('visible');
+  $('fetchBtn').disabled = true;
+  $('stopBtn').disabled = false;
+  $('progressWrap').classList.add('active');
+  updateProgress(0, 'Başlıyor...');
+  setStatus('busy', 'Veri çekiliyor...');
+
+  var pairCode = state.selectedPair;
+  var pair = PAIRS[pairCode];
+  if(!pair){ toast('Parite seçilmedi', 'err'); cleanup(); return; }
+
+  logAdd('—', 'başlangıç', 'Parite: '+pairCode+' • Aralık: '+fmtDate(state.startDate)+' → '+fmtDate(state.endDate), 'ok');
+
+  var batches = [];
+  for(var i=0; i<TF_LIST.length; i+=3) batches.push(TF_LIST.slice(i, i+3));
+  var completed = 0;
+
+  for(var bi=0; bi<batches.length; bi++){
+    if(state.abort) break;
+    var batch = batches[bi];
+    var tasks = batch.map(function(tf){
+      return fetchTf(tf, pair, pairCode).catch(function(err){
+        logAdd(tf, 'hata', err.message || String(err), 'err');
+      }).then(function(){ completed++; updateProgress(completed/TF_LIST.length, completed+'/'+TF_LIST.length+' zaman dilimi'); });
+    });
+    await Promise.all(tasks);
+  }
+
+  $('stopBtn').disabled = true;
+  $('progressWrap').classList.remove('active');
+  $('fetchBtn').disabled = false;
+  state.isFetching = false;
+
+  var total = 0;
+  var available = 0;
+  TF_LIST.forEach(function(tf){
+    total++;
+    var r = state.results[tf];
+    if(r && r.bars && r.bars.length) available++;
+  });
+  setStatus(available > 0 ? 'idle' : 'err', available + '/' + total + ' dilim hazır');
+  if(state.abort) toast('Durduruldu — mevcut verilerle sonuç gösteriliyor', 'info');
+  else if(available === 0) toast('Hiçbir dilimden veri alınamadı', 'err');
+  else toast(available + '/' + total + ' dilim hazır', 'ok');
+
+  renderResults();
+}
+
+function cleanup(){
+  state.isFetching = false;
+  $('fetchBtn').disabled = false;
+  $('stopBtn').disabled = true;
+  $('progressWrap').classList.remove('active');
+}
+
+/* ==================== RESULTS ==================== */
+function renderResults(){
+  $('resultCard').classList.add('visible');
+  var okCount = 0, partialCount = 0, emptyCount = 0;
+  TF_LIST.forEach(function(tf){
+    var r = state.results[tf];
+    if(!r || !r.bars || !r.bars.length){ emptyCount++; return; }
+    if(r.status === 'Kısmi') partialCount++;
+    else okCount++;
+  });
+  $('mergedTitle').textContent = state.selectedPair + ' — ' + TF_LIST.length + ' Zaman Dilimi';
+  $('mergedDesc').textContent = okCount + ' tam, ' + partialCount + ' kısmi, ' + emptyCount + ' boş';
+
+  var grid = $('tfGrid');
+  grid.innerHTML = '';
+  TF_LIST.forEach(function(tf){
+    var r = state.results[tf] || { bars:[], source:'—', status:'Yok', note:'' };
+    var hasBars = r.bars && r.bars.length > 0;
+    var box = document.createElement('div');
+    box.className = 'tf-box';
+    if(!hasBars) box.classList.add('empty');
+    if(r.status === 'Kısmi') box.classList.add('partial');
+    var badgeCls = r.status === 'Tam' ? 'ok' : (r.status === 'Kısmi' ? 'partial' : 'empty');
+    var span = hasBars ? (fmtDate(r.firstTs) + ' → ' + fmtDate(r.lastTs)) : '—';
+    var html = '<div class="tf-head"><span class="tf-name">'+tf+'</span><span class="tf-badge '+badgeCls+'">'+r.status+'</span></div>';
+    html += '<div class="tf-count">'+r.bars.length+' mum</div>';
+    html += '<div class="tf-span">'+span+'</div>';
+    html += '<div class="tf-src">'+escapeHtml(r.source||'—')+'</div>';
+    if(r.note) html += '<div class="tf-note">'+escapeHtml(r.note)+'</div>';
+    if(hasBars) html += '<div class="tf-actions"><button type="button" class="tf-dl" data-tf="'+tf+'">CSV</button></div>';
+    box.innerHTML = html;
+    if(hasBars){
+      box.addEventListener('click', function(ev){
+        if(ev.target && ev.target.classList && ev.target.classList.contains('tf-dl')) return;
+        showChart(tf);
       });
+    }
+    grid.appendChild(box);
+  });
 
-      function bindKeyControls(inputId, storeKey, msgId, testFn) {
-        const prefix = inputId.replace(/Key$/, '');
-        const testBtn = $(`${prefix}TestBtn`);
-        $(`${prefix}SaveBtn`).addEventListener('click', () => {
-          const val = $(inputId).value.trim();
-          safeSet(storeKey, val);
-          refreshSettingsUi();
-          $(msgId).className = `msg-line ${val ? 'ok' : ''}`;
-          $(msgId).textContent = val ? 'Kaydedildi.' : 'Boş olarak kaydedildi.';
-        });
-        $(`${prefix}ClearBtn`).addEventListener('click', () => {
-          safeDel(storeKey);
-          refreshSettingsUi();
-          $(msgId).className = 'msg-line';
-          $(msgId).textContent = 'Temizlendi.';
-        });
-        testBtn.addEventListener('click', async () => {
-          const val = $(inputId).value.trim();
-          if (!val) {
-            $(msgId).className = 'msg-line err';
-            $(msgId).textContent = 'Önce API anahtarı girin.';
-            return;
-          }
-          testBtn.disabled = true;
-          $(msgId).className = 'msg-line';
-          $(msgId).textContent = 'Test ediliyor...';
-          try {
-            const info = await testFn(val);
-            safeSet(storeKey, val);
-            refreshSettingsUi();
-            $(msgId).className = 'msg-line ok';
-            $(msgId).textContent = info;
-          } catch (e) {
-            $(msgId).className = 'msg-line err';
-            $(msgId).textContent = `Hata: ${e.message}`;
-          } finally {
-            testBtn.disabled = false;
-          }
-        });
-      }
+  grid.querySelectorAll('.tf-dl').forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      downloadTfCsv(btn.getAttribute('data-tf'));
+    });
+  });
 
-      bindKeyControls('tiingoKey', STORE.tiingo, 'tiingoMsg', async key => {
-        const from = toYMD(new Date(Date.now() - 7 * 86400000));
-        const rows = await fetchWithCors(`https://api.tiingo.com/tiingo/fx/eurusd/prices?startDate=${from}&resampleFreq=1hour&token=${encodeURIComponent(key)}`, 9000);
-        if (!Array.isArray(rows)) throw new Error(rows?.detail || 'Geçersiz yanıt');
-        return `Başarılı: ${rows.length} örnek mum alındı.`;
-      });
+  var firstAvail = null;
+  TF_LIST.forEach(function(tf){
+    if(firstAvail) return;
+    var r = state.results[tf];
+    if(r && r.bars && r.bars.length) firstAvail = tf;
+  });
+  if(firstAvail) showChart(firstAvail);
+  else $('chartContainer').innerHTML = '<div class="chart-msg">Gösterilecek veri yok</div>';
+}
 
-      bindKeyControls('tdKey', STORE.td, 'tdMsg', async key => {
-        const json = await fetchWithCors(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=1h&outputsize=2&apikey=${encodeURIComponent(key)}`, 9000);
-        if (json.status === 'error') throw new Error(json.message || 'Geçersiz anahtar');
-        if (!Array.isArray(json.values) || !json.values.length) throw new Error('Veri alınamadı');
-        return `Başarılı: EUR/USD doğrulandı (${json.values[0].datetime}).`;
-      });
+function showChart(tf){
+  var r = state.results[tf];
+  state.activeTf = tf;
+  $('activeTfLabel').textContent = 'Aktif: ' + tf;
+  var container = $('chartContainer');
+  document.querySelectorAll('.tf-box').forEach(function(b){
+    var name = b.querySelector('.tf-name').textContent;
+    b.classList.toggle('active', name === tf);
+  });
+  if(!r || !r.bars || !r.bars.length){
+    if(state.chart){ try{ state.chart.remove(); }catch(e){} state.chart = null; state.chartSeries = null; }
+    container.innerHTML = '<div class="chart-msg">Bu dilim için veri yok</div>';
+    $('chartHint').textContent = '—';
+    $('tableBody').innerHTML = '';
+    return;
+  }
+  if(typeof LightweightCharts === 'undefined'){
+    container.innerHTML = '<div class="chart-msg">Grafik kütüphanesi yüklenemedi</div>';
+    renderTable(tf, r.bars);
+    return;
+  }
+  container.innerHTML = '';
+  if(state.chart){ try{ state.chart.remove(); }catch(e){} state.chart = null; }
+  try{
+    state.chart = LightweightCharts.createChart(container, {
+      layout: { background:{ color:'#0d1526' }, textColor:'#c5d5f5' },
+      grid: { vertLines:{ color:'rgba(140,170,220,.08)' }, horzLines:{ color:'rgba(140,170,220,.08)' } },
+      timeScale: { timeVisible:true, secondsVisible:false, borderColor:'rgba(140,170,220,.2)' },
+      rightPriceScale: { borderColor:'rgba(140,170,220,.2)' },
+      crosshair: { mode:0 },
+      autoSize: true
+    });
+    state.chartSeries = state.chart.addCandlestickSeries({
+      upColor:'#55e5b1', downColor:'#ff829d', borderVisible:false, wickUpColor:'#55e5b1', wickDownColor:'#ff829d'
+    });
+    state.chartSeries.setData(r.bars.map(function(b){
+      return { time:b.time, open:b.open, high:b.high, low:b.low, close:b.close };
+    }));
+    state.chart.timeScale().fitContent();
+  }catch(e){
+    container.innerHTML = '<div class="chart-msg">Grafik hatası: '+escapeHtml(e.message)+'</div>';
+  }
+  renderTable(tf, r.bars);
+  $('chartHint').textContent = r.bars.length + ' mum • ' + fmtDateTime(r.firstTs) + ' → ' + fmtDateTime(r.lastTs);
+}
 
-      bindKeyControls('fmpKey', STORE.fmp, 'fmpMsg', async key => {
-        const from = toYMD(new Date(Date.now() - 10 * 86400000));
-        const to = toYMD(new Date());
-        try {
-          const rows = await fetchWithCors(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`, 9000);
-          if (!Array.isArray(rows) || !rows.length) throw new Error(rows?.['Error Message'] || rows?.message || 'Veri alınamadı');
-          return `Başarılı: FMP EURUSD doğrulandı (${rows[0].date}).`;
-        } catch (err) {
-          if (/402|403|upgrade|plan|restricted/i.test(err.message || '')) {
-            const stockRows = await fetchWithCors(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=AAPL&from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`, 9000);
-            if (Array.isArray(stockRows) && stockRows.length) {
-              return 'Anahtar geçerli, ancak ücretsiz FMP planı Forex/Endeksleri kısıtlıyor.';
-            }
-          }
-          throw err;
-        }
-      });
+function renderTable(tf, bars){
+  var tb = $('tableBody');
+  var showVol = $('volumeChk') && $('volumeChk').checked;
+  var last30 = bars.slice(-30).reverse();
+  var html = '';
+  for(var i=0; i<last30.length; i++){
+    var b = last30[i];
+    html += '<tr><td>'+state.selectedPair+'</td><td>'+tf+'</td><td>'+fmtIsoShort(b.time)+'</td>'
+      + '<td>'+b.open+'</td><td>'+b.high+'</td><td>'+b.low+'</td><td>'+b.close+'</td>';
+    if(showVol) html += '<td>'+b.volume+'</td>';
+    html += '</tr>';
+  }
+  tb.innerHTML = html;
+}
 
-      bindKeyControls('massiveKey', STORE.massive, 'massiveMsg', async key => {
-        const from = toYMD(new Date(Date.now() - 14 * 86400000));
-        const to = toYMD(new Date());
-        const json = await fetchWithCors(`https://api.massive.com/v2/aggs/ticker/C:EURUSD/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=10&apiKey=${encodeURIComponent(key)}`, 9000);
-        if (json?.status === 'ERROR' || json?.status === 'NOT_AUTHORIZED' || json?.error) {
-          throw new Error(json.error || json.message || 'Yetki/anahtar hatası');
-        }
-        return `Başarılı: Massive doğrulandı (${(json?.results || []).length} örnek bar).`;
-      });
+function fmtIsoShort(ts){
+  var d = new Date(ts*1000);
+  return d.getUTCFullYear()+'-'+pad2(d.getUTCMonth()+1)+'-'+pad2(d.getUTCDate())+'T'
+    + pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes())+':'+pad2(d.getUTCSeconds())+'Z';
+}
 
-      $('proxySaveBtn').addEventListener('click', () => {
-        const val = $('customProxyInput').value.trim();
-        if (val && !val.startsWith('https://')) {
-          $('proxyMsg').className = 'msg-line err';
-          $('proxyMsg').textContent = 'Proxy adresi https:// ile başlamalıdır.';
-          return;
-        }
-        safeSet(STORE.proxy, val);
-        state.hostRouteMemory.clear();
-        refreshSettingsUi();
-        $('proxyMsg').className = `msg-line ${val ? 'ok' : ''}`;
-        $('proxyMsg').textContent = val ? 'Özel proxy kaydedildi.' : 'Temizlendi; hazır proxyler kullanılacak.';
-      });
+/* ==================== CSV ==================== */
+function barsToCsv(pairCode, tf, bars, includeVol){
+  var lines = [];
+  var header = 'symbol,timeframe,time,open,high,low,close';
+  if(includeVol) header += ',volume';
+  lines.push(header);
+  for(var i=0; i<bars.length; i++){
+    var b = bars[i];
+    var line = pairCode+','+tf+','+fmtIsoShort(b.time)+','+b.open+','+b.high+','+b.low+','+b.close;
+    if(includeVol) line += ','+b.volume;
+    lines.push(line);
+  }
+  return lines.join('\n');
+}
 
-      $('proxyTestBtn').addEventListener('click', async () => {
-        const val = $('customProxyInput').value.trim();
-        if (!val || !val.startsWith('https://')) {
-          $('proxyMsg').className = 'msg-line err';
-          $('proxyMsg').textContent = 'Test için https:// ile başlayan proxy adresi girin.';
-          return;
-        }
-        $('proxyTestBtn').disabled = true;
-        $('proxyMsg').className = 'msg-line';
-        $('proxyMsg').textContent = 'Proxy test ediliyor...';
-        try {
-          const testTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=1d&interval=1d';
-          const json = await rawFetchJson(buildCustomProxyUrl(val, testTarget), 9000, false);
-          if (!json?.chart?.result?.[0]) throw new Error('Beklenen Yahoo JSON formatı dönmedi');
-          safeSet(STORE.proxy, val);
-          state.hostRouteMemory.clear();
-          refreshSettingsUi();
-          $('proxyMsg').className = 'msg-line ok';
-          $('proxyMsg').textContent = 'Başarılı: Özel proxy çalışıyor ve kaydedildi.';
-        } catch (e) {
-          $('proxyMsg').className = 'msg-line err';
-          $('proxyMsg').textContent = `Hata: ${e.message}`;
-        } finally {
-          $('proxyTestBtn').disabled = false;
-        }
-      });
+function downloadFile(filename, content){
+  var blob = new Blob([content], { type:'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
 
-      $('proxyClearBtn').addEventListener('click', () => {
-        safeDel(STORE.proxy);
-        state.hostRouteMemory.clear();
-        refreshSettingsUi();
-        $('proxyMsg').className = 'msg-line';
-        $('proxyMsg').textContent = 'Özel proxy kaldırıldı.';
-      });
+function downloadMergedCsv(){
+  var includeVol = $('volumeChk').checked;
+  var parts = [];
+  var header = 'symbol,timeframe,time,open,high,low,close';
+  if(includeVol) header += ',volume';
+  parts.push(header);
+  var any = false;
+  TF_LIST.forEach(function(tf){
+    var r = state.results[tf];
+    if(!r || !r.bars || !r.bars.length) return;
+    any = true;
+    for(var i=0; i<r.bars.length; i++){
+      var b = r.bars[i];
+      var line = state.selectedPair+','+tf+','+fmtIsoShort(b.time)+','+b.open+','+b.high+','+b.low+','+b.close;
+      if(includeVol) line += ','+b.volume;
+      parts.push(line);
+    }
+  });
+  if(!any){ toast('CSV için veri yok', 'err'); return; }
+  downloadFile(state.selectedPair+'_all.csv', parts.join('\n'));
+  toast('Birleşik CSV indirildi', 'ok');
+}
 
-      $('resetAllSettingsBtn').addEventListener('click', () => {
-        Object.values(STORE).forEach(k => safeDel(k));
-        state.hostRouteMemory.clear();
-        ['tiingoMsg', 'tdMsg', 'fmpMsg', 'massiveMsg', 'proxyMsg'].forEach(id => { $(id).textContent = ''; });
-        refreshSettingsUi();
-      });
+function downloadTfCsv(tf){
+  var r = state.results[tf];
+  if(!r || !r.bars || !r.bars.length){ toast('Bu dilim boş', 'err'); return; }
+  var includeVol = $('volumeChk').checked;
+  downloadFile(state.selectedPair+'_'+tf+'.csv', barsToCsv(state.selectedPair, tf, r.bars, includeVol));
+  toast(tf + ' CSV indirildi', 'ok');
+}
 
-      document.querySelectorAll('.cat-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.cat = btn.dataset.cat;
-          const first = Object.values(PAIRS).find(p => p.cat === state.cat);
-          if (first) state.pair = first.code;
-          renderPairs();
-          updateSelectionInfo();
-        });
-      });
+/* ==================== UI RENDER ==================== */
+function renderCategories(){
+  var tabs = $('catTabs').querySelectorAll('.cat-tab');
+  tabs.forEach(function(t){
+    t.classList.toggle('active', t.getAttribute('data-cat') === state.openCat);
+  });
+}
 
-      document.querySelectorAll('.quick-btn').forEach(btn => {
-        btn.addEventListener('click', () => applyQuickRange(btn.dataset.range));
-      });
-
-      ['startDate', 'endDate'].forEach(id => {
-        $(id).addEventListener('change', () => {
-          document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
-          updateSelectionInfo();
-        });
-      });
-
-      $('volumeChk').addEventListener('change', e => {
-        safeSet(STORE.vol, e.target.checked ? '1' : '0');
-        renderResultView();
-      });
-
-      $('clearLogBtn').addEventListener('click', () => {
-        state.logs = [];
-        renderLogs();
-      });
-
-      $('stopBtn').addEventListener('click', () => {
-        if (!state.fetching) return;
-        state.abortFetch = true;
-        $('stopBtn').disabled = true;
-        setStatus('busy', 'Durduruluyor...');
-        for (const ctrl of state.activeControllers) {
-          try { ctrl.abort(); } catch (_) {}
-        }
-      });
-
-      $('fetchBtn').addEventListener('click', async () => {
-        if (state.fetching) return;
-        const startVal = $('startDate').value;
-        const endVal = $('endDate').value;
-        if (!startVal || !endVal || startVal > endVal) {
-          showAlert('Lütfen geçerli bir başlangıç ve bitiş tarihi seçin (başlangıç <= bitiş).');
-          setStatus('err', 'Geçersiz tarih aralığı');
-          return;
-        }
-        showAlert('');
-        state.fetching = true;
-        state.abortFetch = false;
-        $('fetchBtn').disabled = true;
-        $('stopBtn').disabled = false;
-        setStatus('busy', `${state.pair} verisi çekiliyor...`);
-        setProgress(2, `${state.pair} başlatılıyor...`);
-
-        try {
-          const data = await fetchAllData(state.pair, startVal, endVal);
-          state.result = data;
-          renderResultView();
-          const readyCount = ALL_TF.filter(tf => (data.tfBars[tf]?.length || 0) > 0).length;
-          if (readyCount === 0 && !state.abortFetch) {
-            showAlert(`${state.pair} için hiçbir kaynaktan veri alınamadı. Aşağıdaki Kaynak Günlüğü tablosundan ayrıntıları inceleyin veya Ayarlar bölümünden kendi Cloudflare Worker proxy'nizi/API anahtarınızı ekleyin.`);
-            setStatus('err', 'Veri alınamadı (0/11 Dilim)');
-          } else {
-            setStatus('ok', state.abortFetch ? `Durduruldu (${readyCount}/11 Dilim)` : `Hazır (${readyCount}/11 Dilim)`);
-          }
-        } catch (e) {
-          showAlert(`Hata: ${e.message}`);
-          setStatus('err', `Hata: ${e.message}`);
-          addLog(state.pair, 'Sistem', '-', `${startVal}–${endVal}`, 0, e.message, 'err');
-        } finally {
-          state.fetching = false;
-          state.abortFetch = false;
-          $('fetchBtn').disabled = false;
-          $('stopBtn').disabled = true;
-        }
-      });
-
-      $('downloadMergedBtn').addEventListener('click', () => {
-        if (!state.result) return;
-        const { pair, dec, startStr, endStr, tfBars } = state.result;
-        const incVol = $('volumeChk').checked;
-        const lines = [csvHeader(incVol)];
-        let countTf = 0;
-        for (const tf of ALL_TF) {
-          const bars = tfBars[tf];
-          if (!bars?.length) continue;
-          countTf++;
-          lines.push(...buildCsvRows(pair, tf, bars, dec, incVol));
-        }
-        downloadTextFile(`${pair}_BIRLESIK_${countTf}TF_${startStr}_${endStr}.csv`, lines.join('\n'));
-      });
-
-      refreshSettingsUi();
+function renderPairs(){
+  var grid = $('pairsGrid');
+  grid.innerHTML = '';
+  var keys = Object.keys(PAIRS);
+  for(var i=0; i<keys.length; i++){
+    var code = keys[i];
+    var p = PAIRS[code];
+    if(p.cat !== state.openCat) continue;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pair-btn' + (state.selectedPair === code ? ' active' : '');
+    btn.setAttribute('data-pair', code);
+    btn.innerHTML = '<span class="pair-code">'+code+'</span><span class="pair-name">'+escapeHtml(p.name)+'</span>';
+    btn.addEventListener('click', function(ev){
+      state.selectedPair = ev.currentTarget.getAttribute('data-pair');
       renderPairs();
-      applyQuickRange('1m');
-      renderLogs();
-    })();
-  </script>
+      updateSelectionHint();
+    });
+    grid.appendChild(btn);
+  }
+  updateSelectionHint();
+}
+
+function updateSelectionHint(){
+  var p = PAIRS[state.selectedPair];
+  if(!p){ $('selectionHint').textContent = 'Seçim yapılmadı'; return; }
+  $('selectionHint').textContent = 'Seçim: ' + state.selectedPair + ' — ' + p.name + ' • ' + fmtDate(state.startDate) + ' → ' + fmtDate(state.endDate);
+}
+
+function initDates(){
+  var now = new Date();
+  var end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  var start = new Date(end.getTime() - 29*86400000);
+  state.endDate = Math.floor(end.getTime()/1000);
+  state.startDate = Math.floor(start.getTime()/1000);
+  $('endDate').value = toYMD(end);
+  $('startDate').value = toYMD(start);
+}
+
+function applyQuickRange(days){
+  var now = new Date();
+  var end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  var start = new Date(end.getTime() - (days-1)*86400000);
+  state.endDate = Math.floor(end.getTime()/1000);
+  state.startDate = Math.floor(start.getTime()/1000);
+  $('endDate').value = toYMD(end);
+  $('startDate').value = toYMD(start);
+  document.querySelectorAll('.q-pill').forEach(function(p){
+    p.classList.toggle('active', Number(p.getAttribute('data-days')) === days);
+  });
+  updateSelectionHint();
+}
+
+function updateDatesFromInputs(){
+  var s = $('startDate').value, e = $('endDate').value;
+  if(!s || !e) return;
+  var st = Math.floor(Date.parse(s+'T00:00:00Z')/1000);
+  var en = Math.floor(Date.parse(e+'T00:00:00Z')/1000);
+  if(!Number.isFinite(st) || !Number.isFinite(en) || en < st){
+    toast('Geçersiz tarih aralığı', 'err');
+    return;
+  }
+  state.startDate = st;
+  state.endDate = en;
+  document.querySelectorAll('.q-pill').forEach(function(p){ p.classList.remove('active'); });
+  updateSelectionHint();
+}
+
+/* ==================== SETTINGS EVENTS ==================== */
+function bindSettingsButtons(){
+  document.querySelectorAll('[data-save]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var key = b.getAttribute('data-save');
+      var map = {
+        tiingo: { input:'tiingoKeyInput', sk:SK.tiingo, badge:'tiingoBadge', msg:'tiingoMsg' },
+        td: { input:'tdKeyInput', sk:SK.td, badge:'tdBadge', msg:'tdMsg' },
+        fmp: { input:'fmpKeyInput', sk:SK.fmp, badge:'fmpBadge', msg:'fmpMsg' },
+        massive: { input:'massiveKeyInput', sk:SK.massive, badge:'massiveBadge', msg:'massiveMsg' },
+        proxy: { input:'proxyUrlInput', sk:SK.proxy, badge:null, msg:null }
+      };
+      var m = map[key];
+      if(!m) return;
+      var v = ($(m.input).value || '').trim();
+      if(v) localStorage.setItem(m.sk, v);
+      else localStorage.removeItem(m.sk);
+      if(m.badge) setBadge(m.badge, !!v);
+      if(m.msg) showMsg(m.msg, 'Kaydedildi', 'ok');
+      toast('Kaydedildi: ' + key, 'ok');
+    });
+  });
+
+  document.querySelectorAll('[data-clear]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var key = b.getAttribute('data-clear');
+      var map = {
+        tiingo: { input:'tiingoKeyInput', sk:SK.tiingo, badge:'tiingoBadge', msg:'tiingoMsg' },
+        td: { input:'tdKeyInput', sk:SK.td, badge:'tdBadge', msg:'tdMsg' },
+        fmp: { input:'fmpKeyInput', sk:SK.fmp, badge:'fmpBadge', msg:'fmpMsg' },
+        massive: { input:'massiveKeyInput', sk:SK.massive, badge:'massiveBadge', msg:'massiveMsg' },
+        proxy: { input:'proxyUrlInput', sk:SK.proxy, badge:null, msg:null }
+      };
+      var m = map[key];
+      if(!m) return;
+      localStorage.removeItem(m.sk);
+      $(m.input).value = '';
+      if(m.badge) setBadge(m.badge, false);
+      if(m.msg) showMsg(m.msg, 'Temizlendi', 'info');
+    });
+  });
+
+  document.querySelectorAll('[data-test]').forEach(function(b){
+    b.addEventListener('click', async function(){
+      var key = b.getAttribute('data-test');
+      await testProvider(key);
+    });
+  });
+}
+
+function showMsg(id, msg, cls){
+  var el = $(id);
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'test-msg ' + (cls || '');
+}
+
+async function testProvider(key){
+  var cfg = getCfg();
+  if(key === 'tiingo'){
+    if(!cfg.tiingo){ showMsg('tiingoMsg', 'Anahtar yok', 'err'); return; }
+    showMsg('tiingoMsg', 'Test ediliyor...', 'info');
+    try{
+      var url = 'https://api.tiingo.com/tiingo/fx/eurusd/prices?startDate=' + toYMD(new Date(Date.now()-7*86400000)) + '&resampleFreq=1day&token=' + encodeURIComponent(cfg.tiingo);
+      var data = await fetchJsonViaProxy(url, 12000);
+      if(Array.isArray(data)){ showMsg('tiingoMsg', 'Çalışıyor ('+data.length+' satır)', 'ok'); }
+      else { showMsg('tiingoMsg', 'Yanıt: ' + JSON.stringify(data).slice(0,80), 'err'); }
+    }catch(err){ showMsg('tiingoMsg', err.message, 'err'); }
+  } else if(key === 'td'){
+    if(!cfg.td){ showMsg('tdMsg', 'Anahtar yok', 'err'); return; }
+    showMsg('tdMsg', 'Test ediliyor...', 'info');
+    try{
+      var url2 = 'https://api.twelvedata.com/price?symbol=EUR/USD&apikey=' + encodeURIComponent(cfg.td);
+      var d2 = await fetchJsonViaProxy(url2, 12000);
+      if(d2 && d2.price) showMsg('tdMsg', 'Çalışıyor (EURUSD='+d2.price+')', 'ok');
+      else if(d2 && d2.status === 'error') showMsg('tdMsg', d2.message || 'Hata', 'err');
+      else showMsg('tdMsg', 'Yanıt: '+JSON.stringify(d2).slice(0,60), 'err');
+    }catch(err){ showMsg('tdMsg', err.message, 'err'); }
+  } else if(key === 'fmp'){
+    if(!cfg.fmp){ showMsg('fmpMsg', 'Anahtar yok', 'err'); return; }
+    showMsg('fmpMsg', 'Test ediliyor...', 'info');
+    try{
+      var url3 = 'https://financialmodelingprep.com/stable/quote?symbol=EURUSD&apikey=' + encodeURIComponent(cfg.fmp);
+      var d3 = await fetchJsonViaProxy(url3, 12000);
+      if(Array.isArray(d3) && d3.length) showMsg('fmpMsg', 'Çalışıyor ('+d3[0].symbol+')', 'ok');
+      else if(d3 && (d3['Error Message'] || d3.message)) showMsg('fmpMsg', d3['Error Message'] || d3.message, 'err');
+      else showMsg('fmpMsg', 'Yanıt: '+JSON.stringify(d3).slice(0,60), 'err');
+    }catch(err){ showMsg('fmpMsg', err.message, 'err'); }
+  } else if(key === 'massive'){
+    if(!cfg.massive){ showMsg('massiveMsg', 'Anahtar yok', 'err'); return; }
+    showMsg('massiveMsg', 'Test ediliyor...', 'info');
+    try{
+      var today = new Date();
+      var ymd = toYMD(today);
+      var past = toYMD(new Date(today.getTime()-7*86400000));
+      var url4 = 'https://api.massive.com/v2/aggs/ticker/C:EURUSD/range/1/day/' + past + '/' + ymd + '?adjusted=true&sort=asc&limit=10&apiKey=' + encodeURIComponent(cfg.massive);
+      var d4 = await fetchJsonViaProxy(url4, 12000);
+      if(d4 && d4.results) showMsg('massiveMsg', 'Çalışıyor ('+d4.results.length+' satır)', 'ok');
+      else if(d4 && (d4.error || d4.message)) showMsg('massiveMsg', d4.error || d4.message, 'err');
+      else showMsg('massiveMsg', 'Yanıt: '+JSON.stringify(d4).slice(0,60), 'err');
+    }catch(err){ showMsg('massiveMsg', err.message, 'err'); }
+  }
+}
+
+/* ==================== EVENT BINDING ==================== */
+function bindEvents(){
+  $('catTabs').querySelectorAll('.cat-tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      state.openCat = t.getAttribute('data-cat');
+      renderCategories();
+      renderPairs();
+    });
+  });
+
+  document.querySelectorAll('.q-pill').forEach(function(p){
+    p.addEventListener('click', function(){
+      var days = Number(p.getAttribute('data-days'));
+      if(Number.isFinite(days) && days > 0) applyQuickRange(days);
+    });
+  });
+
+  $('startDate').addEventListener('change', updateDatesFromInputs);
+  $('endDate').addEventListener('change', updateDatesFromInputs);
+
+  $('volumeChk').addEventListener('change', function(){
+    localStorage.setItem(SK.vol, $('volumeChk').checked ? '1' : '0');
+    if(state.activeTf){
+      var r = state.results[state.activeTf];
+      if(r && r.bars && r.bars.length) renderTable(state.activeTf, r.bars);
+    }
+  });
+
+  $('fetchBtn').addEventListener('click', function(){ runFetch(); });
+  $('stopBtn').addEventListener('click', function(){
+    state.abort = true;
+    setStatus('busy', 'Durduruluyor...');
+  });
+
+  $('downloadMergedBtn').addEventListener('click', downloadMergedCsv);
+
+  bindSettingsButtons();
+}
+
+/* ==================== INIT ==================== */
+function init(){
+  var savedVol = localStorage.getItem(SK.vol);
+  if(savedVol === '0') $('volumeChk').checked = false;
+  else $('volumeChk').checked = true;
+
+  initDates();
+  renderCategories();
+  renderPairs();
+  bindEvents();
+  refreshSettingsUi();
+  renderLog();
+  setStatus('idle', 'Hazır');
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
 </body>
 </html>
