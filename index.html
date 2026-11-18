@@ -495,17 +495,17 @@
         USDCHF: { code: 'USDCHF', cat: 'forex', name: 'ABD Doları / İsviçre Frangı', dec: 5, yahoo: 'USDCHF=X', yahooAlt: null, yahooCash: null, biquote: ['USDCHF'], tm: 'USDCHF', finnhub: 'OANDA:USD_CHF', tiingo: 'usdchf', td: 'USD/CHF', massive: 'C:USDCHF', fcs: 'USD/CHF', av: { fx: 'USD', to: 'CHF' }, eodhd: 'USDCHF.FOREX', fmp: 'USDCHF', fxBase: 'USD', fxQuote: 'CHF', tz: 'UTC' },
         AUDUSD: { code: 'AUDUSD', cat: 'forex', name: 'Avustralya Doları / USD', dec: 5, yahoo: 'AUDUSD=X', yahooAlt: null, yahooCash: null, biquote: ['AUDUSD'], tm: 'AUDUSD', finnhub: 'OANDA:AUD_USD', tiingo: 'audusd', td: 'AUD/USD', massive: 'C:AUDUSD', fcs: 'AUD/USD', av: { fx: 'AUD', to: 'USD' }, eodhd: 'AUDUSD.FOREX', fmp: 'AUDUSD', fxBase: 'AUD', fxQuote: 'USD', tz: 'UTC' },
 
-        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: 'NQ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^NDX', biquote: ['USTEC', 'NAS100', 'US100', 'NDX100', 'TECH100'], tm: 'NAS100', finnhub: 'OANDA:NAS100_USD', tiingo: null, td: 'NDX', massive: 'I:NDX', fcs: 'NDX', av: null, eodhd: 'NDX.INDX', fmp: '^NDX', tz: 'America/New_York' },
-        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: 'ES=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^GSPC', biquote: ['US500', 'SP500', 'SPX500', 'USA500'], tm: 'SPX500', finnhub: 'OANDA:SPX500_USD', tiingo: null, td: 'SPX', massive: 'I:SPX', fcs: 'SPX', av: null, eodhd: 'GSPC.INDX', fmp: '^GSPC', tz: 'America/New_York' },
-        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: 'YM=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^DJI', biquote: ['US30', 'DJ30', 'USA30', 'WS30'], tm: 'USA30', finnhub: 'OANDA:US30_USD', tiingo: null, td: 'DJI', massive: 'I:DJI', fcs: 'DJI', av: null, eodhd: 'DJI.INDX', fmp: '^DJI', tz: 'America/New_York' },
-        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^GDAXI', biquote: ['DE40', 'DE30', 'GER40', 'GER30', 'DAX40', 'DAX'], tm: 'GER30', finnhub: 'OANDA:DE30_EUR', tiingo: null, td: 'GDAXI', massive: null, fcs: 'GDAXI', av: null, eodhd: 'GDAXI.INDX', fmp: '^GDAXI', tz: 'Europe/Berlin' },
-        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^FTSE', biquote: ['UK100', 'FTSE100', 'FT100'], tm: 'UK100', finnhub: 'OANDA:UK100_GBP', tiingo: null, td: 'FTSE', massive: null, fcs: 'FTSE', av: null, eodhd: 'FTSE.INDX', fmp: '^FTSE', tz: 'Europe/London' },
+        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: 'NQ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^NDX', biquote: ['USTEC', 'NAS100', 'US100', 'NDX100', 'TECH100'], tm: 'NAS100', finnhub: 'OANDA:NAS100_USD', tiingo: null, td: 'NDX', massive: 'I:NDX', fcs: 'NDX', av: null, eodhd: 'NDX.INDX', fmp: '^NDX', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: 'ES=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^GSPC', biquote: ['US500', 'SP500', 'SPX500', 'USA500'], tm: 'SPX500', finnhub: 'OANDA:SPX500_USD', tiingo: null, td: 'SPX', massive: 'I:SPX', fcs: 'SPX', av: null, eodhd: 'GSPC.INDX', fmp: '^GSPC', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: 'YM=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^DJI', biquote: ['US30', 'DJ30', 'USA30', 'WS30'], tm: 'USA30', finnhub: 'OANDA:US30_USD', tiingo: null, td: 'DJI', massive: 'I:DJI', fcs: 'DJI', av: null, eodhd: 'DJI.INDX', fmp: '^DJI', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^GDAXI', biquote: ['DE30', 'DE40', 'GER40', 'GER30', 'DAX40', 'DAX'], tm: 'GER30', finnhub: 'OANDA:DE30_EUR', tiingo: null, td: 'GDAXI', massive: null, fcs: 'GDAXI', av: null, eodhd: 'GDAXI.INDX', fmp: '^GDAXI', tz: 'Europe/Berlin', maxBasisDiff: 0.05 },
+        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^FTSE', biquote: ['UK100', 'FTSE100', 'FT100'], tm: 'UK100', finnhub: 'OANDA:UK100_GBP', tiingo: null, td: 'FTSE', massive: null, fcs: 'FTSE', av: null, eodhd: 'FTSE.INDX', fmp: '^FTSE', tz: 'Europe/London', maxBasisDiff: 0.05 },
 
-        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'XAUUSD=X', yahooAlt: 'GC=F', yahooAltIsFutures: true, yahooCash: null, biquote: ['XAUUSD', 'GOLD'], tm: 'XAUUSD', finnhub: 'OANDA:XAU_USD', tiingo: 'xauusd', td: 'XAU/USD', massive: 'C:XAUUSD', fcs: 'XAU/USD', av: null, eodhd: 'XAUUSD.FOREX', fmp: 'GCUSD', tz: 'UTC' },
-        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'XAGUSD=X', yahooAlt: 'SI=F', yahooAltIsFutures: true, yahooCash: null, biquote: ['XAGUSD', 'SILVER'], tm: 'XAGUSD', finnhub: 'OANDA:XAG_USD', tiingo: 'xagusd', td: 'XAG/USD', massive: 'C:XAGUSD', fcs: 'XAG/USD', av: null, eodhd: 'XAGUSD.FOREX', fmp: 'SIUSD', tz: 'UTC' },
-        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['USOIL', 'WTI', 'XTIUSD', 'USOUSD'], tm: 'OIL', finnhub: 'OANDA:WTICO_USD', tiingo: null, td: 'WTI/USD', massive: null, fcs: 'WTI/USD', av: { comm: 'WTI' }, eodhd: 'CL.COMM', fmp: 'CLUSD', tz: 'America/New_York' },
-        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['UKOIL', 'BRENT', 'XBRUSD', 'UKOUSD'], tm: 'UKOIL', finnhub: 'OANDA:BCO_USD', tiingo: null, td: 'XBR/USD', massive: null, fcs: 'BRENT/USD', av: { comm: 'BRENT' }, eodhd: 'BZ.COMM', fmp: 'BZUSD', tz: 'Europe/London' },
-        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['NATGAS', 'NGAS', 'XNGUSD'], tm: 'NATGAS', finnhub: 'OANDA:NATGAS_USD', tiingo: null, td: 'NG/USD', massive: null, fcs: 'NG/USD', av: { comm: 'NATURAL_GAS' }, eodhd: 'NG.COMM', fmp: 'NGUSD', tz: 'America/New_York' }
+        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'GC=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XAUUSD', 'GOLD'], tm: 'XAUUSD', finnhub: 'OANDA:XAU_USD', tiingo: 'xauusd', td: 'XAU/USD', massive: 'C:XAUUSD', fcs: 'XAU/USD', av: null, eodhd: 'XAUUSD.FOREX', fmp: 'GCUSD', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'SI=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XAGUSD', 'SILVER'], tm: 'XAGUSD', finnhub: 'OANDA:XAG_USD', tiingo: 'xagusd', td: 'XAG/USD', massive: 'C:XAGUSD', fcs: 'XAG/USD', av: null, eodhd: 'XAGUSD.FOREX', fmp: 'SIUSD', tz: 'America/New_York', maxBasisDiff: 0.08 },
+        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['USOIL', 'WTI', 'XTIUSD', 'USOUSD'], tm: 'OIL', finnhub: 'OANDA:WTICO_USD', tiingo: null, td: 'WTI/USD', massive: null, fcs: 'WTI/USD', av: { comm: 'WTI' }, eodhd: 'CL.COMM', fmp: 'CLUSD', tz: 'America/New_York', maxBasisDiff: 0.12 },
+        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['UKOIL', 'BRENT', 'XBRUSD', 'UKOUSD'], tm: 'UKOIL', finnhub: 'OANDA:BCO_USD', tiingo: null, td: 'XBR/USD', massive: null, fcs: 'BRENT/USD', av: { comm: 'BRENT' }, eodhd: 'BZ.COMM', fmp: 'BZUSD', tz: 'America/New_York', maxBasisDiff: 0.12 },
+        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XNGUSD', 'NATGAS', 'NGAS'], tm: 'NATGAS', finnhub: 'OANDA:NATGAS_USD', tiingo: null, td: 'NG/USD', massive: null, fcs: 'NG/USD', av: { comm: 'NATURAL_GAS' }, eodhd: 'NG.COMM', fmp: 'NGUSD', tz: 'America/New_York', maxBasisDiff: 0.28 }
       };
 
       const STORE = {
@@ -542,6 +542,7 @@
         hostRouteMemory: new Map(),
         hostDiscoveryLocks: new Map(),
         badProxiesUntil: new Map(),
+        localProxyDisabled: !(location.protocol === 'http:' || location.protocol === 'https:'),
         tdTimes: [],
         massiveTimes: [],
         finnhubTimes: [],
@@ -742,39 +743,120 @@
         };
       }
 
+      function getTzOffsetMs(utcMs, tz) {
+        const p = getTzParts(Math.floor(utcMs / 1000), tz);
+        const renderedMs = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+        return renderedMs - utcMs;
+      }
+
       function parseTzDateTimeToUtcSec(str, tz) {
-        const m = String(str || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s-](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+        const raw = String(str || '').trim();
+        if (!raw) return null;
+        if (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw)) {
+          const parsed = Date.parse(raw);
+          if (Number.isFinite(parsed)) return Math.floor(parsed / 1000);
+        }
+        const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s-](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
         if (!m) return null;
         const [, y, mo, d, h, mi, se] = m;
         if (!h) return Math.floor(Date.UTC(+y, +mo - 1, +d, 0, 0, 0) / 1000);
         const naiveMs = Date.UTC(+y, +mo - 1, +d, +h, +mi, +(se || 0));
         if (!tz || tz === 'UTC') return Math.floor(naiveMs / 1000);
         try {
-          const p = getTzParts(Math.floor(naiveMs / 1000), tz);
-          const renderedMs = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
-          return Math.floor((naiveMs - (renderedMs - naiveMs)) / 1000);
+          const g1 = naiveMs - getTzOffsetMs(naiveMs, tz);
+          const g2 = naiveMs - getTzOffsetMs(g1, tz);
+          return Math.floor(g2 / 1000);
         } catch (_) {
           return Math.floor(naiveMs / 1000);
         }
       }
 
-      // MT5/CFD broker gunluk mumu genelde 21:00Z/22:00Z (ertesi islem gunu) acilir
-      function toBrokerDailyMidnight(ts) {
-        const d = new Date(ts * 1000);
-        const h = d.getUTCHours();
-        const wd = d.getUTCDay();
-        if (h >= 20 && wd !== 5 && wd !== 6) {
-          const shifted = new Date((ts + 5 * 3600) * 1000);
-          return Math.floor(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()) / 1000);
+      // NY Kapanisi / MT5 CFD islem gunu: America/New_York 17:00'da (yaz 21:00Z, kis 22:00Z) ertesi islem gunu baslar
+      function getNyCloseTradingDate(ts) {
+        const p = getTzParts(ts, 'America/New_York');
+        if (p.weekday === 'Sat') {
+          return Math.floor(Date.UTC(p.year, p.month - 1, p.day - 1) / 1000);
         }
-        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+        if (p.weekday === 'Sun' && p.hour < 17) {
+          return Math.floor(Date.UTC(p.year, p.month - 1, p.day - 2) / 1000);
+        }
+        if (p.weekday === 'Fri' && p.hour >= 17) {
+          return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / 1000);
+        }
+        if (p.hour >= 17) {
+          return Math.floor(Date.UTC(p.year, p.month - 1, p.day + 1) / 1000);
+        }
+        return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / 1000);
+      }
+
+      const nyDayStartCache = new Map();
+      function getNyCloseDayStartUtc(tradingDateMidTs) {
+        if (nyDayStartCache.has(tradingDateMidTs)) return nyDayStartCache.get(tradingDateMidTs);
+        const d = new Date(tradingDateMidTs * 1000);
+        const prev = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - 1));
+        const str = `${prev.getUTCFullYear()}-${pad2(prev.getUTCMonth() + 1)}-${pad2(prev.getUTCDate())} 17:00:00`;
+        const startSec = parseTzDateTimeToUtcSec(str, 'America/New_York');
+        nyDayStartCache.set(tradingDateMidTs, startSec);
+        return startSec;
+      }
+
+      function getNyCloseBucketKey(ts, hoursPerBucket) {
+        const dayMid = getNyCloseTradingDate(ts);
+        const dayStart = getNyCloseDayStartUtc(dayMid);
+        const offsetHours = Math.floor((ts - dayStart) / 3600);
+        const maxBuckets = Math.floor(24 / hoursPerBucket);
+        const bucketIdx = Math.max(0, Math.min(maxBuckets - 1, Math.floor(offsetHours / hoursPerBucket)));
+        return dayStart + bucketIdx * hoursPerBucket * 3600;
+      }
+
+      function foldSundayIntoMondayD1(bars) {
+        if (!Array.isArray(bars) || !bars.length) return [];
+        const map = new Map();
+        const sorted = sanitizeBars(bars);
+        for (const b of sorted) {
+          const wd = new Date(b.time * 1000).getUTCDay();
+          const targetTime = wd === 0 ? b.time + 86400 : (wd === 6 ? b.time - 86400 : b.time);
+          const prev = map.get(targetTime);
+          if (!prev) {
+            map.set(targetTime, { time: targetTime, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0, _srcWd: wd });
+          } else if (wd === 0) {
+            map.set(targetTime, {
+              time: targetTime,
+              open: b.open,
+              high: Math.max(prev.high, b.high),
+              low: Math.min(prev.low, b.low),
+              close: prev.close,
+              volume: (prev.volume || 0) + (b.volume || 0),
+              _srcWd: prev._srcWd
+            });
+          } else if (wd === 6 || (wd === 1 && prev._srcWd === 0)) {
+            map.set(targetTime, {
+              time: targetTime,
+              open: prev.open,
+              high: Math.max(prev.high, b.high),
+              low: Math.min(prev.low, b.low),
+              close: b.close,
+              volume: (prev.volume || 0) + (b.volume || 0),
+              _srcWd: wd
+            });
+          } else {
+            map.set(targetTime, { time: targetTime, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0, _srcWd: wd });
+          }
+        }
+        return Array.from(map.values())
+          .map(({ _srcWd, ...rest }) => rest)
+          .sort((a, b) => a.time - b.time);
+      }
+
+      function toBrokerDailyMidnight(ts) {
+        return getNyCloseTradingDate(ts);
       }
 
       function toExchangeDateMidnight(ts, gmtoffset = 0, tz = '') {
         if (tz && tz !== 'UTC') {
           try {
             let p = getTzParts(ts, tz);
-            if ((tz === 'America/New_York' ? p.hour >= 18 : p.hour >= 22) && p.minute === 0 && p.weekday !== 'Fri' && p.weekday !== 'Sat') {
+            if ((tz === 'America/New_York' ? p.hour >= 17 : p.hour >= 21) && p.minute === 0 && p.weekday !== 'Fri' && p.weekday !== 'Sat') {
               p = getTzParts(ts + 8 * 3600, tz);
             }
             return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / 1000);
@@ -837,8 +919,10 @@
       function aggregateBars(bars, bucketSec) {
         if (!bars || !bars.length) return [];
         const map = new Map();
+        const isNyH4 = bucketSec === 14400;
+        const isNyH2 = bucketSec === 7200;
         for (const b of sanitizeBars(bars)) {
-          const key = Math.floor(b.time / bucketSec) * bucketSec;
+          const key = isNyH4 ? getNyCloseBucketKey(b.time, 4) : (isNyH2 ? getNyCloseBucketKey(b.time, 2) : Math.floor(b.time / bucketSec) * bucketSec);
           const cur = map.get(key);
           if (!cur) {
             map.set(key, { time: key, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0 });
@@ -852,28 +936,34 @@
         return Array.from(map.values()).sort((a, b) => a.time - b.time);
       }
 
-      function buildDailyFromH1(h1Bars) {
+      function buildDailyFromH1(h1Bars, allowPartialOnlyForMissing = false) {
         if (!h1Bars || !h1Bars.length) return [];
         const byDay = new Map();
         for (const b of sanitizeBars(h1Bars)) {
-          const d = new Date(b.time * 1000);
-          const wd = d.getUTCDay();
-          if (wd === 6) continue;
-          const key = Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+          const p = getTzParts(b.time, 'America/New_York');
+          if (p.weekday === 'Sat') continue;
+          if (p.weekday === 'Sun' && p.hour < 17) continue;
+          const key = getNyCloseTradingDate(b.time);
           let arr = byDay.get(key);
           if (!arr) { arr = []; byDay.set(key, arr); }
           arr.push(b);
         }
+        const todayTradingKey = getNyCloseTradingDate(Math.floor(Date.now() / 1000));
         const out = [];
         for (const [key, arr] of byDay.entries()) {
-          if (arr.length < 12) continue;
+          if (!arr.length) continue;
+          const dayStart = getNyCloseDayStartUtc(key);
+          const spanNearStart = (arr[0].time - dayStart) <= 4 * 3600;
+          const isFullDay = arr.length >= 16 || (spanNearStart && arr.length >= 12);
+          const isLiveToday = key === todayTradingKey;
+          if (allowPartialOnlyForMissing && !isFullDay && !isLiveToday) continue;
           let hi = -Infinity, lo = Infinity, vol = 0;
           for (const b of arr) {
             if (b.high > hi) hi = b.high;
             if (b.low < lo) lo = b.low;
             vol += (b.volume || 0);
           }
-          out.push({ time: key, open: arr[0].open, high: hi, low: lo, close: arr[arr.length - 1].close, volume: vol });
+          out.push({ time: key, open: arr[0].open, high: hi, low: lo, close: arr[arr.length - 1].close, volume: vol, _isFullDay: isFullDay || isLiveToday });
         }
         return out.sort((a, b) => a.time - b.time);
       }
@@ -906,12 +996,12 @@
           const wd = d.getUTCDay();
           if (wd === 6 || (wd === 0 && d.getUTCHours() < 21)) continue;
           const h = d.getUTCHours();
-          const dayKey = Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+          const dayKey = getNyCloseTradingDate(b.time);
           let flags = dayMap.get(dayKey);
           if (!flags) { flags = { a: false, l: false, n: false }; dayMap.set(dayKey, flags); }
-          if (h < 7) { asia++; flags.a = true; }
+          if (h < 7 || h >= 21) { asia++; flags.a = true; }
           else if (h < 13) { london++; flags.l = true; }
-          else if (h < 22) { ny++; flags.n = true; }
+          else if (h < 21) { ny++; flags.n = true; }
         }
         let fullDays = 0;
         for (const f of dayMap.values()) {
@@ -927,7 +1017,7 @@
       }
 
       // Vadeli/Spot baz farki (basis) otomatik hizalama ve tutarlilik dogrulamasi
-      function alignAndCheckConsistency(tfBars, candidateBars, candTf, pair, allowBasisShift, cachedRatio) {
+      function alignAndCheckConsistency(tfBars, candidateBars, candTf, pair, allowBasisShift, cachedRatio, maxStrictDiff = 0.004) {
         if (!candidateBars?.length) return { ok: true, bars: candidateBars, diff: 0, ratio: 1, shifted: false };
         const isCandDailyPlus = candTf === 'D1' || candTf === 'W1' || candTf === 'MN1';
         const intraTfs = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'H2', 'M3'];
@@ -975,7 +1065,7 @@
           const d1Map = new Map(tfBars.D1.map(d => [d.time, d]));
           const candByDay = new Map();
           for (const c of candidateBars) {
-            const dk = toBrokerDailyMidnight(c.time);
+            const dk = getNyCloseTradingDate(c.time);
             let arr = candByDay.get(dk);
             if (!arr) { arr = []; candByDay.set(dk, arr); }
             arr.push(c);
@@ -994,7 +1084,7 @@
             if (!base?.length) continue;
             const baseByDay = new Map();
             for (const b of base) {
-              const dk = toBrokerDailyMidnight(b.time);
+              const dk = getNyCloseTradingDate(b.time);
               baseByDay.set(dk, b.close);
             }
             for (const d of candidateBars) {
@@ -1022,11 +1112,12 @@
           return { ok: true, bars: candidateBars, diff: 0, ratio: 1, shifted: false };
         }
 
-        if (diff <= 0.004) {
+        if (diff <= maxStrictDiff) {
           return { ok: true, bars: candidateBars, diff, ratio: 1, shifted: false };
         }
 
-        if (allowBasisShift && diff <= 0.03 && mad <= 0.003) {
+        const maxAllowedDiff = pair?.maxBasisDiff || 0.05;
+        if (allowBasisShift && diff <= maxAllowedDiff && mad <= 0.008 && (ratios.length >= 2 || (cachedRatio && cachedRatio !== 1))) {
           const scaled = candidateBars.map(b => ({
             time: b.time,
             open: b.open * ratio,
@@ -1067,21 +1158,22 @@
         let effEnd = reqEnd;
         const edObj = new Date(effEnd * 1000);
         const ed = edObj.getUTCDay();
-        if (ed === 6) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 1, tf === 'D1' ? 0 : 21, 0, 0) / 1000);
-        else if (ed === 0 && edObj.getUTCHours() < 22) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 2, tf === 'D1' ? 0 : 21, 0, 0) / 1000);
-        else if (tf === 'D1') {
-          const now = new Date();
-          const todayMid = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
-          if (effEnd >= todayMid && now.getUTCHours() < 22) {
-            const prevDay = new Date((todayMid - 86400) * 1000);
-            const pwd = prevDay.getUTCDay();
-            effEnd = pwd === 0 ? todayMid - 3 * 86400 : (pwd === 6 ? todayMid - 2 * 86400 : todayMid - 86400);
-          }
+        if (tf === 'D1') {
+          const endMid = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate()) / 1000);
+          const nowSec = Math.floor(Date.now() / 1000);
+          const nyToday = getNyCloseTradingDate(nowSec);
+          effEnd = Math.min(endMid, nyToday);
+          const eWd = new Date(effEnd * 1000).getUTCDay();
+          if (eWd === 6) effEnd -= 86400;
+          else if (eWd === 0) effEnd -= 2 * 86400;
+        } else {
+          if (ed === 6) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 1, 21, 0, 0) / 1000);
+          else if (ed === 0 && edObj.getUTCHours() < 22) effEnd = Math.floor(Date.UTC(edObj.getUTCFullYear(), edObj.getUTCMonth(), edObj.getUTCDate() - 2, 21, 0, 0) / 1000);
         }
         return { effStart, effEnd };
       }
 
-      // Eksik araliklari hem tarih bosluklarina hem seans eksikliklerine gore tespit eder
+      // Eksik araliklari hem tarih bosluklarina hem tek gun/seans eksikliklerine gore tespit eder
       function computeMissingRanges(bars, tf, reqStart, reqEnd, strictAssessment = false) {
         const { effStart, effEnd } = getMarketBounds(reqStart, reqEnd, tf);
         if (effStart >= effEnd) return (bars && bars.length) || strictAssessment ? [] : [[reqStart, reqEnd]];
@@ -1091,24 +1183,36 @@
         const tfSec = TF_SEC[tf] || 900;
         if (tf === 'W1' || tf === 'MN1') {
           const tol = tf === 'W1' ? 12 * 86400 : 36 * 86400;
+          const innerCalTol = tf === 'W1' ? 10 * 86400 : 35 * 86400;
           if ((bars[0].time - effStart) > tol) gaps.push([reqStart, bars[0].time]);
+          for (let i = 1; i < bars.length; i++) {
+            if ((bars[i].time - bars[i - 1].time) > innerCalTol) {
+              gaps.push([Math.max(reqStart, bars[i - 1].time), Math.min(reqEnd, bars[i].time)]);
+            }
+          }
           if ((effEnd - bars[bars.length - 1].time) > tol) gaps.push([bars[bars.length - 1].time, reqEnd]);
           return gaps;
         }
 
-        const edgeThresh = strictAssessment ? 36 * 3600 : 26 * 3600;
-        const innerThresh = tf === 'D1' ? 76 * 3600 : 10 * 3600;
+        const edgeThresh = tf === 'D1'
+          ? (strictAssessment ? 30 * 3600 : 20 * 3600)
+          : (strictAssessment ? 14 * 3600 : 8 * 3600);
+        const innerThresh = tf === 'D1'
+          ? (strictAssessment ? 28 * 3600 : 12 * 3600)
+          : 5 * 3600;
 
         if (weekdaySecondsBetween(effStart, bars[0].time) > edgeThresh) {
           gaps.push([reqStart, Math.min(reqEnd, bars[0].time + tfSec)]);
         }
         for (let i = 1; i < bars.length; i++) {
-          if (weekdaySecondsBetween(bars[i - 1].time, bars[i].time) > innerThresh) {
+          const prevEnd = Math.min(bars[i].time, bars[i - 1].time + tfSec);
+          if (weekdaySecondsBetween(prevEnd, bars[i].time) > innerThresh) {
             gaps.push([Math.max(reqStart, bars[i - 1].time), Math.min(reqEnd, bars[i].time)]);
           }
         }
         const lastT = bars[bars.length - 1].time;
-        if (weekdaySecondsBetween(lastT, effEnd) > edgeThresh) {
+        const tailCheckStart = tf === 'D1' ? lastT : (lastT + tfSec);
+        if (weekdaySecondsBetween(tailCheckStart, effEnd) > edgeThresh) {
           gaps.push([Math.max(reqStart, lastT - tfSec), reqEnd]);
         }
 
@@ -1117,7 +1221,7 @@
         const merged = [gaps[0].slice()];
         for (let i = 1; i < gaps.length; i++) {
           const prev = merged[merged.length - 1];
-          if (gaps[i][0] <= prev[1] + 86400) prev[1] = Math.max(prev[1], gaps[i][1]);
+          if (gaps[i][0] <= prev[1] + 43200) prev[1] = Math.max(prev[1], gaps[i][1]);
           else merged.push(gaps[i].slice());
         }
         return merged;
@@ -1170,6 +1274,7 @@
         const enc = encodeURIComponent(targetUrl);
         const now = Date.now();
         const all = [{ id: 'direct', url: targetUrl }];
+        if (!state.localProxyDisabled) all.push({ id: 'local', url: `/api/proxy?url=${enc}` });
         if (custom) all.push({ id: 'custom', url: buildCustomProxyUrl(custom, targetUrl) });
         all.push(
           { id: 'corsproxy', url: `https://corsproxy.io/?url=${enc}` },
@@ -1177,7 +1282,7 @@
           { id: 'allorigins', url: `https://api.allorigins.win/raw?url=${enc}` },
           { id: 'codetabs', url: `https://api.codetabs.com/v1/proxy?quest=${enc}` }
         );
-        return all.filter(r => r.id === 'direct' || r.id === 'custom' || (state.badProxiesUntil.get(r.id) || 0) <= now);
+        return all.filter(r => r.id === 'direct' || r.id === 'local' || r.id === 'custom' || (state.badProxiesUntil.get(r.id) || 0) <= now);
       }
 
       async function rawFetchJson(url, timeoutMs, isDirect) {
@@ -1219,7 +1324,7 @@
         let lastErr = null;
         for (const route of orderedRoutes) {
           if (state.abortFetch) throw new Error('Durduruldu');
-          const waitMs = route.id === 'direct' ? Math.min(timeoutMs, 5500) : Math.min(timeoutMs, 6000);
+          const waitMs = route.id === 'direct' ? Math.min(timeoutMs, 5500) : (route.id === 'local' ? Math.min(Math.max(timeoutMs, 8000), 10000) : Math.min(timeoutMs, 6000));
           try {
             const data = await rawFetchJson(route.url, waitMs, route.id === 'direct');
             state.hostRouteMemory.set(host, route.id);
@@ -1233,7 +1338,11 @@
               state.hostRouteMemory.set(host, route.id);
               throw err;
             }
-            if (route.id !== 'direct' && route.id !== 'custom') {
+            if (route.id === 'local') {
+              if (err.httpStatus === 404 || err.httpStatus === 405 || /Geçersiz JSON yanıtı/i.test(err.message || '')) {
+                state.localProxyDisabled = true;
+              }
+            } else if (route.id !== 'direct' && route.id !== 'custom') {
               state.badProxiesUntil.set(route.id, Date.now() + 90000);
             }
             lastErr = err;
@@ -1334,12 +1443,12 @@
 
           let minTs = Infinity, maxTs = -Infinity, added = 0;
           for (const r of rows) {
-            if (r.isOpen) continue;
             const ms = Date.parse(r.openTime);
             if (!Number.isFinite(ms)) continue;
             let time = Math.floor(ms / 1000);
-            if (tf === 'D1') time = toBrokerDailyMidnight(time);
-            if (time >= gs && time <= ge && !map.has(time)) {
+            if (tf === 'D1') time = Math.floor(time / 86400) * 86400;
+            else if (tf === 'H4') time = getNyCloseBucketKey(time, 4);
+            if (time >= gs - 86400 && time <= ge + 86400 && !map.has(time)) {
               map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || Number(r.tickVolume) || 0 });
               added++;
             }
@@ -1355,7 +1464,9 @@
             cursorEnd = minTs - 1;
           }
         }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
+        let out = Array.from(map.values());
+        if (tf === 'D1') out = foldSundayIntoMondayD1(out);
+        return { bars: sanitizeBars(out, gs, ge), note: '' };
       }
 
       // 2. YAHOO FINANCE (24/5 Vadeli & FX)
@@ -1389,13 +1500,14 @@
         throw lastErr || new Error('Yahoo erişim hatası');
       }
 
-      function parseYahooBars(res, minTs, maxTs, isDaily, intervalSec) {
+      function parseYahooBars(res, minTs, maxTs, isDaily, intervalSec, ticker = '') {
         const tsArr = res.timestamp || [];
         const q = res.indicators?.quote?.[0] || {};
         const gmtoffset = Number(res.meta?.gmtoffset) || 0;
         const tz = res.meta?.exchangeTimezoneName || '';
+        const isCashIndex = String(ticker || '').startsWith('^');
         let h1Phase = 0;
-        if (!isDaily && intervalSec === 3600) {
+        if (!isDaily && intervalSec === 3600 && isCashIndex) {
           let half = 0, whole = 0;
           for (const t of tsArr) {
             if (!Number.isFinite(t) || t % 60 !== 0) continue;
@@ -1425,7 +1537,8 @@
             prev.volume = isDaily ? Math.max(prev.volume, v) : (prev.volume + v);
           }
         }
-        return Array.from(map.values()).sort((a, b) => a.time - b.time);
+        const sorted = Array.from(map.values()).sort((a, b) => a.time - b.time);
+        return isDaily ? foldSundayIntoMondayD1(sorted) : sorted;
       }
 
       async function fetchYahooRange(ticker, tf, gs, ge, onChunkDone) {
@@ -1435,7 +1548,7 @@
             if (state.abortFetch) break;
             try {
               const res = await fetchYahooChart(ticker, '1d', gs - 2 * 86400, ge + 2 * 86400);
-              return parseYahooBars(res, gs, ge, true, 0);
+              return parseYahooBars(res, gs, ge, true, 0, ticker);
             } catch (e) {
               lastErr = e;
               if (e.isYahooFatal || e.isYahooEmpty || e.httpStatus === 404 || e.isTransportError) break;
@@ -1460,7 +1573,7 @@
             if (state.abortFetch) break;
             try {
               const res = await fetchYahooChart(ticker, yInt, s, ce + 60);
-              const bars = parseYahooBars(res, s, ce, false, sec);
+              const bars = parseYahooBars(res, s, ce, false, sec, ticker);
               for (const b of bars) map.set(b.time, b);
               lastErr = null;
               break;
@@ -1511,10 +1624,10 @@
         }
 
         const chunkSec = tmInt === 'minute' ? 2 * 86400 : 45 * 86400;
-        const maxChunks = tmInt === 'minute' ? 4 : 8;
+        const maxChunks = tmInt === 'minute' ? 16 : 10;
         let chunksDone = 0;
 
-        for (let cur = Math.max(gs, tmInt === 'minute' ? ge - 8 * 86400 : gs); cur < ge && chunksDone < maxChunks && !state.abortFetch; cur += chunkSec) {
+        for (let cur = gs; cur < ge && chunksDone < maxChunks && !state.abortFetch; cur += chunkSec) {
           chunksDone++;
           const next = Math.min(ge, cur + chunkSec);
           const url = `https://marketdata.tradermade.com/api/v1/timeseries?currency=${encodeURIComponent(pair.tm)}&api_key=${encodeURIComponent(key)}&start_date=${encodeURIComponent(toYMDHM(cur))}&end_date=${encodeURIComponent(toYMDHM(next))}&format=records&interval=${tmInt}&period=${tmPer}`;
@@ -1527,9 +1640,12 @@
               throw e;
             }
             for (const q of (json?.quotes || [])) {
-              const ts = parseTzDateTimeToUtcSec(q.date, 'UTC');
-              if (ts !== null && ts >= gs && ts <= ge) {
-                map.set(ts, { time: ts, open: Number(q.open), high: Number(q.high), low: Number(q.low), close: Number(q.close), volume: 0 });
+              let ts = parseTzDateTimeToUtcSec(q.date, 'UTC');
+              if (ts !== null) {
+                if (tf === 'H4') ts = getNyCloseBucketKey(ts, 4);
+                if (ts >= gs && ts <= ge) {
+                  map.set(ts, { time: ts, open: Number(q.open), high: Number(q.high), low: Number(q.low), close: Number(q.close), volume: 0 });
+                }
               }
             }
           } catch (e) {
@@ -1630,9 +1746,14 @@
           }
           let maxTs = 0;
           for (const r of rows) {
-            const ms = Date.parse(r.date);
-            if (!Number.isFinite(ms)) continue;
-            const time = Math.floor(ms / 1000);
+            let time = null;
+            if (tf === 'D1' && typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(r.date)) {
+              time = Math.floor(Date.parse(`${r.date.slice(0, 10)}T00:00:00Z`) / 1000);
+            } else {
+              const ms = Date.parse(r.date);
+              if (Number.isFinite(ms)) time = Math.floor(ms / 1000);
+            }
+            if (!Number.isFinite(time)) continue;
             if (time >= gs && time <= ge) {
               map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: 0 });
             }
@@ -1642,7 +1763,9 @@
           if (next >= ge) break;
           cur = next + 1;
         }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
+        let out = Array.from(map.values());
+        if (tf === 'D1') out = foldSundayIntoMondayD1(out);
+        return { bars: sanitizeBars(out, gs, ge), note };
       }
 
       // 6. TWELVE DATA (8 istek/dk korumali)
@@ -1777,9 +1900,10 @@
           for (const r of rows) {
             let time = Math.floor(Number(r.t) / 1000);
             if (!Number.isFinite(time)) continue;
-            if (isD1) time = toExchangeDateMidnight(time, 0, pair.tz);
-            else if (isW1) time = getWeekMondayKey(toExchangeDateMidnight(time, 0, pair.tz));
-            else if (isMN1) time = getMonthFirstKey(toExchangeDateMidnight(time, 0, pair.tz));
+            if (isD1) time = pair.tz === 'UTC' ? Math.floor(time / 86400) * 86400 : toExchangeDateMidnight(time, 0, pair.tz);
+            else if (isW1) time = getWeekMondayKey(pair.tz === 'UTC' ? Math.floor(time / 86400) * 86400 : toExchangeDateMidnight(time, 0, pair.tz));
+            else if (isMN1) time = getMonthFirstKey(pair.tz === 'UTC' ? Math.floor(time / 86400) * 86400 : toExchangeDateMidnight(time, 0, pair.tz));
+            else if (tf === 'H4') time = getNyCloseBucketKey(time, 4);
             if (time >= minAccept && time <= ge) {
               map.set(time, { time, open: Number(r.o), high: Number(r.h), low: Number(r.l), close: Number(r.c), volume: Number(r.v) || 0 });
             }
@@ -1797,7 +1921,9 @@
             nextUrl = '';
           }
         }
-        return { bars: sanitizeBars(Array.from(map.values()), minAccept, ge), note };
+        let out = Array.from(map.values());
+        if (isD1) out = foldSundayIntoMondayD1(out);
+        return { bars: sanitizeBars(out, minAccept, ge), note };
       }
 
       // 8. FCS API (Ucretsiz 500 istek/ay)
@@ -1806,7 +1932,7 @@
         if (!fPeriod || !pair.fcs) return { bars: [], note: '' };
         const endpoint = pair.cat === 'index' ? 'stock' : 'forex';
         const map = new Map();
-        const maxPages = tf === 'M1' ? 6 : 4;
+        const maxPages = tf === 'M1' ? 8 : 5;
 
         for (let page = 1; page <= maxPages && !state.abortFetch; page++) {
           const url = `https://api-v4.fcsapi.com/${endpoint}/history?symbol=${encodeURIComponent(pair.fcs)}&period=${encodeURIComponent(fPeriod)}&length=500&page=${page}&access_key=${encodeURIComponent(key)}`;
@@ -1827,6 +1953,7 @@
             if (!Number.isFinite(time) || time < 631152000) time = parseTzDateTimeToUtcSec(r.tm, 'UTC');
             if (!Number.isFinite(time)) continue;
             if (tf === 'D1') time = toBrokerDailyMidnight(time);
+            else if (tf === 'H4') time = getNyCloseBucketKey(time, 4);
             if (time >= gs && time <= ge) {
               map.set(time, { time, open: Number(r.o ?? r.open), high: Number(r.h ?? r.high), low: Number(r.l ?? r.low), close: Number(r.c ?? r.close), volume: Number(r.v ?? r.volume) || 0 });
             }
@@ -1834,7 +1961,9 @@
           }
           if (items.length < 450 || minTs <= gs) break;
         }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
+        let out = Array.from(map.values());
+        if (tf === 'D1') out = foldSundayIntoMondayD1(out);
+        return { bars: sanitizeBars(out, gs, ge), note: '' };
       }
 
       // 9. ALPHA VANTAGE (Ucretsiz 25 istek/gun - Forex & Emtia)
@@ -2070,27 +2199,49 @@
         return { bars: sanitizeBars(out, gs, ge), note: out.length ? 'Frankfurter ECB günlük kapanış kuru (O=H=L=C)' : '' };
       }
 
-      // Turetme: M1->M3/M5, M5->M15/M30, M15->M30, H1->H2/H4/D1, D1->W1/MN1
+      // Turetme: M1->M3/M5, M5->M15/M30, M15->M30, H1->H2/H4/D1(NY Close), D1->W1/MN1
       function applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair) {
-        const deriveFrom = (target, src, builder) => {
+        const deriveFrom = (target, src, builder, upgradeExisting = false) => {
           if (!tfBars[src]?.length) return;
           const derived = builder(tfBars[src]);
           if (!derived.length) return;
           const hadAny = (tfBars[target]?.length || 0) > 0;
           const gaps = computeMissingRanges(tfBars[target], target, reqStart, reqEnd, false);
-          if (!hadAny || gaps.length > 0) {
+          if (!hadAny || gaps.length > 0 || upgradeExisting) {
             if (hadAny) {
-              const chk = alignAndCheckConsistency(tfBars, derived, target, pair, false, 1);
+              const chk = alignAndCheckConsistency(tfBars, derived, target, pair, false, 1, 0.04);
               if (!chk.ok) return;
             }
-            const before = tfBars[target]?.length || 0;
-            tfBars[target] = mergeBars(tfBars[target], derived);
-            if (tfBars[target].length > before) {
-              if (!tfSources[target]) tfSources[target] = new Set();
-              for (const s of (tfSources[src] || [])) tfSources[target].add(hadAny ? s : `${s} (${src}→${target})`);
-              if (!computeMissingRanges(tfBars[target], target, reqStart, reqEnd, true).length && tfNotes[target]) {
-                tfNotes[target].clear();
+            const beforeLen = tfBars[target]?.length || 0;
+            const beforeSet = new Set((tfBars[target] || []).map(b => b.time));
+            if (upgradeExisting && hadAny) {
+              const map = new Map((tfBars[target] || []).map(b => [b.time, b]));
+              let changed = false;
+              for (const d of derived) {
+                const clean = sanitizeBars([d])[0];
+                if (!clean) continue;
+                const prev = map.get(clean.time);
+                if (!prev || d._isFullDay) {
+                  if (!prev || prev.open !== clean.open || prev.high !== clean.high || prev.low !== clean.low || prev.close !== clean.close) {
+                    changed = true;
+                  }
+                  map.set(clean.time, clean);
+                }
               }
+              if (changed) {
+                tfBars[target] = Array.from(map.values()).sort((a, b) => a.time - b.time);
+                if (!tfSources[target]) tfSources[target] = new Set();
+                for (const s of (tfSources[src] || [])) tfSources[target].add(`${s} (${src}→${target})`);
+              }
+            } else {
+              tfBars[target] = mergeBars(tfBars[target], derived);
+              if (tfBars[target].length > beforeLen || tfBars[target].some(b => !beforeSet.has(b.time))) {
+                if (!tfSources[target]) tfSources[target] = new Set();
+                for (const s of (tfSources[src] || [])) tfSources[target].add(hadAny ? s : `${s} (${src}→${target})`);
+              }
+            }
+            if (!computeMissingRanges(tfBars[target], target, reqStart, reqEnd, true).length && tfNotes[target]) {
+              tfNotes[target].clear();
             }
           }
         };
@@ -2102,12 +2253,12 @@
         deriveFrom('M30', 'M15', b => aggregateBars(b, 1800));
         deriveFrom('H1', 'M30', b => aggregateBars(b, 3600));
         deriveFrom('H1', 'M15', b => aggregateBars(b, 3600));
-        deriveFrom('H2', 'H1', b => aggregateBars(b, 7200));
-        deriveFrom('H4', 'H1', b => aggregateBars(b, 14400));
+        deriveFrom('H2', 'H1', b => aggregateBars(b, 7200).map(x => ({ ...x, _isFullDay: true })), true);
+        deriveFrom('H4', 'H1', b => aggregateBars(b, 14400).map(x => ({ ...x, _isFullDay: true })), true);
         deriveFrom('H4', 'H2', b => aggregateBars(b, 14400));
-        deriveFrom('D1', 'H1', b => buildDailyFromH1(b));
-        deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1'));
-        deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1'));
+        deriveFrom('D1', 'H1', b => buildDailyFromH1(b, false), true);
+        deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1'), true);
+        deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1'), true);
       }
 
       // ANA VERI MOTORU
@@ -2121,9 +2272,15 @@
         if (!Number.isFinite(reqStart) || !Number.isFinite(reqEnd) || reqStart >= reqEnd) {
           throw new Error('Başlangıç tarihi bitiş tarihinden küçük olmalıdır');
         }
+        const todayUtcMid = Math.floor(nowSec / 86400) * 86400;
+        const includesToday = endDateEnd >= todayUtcMid;
+        const nyTodayEnd = includesToday ? Math.max(endDateEnd, getNyCloseTradingDate(nowSec)) : endDateEnd;
+        const intradayReqStart = reqStart - 4 * 3600;
+        const toDailyGe = (tf, ge) => ((tf === 'D1' || tf === 'W1' || tf === 'MN1') && ge >= reqEnd - 60) ? Math.max(ge, nyTodayEnd) : ge;
 
         const tfBars = {}, tfSources = {}, tfNotes = {};
         let baseProviderId = '';
+        let baseIsFutures = false;
         const basisCache = new Map();
 
         const addSource = (tf, label) => {
@@ -2142,9 +2299,11 @@
           let extraNote = '';
           if (!baseProviderId) {
             baseProviderId = providerId;
+            baseIsFutures = allowBasisShift;
           } else if (providerId !== baseProviderId) {
             const cached = basisCache.get(providerId);
-            const check = alignAndCheckConsistency(tfBars, bars, tf, pair, allowBasisShift, cached);
+            const canShift = allowBasisShift || baseIsFutures || pair.cat === 'commodity' || pair.cat === 'index';
+            const check = alignAndCheckConsistency(tfBars, bars, tf, pair, canShift, cached);
             if (!check.ok) {
               const pctStr = (check.diff * 100).toFixed(2);
               const msg = `Fiyat sapması %${pctStr} (>%0.4), kaynak reddedildi`;
@@ -2155,7 +2314,7 @@
             if (check.shifted) {
               basisCache.set(providerId, check.ratio);
               finalBars = check.bars;
-              extraNote = `Baz farkı %${(check.diff * 100).toFixed(2)} spot fiyata hizalandı`;
+              extraNote = `Baz farkı %${(check.diff * 100).toFixed(2)} ana fiyata hizalandı`;
             }
           }
           tfBars[tf] = mergeBars(tfBars[tf], finalBars);
@@ -2170,22 +2329,28 @@
         let bqSymOk = true;
         try {
           const sym = await resolveBiquoteSym(pair);
-          if (!sym) bqSymOk = false;
-        } catch (_) {
+          if (!sym) {
+            bqSymOk = false;
+            addLog(pair.code, 'biquote.io', '-', `${shortDate(reqStart)}–${shortDate(reqEnd)}`, 0, 'Eşleşen sembol bulunamadı', 'partial');
+          }
+        } catch (e) {
           bqSymOk = false;
+          addLog(pair.code, 'biquote.io', '-', `${shortDate(reqStart)}–${shortDate(reqEnd)}`, 0, e.message || 'Bağlantı hatası', 'err');
         }
 
         if (bqSymOk && !state.abortFetch) {
           await runPool(biquoteBaseTfs, 4, async tf => {
             if (state.abortFetch) return;
-            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+            const tfStart = tf === 'H1' ? intradayReqStart : reqStart;
+            const gaps = computeMissingRanges(tfBars[tf], tf, tfStart, reqEnd, false);
             if (!gaps.length) return;
             for (const [gs, ge] of gaps) {
               if (state.abortFetch) break;
               setStatus('busy', `${pair.code} biquote.io ${tf}...`);
               try {
-                const res = await fetchBiquoteRange(pair, tf, gs, ge);
-                const acc = acceptBars(tf, res.bars, 'biquote', 'biquote.io', gs, ge, false);
+                const effGe = toDailyGe(tf, ge);
+                const res = await fetchBiquoteRange(pair, tf, gs, effGe);
+                const acc = acceptBars(tf, res.bars, 'biquote', 'biquote.io', gs, effGe, false);
                 if (acc.accepted) addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, 'Başarılı (24/5 CFD)', 'ok');
                 else addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
               } catch (e) {
@@ -2217,7 +2382,7 @@
         setProgress(24, `${pair.code} • biquote.io aşaması tamamlandı`);
 
         // ADIM 2: YAHOO FINANCE 24/5 (Vadeli NQ=F/ES=F/YM=F/GC=F/SI=F/CL=F/BZ=F/NG=F ve Forex =X)
-        const limM1 = nowSec - (28 * 86400 + 43200);
+        const limM1 = nowSec - (29 * 86400 + 43200);
         const limM5 = nowSec - (58 * 86400 + 43200);
         const limH1 = nowSec - (720 * 86400);
 
@@ -2227,15 +2392,16 @@
 
           await runPool(yahooTfs, 3, async tf => {
             if (state.abortFetch || yahooDead) return;
-            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+            const tfStart = tf === 'H1' ? intradayReqStart : reqStart;
+            const gaps = computeMissingRanges(tfBars[tf], tf, tfStart, reqEnd, false);
             if (!gaps.length) return;
 
             for (const [gs, ge] of gaps) {
               if (state.abortFetch || yahooDead) break;
               let effGs = gs, limitNote = '';
               if (tf === 'M1') {
-                if (ge <= limM1) { addNote('M1', 'Yahoo M1 yalnızca son 29 gün'); continue; }
-                if (gs < limM1) { effGs = Math.max(gs, limM1); limitNote = 'Yahoo M1 yalnızca son 29 gün'; }
+                if (ge <= limM1) { addNote('M1', 'Yahoo M1 yalnızca son 30 gün'); continue; }
+                if (gs < limM1) { effGs = Math.max(gs, limM1); limitNote = 'Yahoo M1 yalnızca son 30 gün'; }
               } else if (tf === 'M5' || tf === 'M15' || tf === 'M30') {
                 if (ge <= limM5) { addNote(tf, `Yahoo ${tf} yalnızca son 59 gün`); continue; }
                 if (gs < limM5) { effGs = Math.max(gs, limM5); limitNote = `Yahoo ${tf} yalnızca son 59 gün`; }
@@ -2246,11 +2412,12 @@
 
               setStatus('busy', `${pair.code} ${label} ${tf}...`);
               try {
-                const bars = await fetchYahooRange(ticker, tf, effGs, ge, (c, tot) => {
+                const effGe = toDailyGe(tf, ge);
+                const bars = await fetchYahooRange(ticker, tf, effGs, effGe, (c, tot) => {
                   setProgress(pctStart + Math.round((c / tot) * (pctSpan / 4)), `${pair.code} • ${label} ${tf} (${c}/${tot})...`);
                 });
                 reachable = true;
-                const acc = acceptBars(tf, bars, providerId, label, effGs, ge, isFuturesSource);
+                const acc = acceptBars(tf, bars, providerId, label, effGs, effGe, isFuturesSource);
                 if (acc.accepted) {
                   const msg = [limitNote, acc.note].filter(Boolean).join(' • ') || 'Başarılı';
                   addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, msg, limitNote ? 'partial' : 'ok');
@@ -2335,32 +2502,29 @@
             if (prov.id === 'eodhd' && eodhdIntradayBlocked && tf !== 'D1') return;
             if (prov.id === 'av' && avIntradayBlocked && tf !== 'D1') return;
 
-            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+            const tfStart = tf === 'H1' ? intradayReqStart : reqStart;
+            const gaps = computeMissingRanges(tfBars[tf], tf, tfStart, reqEnd, false);
             if (!gaps.length) return;
 
-            const effGaps = (['twelvedata', 'massive', 'tradermade', 'av'].includes(prov.id) && (tfBars[tf]?.length || 0) > 0)
-              ? gaps.filter(([gs, ge]) => weekdaySecondsBetween(gs, ge) >= 36 * 3600)
-              : gaps;
-            if (!effGaps.length) return;
-
-            for (const [gs, ge] of effGaps) {
+            for (const [gs, ge] of gaps) {
               if (state.abortFetch || disabled[prov.id]) break;
               setStatus('busy', `${pair.code} ${prov.label} ${tf}...`);
               setProgress(startPct + Math.round(((idxInProv + 0.5) / totalInProv) * spanPct), `${pair.code} • ${prov.label} ${tf} çekiliyor...`);
               try {
+                const effGe = toDailyGe(tf, ge);
                 let res = { bars: [], note: '' };
-                if (prov.id === 'tradermade') res = await fetchTraderMadeRange(pair, tf, gs, ge, cfg.tm);
-                else if (prov.id === 'finnhub') res = await fetchFinnhubRange(pair, tf, gs, ge, cfg.finnhub);
-                else if (prov.id === 'tiingo') res = await fetchTiingoRange(pair, tf, gs, ge, cfg.tiingo);
-                else if (prov.id === 'twelvedata') res = await fetchTdRange(pair, tf, gs, ge, cfg.td);
-                else if (prov.id === 'massive') res = await fetchMassiveRange(pair, tf, gs, ge, cfg.massive);
-                else if (prov.id === 'fcs') res = await fetchFcsRange(pair, tf, gs, ge, cfg.fcs);
-                else if (prov.id === 'av') res = await fetchAlphaVantageRange(pair, tf, gs, ge, cfg.av);
-                else if (prov.id === 'eodhd') res = await fetchEodhdRange(pair, tf, gs, ge, cfg.eodhd);
-                else if (prov.id === 'fmp') res = await fetchFmpRange(pair, tf, gs, ge, cfg.fmp);
-                else if (prov.id === 'frankfurter') res = await fetchFrankfurterRange(pair, gs, ge);
+                if (prov.id === 'tradermade') res = await fetchTraderMadeRange(pair, tf, gs, effGe, cfg.tm);
+                else if (prov.id === 'finnhub') res = await fetchFinnhubRange(pair, tf, gs, effGe, cfg.finnhub);
+                else if (prov.id === 'tiingo') res = await fetchTiingoRange(pair, tf, gs, effGe, cfg.tiingo);
+                else if (prov.id === 'twelvedata') res = await fetchTdRange(pair, tf, gs, effGe, cfg.td);
+                else if (prov.id === 'massive') res = await fetchMassiveRange(pair, tf, gs, effGe, cfg.massive);
+                else if (prov.id === 'fcs') res = await fetchFcsRange(pair, tf, gs, effGe, cfg.fcs);
+                else if (prov.id === 'av') res = await fetchAlphaVantageRange(pair, tf, gs, effGe, cfg.av);
+                else if (prov.id === 'eodhd') res = await fetchEodhdRange(pair, tf, gs, effGe, cfg.eodhd);
+                else if (prov.id === 'fmp') res = await fetchFmpRange(pair, tf, gs, effGe, cfg.fmp);
+                else if (prov.id === 'frankfurter') res = await fetchFrankfurterRange(pair, gs, effGe);
 
-                const acc = acceptBars(tf, res.bars, prov.id, prov.label, gs, ge, false);
+                const acc = acceptBars(tf, res.bars, prov.id, prov.label, gs, effGe, baseIsFutures);
                 if (acc.accepted) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, res.note || 'Başarılı', res.note ? 'partial' : 'ok');
                 else if (!res.bars?.length) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, res.note || 'Veri bulunamadı', 'partial');
                 if (res.note) addNote(tf, res.note);
@@ -2401,17 +2565,17 @@
           applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
         }
 
-        // ADIM 4: NAKIT BORSA ENDEKSI SON CARE (Sadece hic 24/5 veri yoksa devreye girer)
+        // ADIM 4: NAKIT BORSA ENDEKSI SON CARE (24/5 kaynaklar eksik biraktiginda bosluklari tamamlar)
         let usedCashFallback = false;
         if (pair.yahooCash && !state.abortFetch) {
-          const needCashTfs = ['D1', 'H1', 'M5', 'M1'].filter(tf => !(tfBars[tf]?.length > 0));
+          const needCashTfs = ['D1', 'H1', 'M5', 'M1'].filter(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
           if (needCashTfs.length > 0) {
             usedCashFallback = true;
-            setProgress(94, `${pair.code} • 24/5 kaynak bulunamadı, son çare borsa nakit (${pair.yahooCash}) deneniyor...`);
+            setProgress(94, `${pair.code} • Eksik aralıklar için son çare borsa nakit (${pair.yahooCash}) deneniyor...`);
             await runYahooTicker(pair.yahooCash, 'yahoo_cash', `Son Çare Nakit (${pair.yahooCash})`, false, 94, 4, needCashTfs);
             for (const tf of needCashTfs) {
               if (tfBars[tf]?.length > 0 && INTRADAY_TFS.has(tf)) {
-                addNote(tf, `Yalnızca borsa seansı (${pair.yahooCash}) — Asya/gece kapalı`);
+                addNote(tf, `Kısmi borsa seansı (${pair.yahooCash}) — eksik aralıklar nakitten tamamlandı`);
               }
             }
           }
@@ -2421,7 +2585,9 @@
         const meta = {};
         for (const tf of ALL_TF) {
           const minBound = tf === 'W1' ? getWeekMondayKey(reqStart) : (tf === 'MN1' ? getMonthFirstKey(reqStart) : reqStart);
-          if (tfBars[tf]?.length) tfBars[tf] = sanitizeBars(tfBars[tf], minBound, endDateEnd);
+          const maxBound = (tf === 'D1' || tf === 'W1' || tf === 'MN1') ? nyTodayEnd : endDateEnd;
+          if (tf === 'D1' && tfBars[tf]?.length) tfBars[tf] = foldSundayIntoMondayD1(tfBars[tf]);
+          if (tfBars[tf]?.length) tfBars[tf] = sanitizeBars(tfBars[tf], minBound, maxBound);
 
           const bars = tfBars[tf] || [];
           const srcList = Array.from(tfSources[tf] || []);
@@ -2449,7 +2615,7 @@
                 reason: [cashWarn, partMsg, ...notesList].filter(Boolean).join(' • ')
               };
             } else {
-              const sessText = sess ? `24/5 (Asya:${sess.asia} • Lon:${sess.london} • NY:${sess.ny})` : 'Tam aralık kapsandı';
+              const sessText = sess ? `24/5 (Asya:${sess.asia} • Lon:${sess.london} • NY:${sess.ny})` : 'Tam aralık kapsandı (NY Close)';
               meta[tf] = {
                 status: 'ok',
                 statusText: 'Tam',
