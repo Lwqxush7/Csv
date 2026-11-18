@@ -88,6 +88,8 @@
     .setting-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .setting-head strong { font-size: 13px; color: var(--white); }
     .setting-hint { font-size: 11.5px; color: var(--muted); }
+    .setting-hint a { color: var(--cyan); text-decoration: none; }
+    .setting-hint a:hover { text-decoration: underline; }
     .setting-row { display: flex; flex-wrap: wrap; gap: 6px; }
     .msg-line { font-size: 11.5px; min-height: 16px; color: var(--muted); }
     .msg-line.ok { color: #34d399; }
@@ -154,13 +156,14 @@
     .progress-wrap.visible { display: flex; }
     .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
     .progress-track { width: 100%; height: 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--green)); }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width 0.2s ease; }
 
     .results { display: none; flex-direction: column; gap: 16px; }
     .results.visible { display: flex; }
     .result-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
     .result-head h2 { font-size: 15px; color: var(--white); }
     .result-head p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .session-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
     .tf-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
     .tf-card {
@@ -181,7 +184,7 @@
     .tf-card.empty .tf-reason { color: #f87171; }
 
     .chart-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-    .chart-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12.5px; color: var(--white); font-weight: 700; }
+    .chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12.5px; color: var(--white); font-weight: 700; }
     #chartEl { width: 100%; height: 400px; }
 
     .table-wrap { overflow-x: auto; max-height: 280px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
@@ -211,7 +214,7 @@
     <header class="card header">
       <div class="brand">
         <h1>📊 CFD Tarihsel Veri Merkezi</h1>
-        <p>15 Enstrüman (Forex, Endeks, Emtia) • 11 Zaman Dilimi • Sabit ISO UTC CSV</p>
+        <p>15 Enstrüman (24/5 Asya + Londra + NY) • 11 Zaman Dilimi • Sabit ISO UTC CSV</p>
       </div>
       <div class="header-right">
         <button type="button" id="settingsToggleBtn" class="btn">⚙ Ayarlar <span id="settingsKeyCount" class="badge">0 Anahtar</span></button>
@@ -221,16 +224,40 @@
 
     <section id="settingsPanel" class="card settings-panel">
       <div class="setting-head">
-        <strong style="font-size:15px;">⚙ API Anahtarları ve Proxy Ayarları (localStorage)</strong>
+        <strong style="font-size:15px;">⚙ Ücretsiz API Anahtarları ve Proxy Ayarları (localStorage)</strong>
         <button type="button" id="resetAllSettingsBtn" class="btn btn-danger btn-sm">Tümünü Sıfırla</button>
       </div>
       <div class="settings-note">
-        <strong>Kaynak Sırası:</strong> 1. Yahoo Finance (ücretsiz) → 2. biquote.io MT5 (ücretsiz, anahtarsız) → 3. Tiingo → 4. Twelve Data → 5. Massive → 6. EODHD → 7. FMP (yedek) → 8. Frankfurter ECB (ücretsiz Forex D1).
+        <strong>24/5 CFD Kaynak Sırası:</strong> 1. biquote.io MT5 CFD (ücretsiz, anahtarsız) → 2. Yahoo 24/5 Vadeli &amp; FX (ücretsiz, anahtarsız) → 3. TraderMade (ücretsiz) → 4. Finnhub (ücretsiz) → 5. Tiingo (ücretsiz) → 6. Twelve Data (ücretsiz) → 7. Massive (ücretsiz) → 8. FCS API (ücretsiz) → 9. Alpha Vantage (ücretsiz) → 10. EODHD (ücretsiz) → 11. FMP → 12. Frankfurter ECB. Nakit borsa endeksleri (sadece NY/Londra saatleri) yalnızca 24/5 veri yoksa son çare kullanılır.
       </div>
       <div class="settings-grid">
         <div class="setting-box">
+          <div class="setting-head"><strong>TraderMade API Key (15 Parite • 24/5 CFD)</strong><span id="tmBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Ücretsiz ayda 1.000 istek (<a href="https://tradermade.com" target="_blank" rel="noopener">tradermade.com</a>). Forex, Altın, Gümüş, NAS100, SPX500, US30, GER30, UK100, Petrol ve Doğalgaz için 24/5 veri sağlar.</div>
+          <input type="password" id="tmKey" class="input" placeholder="TraderMade api_key girin" autocomplete="off" />
+          <div class="setting-row">
+            <button type="button" id="tmSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="tmTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="tmClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="tmMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box">
+          <div class="setting-head"><strong>Finnhub API Token (Doğrudan CORS • OANDA 24/5)</strong><span id="finnhubBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Ücretsiz 60 istek/dk (<a href="https://finnhub.io" target="_blank" rel="noopener">finnhub.io</a>). OANDA üzerinden 24/5 Forex, Endeks ve Emtia CFD mumları çeker (plan destekliyorsa).</div>
+          <input type="password" id="finnhubKey" class="input" placeholder="Finnhub token girin" autocomplete="off" />
+          <div class="setting-row">
+            <button type="button" id="finnhubSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="finnhubTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="finnhubClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="finnhubMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box">
           <div class="setting-head"><strong>Tiingo API Token (Forex &amp; Altın/Gümüş)</strong><span id="tiingoBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Proxy üzerinden Forex, XAUUSD ve XAGUSD spot dilimleri için uzun geçmiş sağlar.</div>
+          <div class="setting-hint">Ücretsiz hesap (<a href="https://www.tiingo.com" target="_blank" rel="noopener">tiingo.com</a>). Forex, XAUUSD ve XAGUSD 24/5 spot dilimleri için çok uzun geçmiş sağlar.</div>
           <input type="password" id="tiingoKey" class="input" placeholder="Tiingo token girin" autocomplete="off" />
           <div class="setting-row">
             <button type="button" id="tiingoSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
@@ -241,8 +268,8 @@
         </div>
 
         <div class="setting-box">
-          <div class="setting-head"><strong>Twelve Data API Key (Forex &amp; Emtia)</strong><span id="tdBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Doğrudan CORS destekler; ücretsiz planda Forex tamdır, 8 istek/dk korumasıyla çalışır.</div>
+          <div class="setting-head"><strong>Twelve Data API Key (Forex, Emtia &amp; Endeks)</strong><span id="tdBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Ücretsiz 8 istek/dk, 800/gün (<a href="https://twelvedata.com" target="_blank" rel="noopener">twelvedata.com</a>). Doğrudan CORS destekler; Forex ve Emtia için güçlüdür.</div>
           <input type="password" id="tdKey" class="input" placeholder="Twelve Data key girin" autocomplete="off" />
           <div class="setting-row">
             <button type="button" id="tdSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
@@ -254,7 +281,7 @@
 
         <div class="setting-box">
           <div class="setting-head"><strong>Massive API Key (Forex, Altın/Gümüş &amp; ABD Endeks)</strong><span id="massiveBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Doğrudan CORS destekler; url?apiKey=... ile 5 istek/dk korumalı yedek kaynak.</div>
+          <div class="setting-hint">Ücretsiz 5 istek/dk (<a href="https://massive.com" target="_blank" rel="noopener">massive.com</a>). Doğrudan CORS destekli yedek kaynak.</div>
           <input type="password" id="massiveKey" class="input" placeholder="Massive apiKey girin" autocomplete="off" />
           <div class="setting-row">
             <button type="button" id="massiveSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
@@ -265,8 +292,32 @@
         </div>
 
         <div class="setting-box">
+          <div class="setting-head"><strong>FCS API Key (Forex, Altın/Gümüş, Endeks &amp; Petrol)</strong><span id="fcsBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Ücretsiz 500 istek/ay (<a href="https://fcsapi.com" target="_blank" rel="noopener">fcsapi.com</a>). 1m–1M aralığında Forex ve CFD geçmişi sağlar.</div>
+          <input type="password" id="fcsKey" class="input" placeholder="FCS access_key girin" autocomplete="off" />
+          <div class="setting-row">
+            <button type="button" id="fcsSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="fcsTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="fcsClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="fcsMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box">
+          <div class="setting-head"><strong>Alpha Vantage API Key (Forex &amp; WTI/Brent/Doğalgaz)</strong><span id="avBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Ücretsiz 25 istek/gün (<a href="https://www.alphavantage.co" target="_blank" rel="noopener">alphavantage.co</a>). Doğrudan CORS destekler; FX &amp; Emtia D1 yedeği.</div>
+          <input type="password" id="avKey" class="input" placeholder="Alpha Vantage apikey girin" autocomplete="off" />
+          <div class="setting-row">
+            <button type="button" id="avSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="avTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="avClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="avMsg" class="msg-line"></div>
+        </div>
+
+        <div class="setting-box">
           <div class="setting-head"><strong>EODHD API Token (15 Parite • Global Endeks &amp; FX)</strong><span id="eodhdBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Ücretsiz planda 1 yıl D1 (GER40, UK100 dahil); ücretli planda M1, M5, H1 açılır.</div>
+          <div class="setting-hint">Ücretsiz planda 1 yıl D1 (<a href="https://eodhd.com" target="_blank" rel="noopener">eodhd.com</a>); ücretli planda M1, M5, H1 açılır.</div>
           <input type="password" id="eodhdKey" class="input" placeholder="EODHD api_token girin" autocomplete="off" />
           <div class="setting-row">
             <button type="button" id="eodhdSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
@@ -278,7 +329,7 @@
 
         <div class="setting-box" style="grid-column: 1 / -1;">
           <div class="setting-head"><strong>FMP API Key (Ek Yedek • Endeks, Forex &amp; Emtia)</strong><span id="fmpBadge" class="badge">Yok</span></div>
-          <div class="setting-hint">Doğrudan CORS destekler; ücretli planda veya uygun endpointlerde ek yedek olarak devreye girer.</div>
+          <div class="setting-hint">Doğrudan CORS destekler (<a href="https://financialmodelingprep.com" target="_blank" rel="noopener">financialmodelingprep.com</a>); uygun planlarda ek yedek olarak devreye girer.</div>
           <div class="setting-row" style="align-items:center;">
             <input type="password" id="fmpKey" class="input" style="flex:1; min-width:220px;" placeholder="FMP apikey girin" autocomplete="off" />
             <button type="button" id="fmpSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
@@ -290,7 +341,7 @@
 
         <div class="setting-box" style="grid-column: 1 / -1;">
           <div class="setting-head"><strong>Özel CORS Proxy Adresim (Cloudflare Worker — İsteğe Bağlı)</strong><span id="proxyBadge" class="badge">Hazır Proxy</span></div>
-          <div class="setting-hint">Önce doğrudan denenir; olmazsa bu proxy, sonra Cors.dev, AllOrigins, CorsProxy.io ve CodeTabs sırayla denenir.</div>
+          <div class="setting-hint">Önce doğrudan denenir; olmazsa bu proxy, sonra CorsProxy.io, Cors.dev, AllOrigins ve CodeTabs sırayla denenir.</div>
           <div class="setting-row" style="align-items:center;">
             <input type="text" id="customProxyInput" class="input" style="flex:1; min-width:220px;" placeholder="https://worker-adiniz.workers.dev/?url=" autocomplete="off" />
             <button type="button" id="proxySaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
@@ -299,7 +350,7 @@
           </div>
           <div id="proxyMsg" class="msg-line"></div>
           <details class="worker-details">
-            <summary>Hazır Cloudflare Worker proxy kodu (Yahoo, Tiingo ve EODHD için ücretsiz kurabilirsiniz)</summary>
+            <summary>Hazır Cloudflare Worker proxy kodu (Yahoo, biquote, Tiingo, TraderMade ve EODHD için ücretsiz kurabilirsiniz)</summary>
             <pre class="worker-code">export default {
   async fetch(req) {
     const target = new URL(req.url).searchParams.get('url');
@@ -317,8 +368,8 @@
     <section class="card">
       <div id="catTabs" class="cat-tabs">
         <button type="button" class="cat-tab" data-cat="forex">Forex (5)</button>
-        <button type="button" class="cat-tab" data-cat="index">Endeks (5)</button>
-        <button type="button" class="cat-tab active" data-cat="commodity">Emtia (5)</button>
+        <button type="button" class="cat-tab active" data-cat="index">Endeks (5)</button>
+        <button type="button" class="cat-tab" data-cat="commodity">Emtia (5)</button>
       </div>
       <div id="pairGrid" class="pair-grid"></div>
 
@@ -372,7 +423,10 @@
           <h2 id="resultTitle">Sonuçlar</h2>
           <p id="resultSubtitle"></p>
         </div>
-        <button type="button" id="downloadMergedBtn" class="btn btn-green">⬇ Tek Birleşik CSV İndir</button>
+        <div class="session-bar">
+          <span id="sessionCoverageBadge" class="badge">Seans Kontrolü</span>
+          <button type="button" id="downloadMergedBtn" class="btn btn-green">⬇ Tek Birleşik CSV İndir</button>
+        </div>
       </div>
 
       <div id="tfGrid" class="tf-grid"></div>
@@ -380,7 +434,7 @@
       <div class="chart-box">
         <div class="chart-head">
           <span id="chartTitle">Mum Grafiği</span>
-          <span class="setting-hint">Karta tıklayarak zaman dilimini değiştirin</span>
+          <span id="chartSessionInfo" class="setting-hint">Karta tıklayarak zaman dilimini değiştirin</span>
         </div>
         <div id="chartEl"></div>
       </div>
@@ -431,57 +485,66 @@
 
       const ALL_TF = ['M1', 'M3', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'D1', 'W1', 'MN1'];
       const TF_SEC = { M1: 60, M3: 180, M5: 300, M15: 900, M30: 1800, H1: 3600, H2: 7200, H4: 14400, D1: 86400, W1: 604800, MN1: 2592000 };
+      const INTRADAY_TFS = new Set(['M1', 'M3', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4']);
 
+      // 24/5 Asya+Londra+NY kapsami icin Vadeli (NQ=F, ES=F, YM=F, GC=F, SI=F, CL=F, BZ=F, NG=F) oncelikli, nakit borsa (^NDX vb.) sadece son care
       const PAIRS = {
-        EURUSD: { code: 'EURUSD', cat: 'forex', name: 'Euro / ABD Doları', dec: 5, yahoo: 'EURUSD=X', yahooAlt: null, biquote: 'EURUSD', biquoteAlt: [], tiingo: 'eurusd', td: 'EUR/USD', massive: 'C:EURUSD', eodhd: 'EURUSD.FOREX', fmp: 'EURUSD', fxBase: 'EUR', fxQuote: 'USD', tz: 'UTC' },
-        GBPUSD: { code: 'GBPUSD', cat: 'forex', name: 'Sterlin / ABD Doları', dec: 5, yahoo: 'GBPUSD=X', yahooAlt: null, biquote: 'GBPUSD', biquoteAlt: [], tiingo: 'gbpusd', td: 'GBP/USD', massive: 'C:GBPUSD', eodhd: 'GBPUSD.FOREX', fmp: 'GBPUSD', fxBase: 'GBP', fxQuote: 'USD', tz: 'UTC' },
-        USDJPY: { code: 'USDJPY', cat: 'forex', name: 'ABD Doları / Japon Yeni', dec: 3, yahoo: 'USDJPY=X', yahooAlt: null, biquote: 'USDJPY', biquoteAlt: [], tiingo: 'usdjpy', td: 'USD/JPY', massive: 'C:USDJPY', eodhd: 'USDJPY.FOREX', fmp: 'USDJPY', fxBase: 'USD', fxQuote: 'JPY', tz: 'UTC' },
-        USDCHF: { code: 'USDCHF', cat: 'forex', name: 'ABD Doları / İsviçre Frangı', dec: 5, yahoo: 'USDCHF=X', yahooAlt: null, biquote: 'USDCHF', biquoteAlt: [], tiingo: 'usdchf', td: 'USD/CHF', massive: 'C:USDCHF', eodhd: 'USDCHF.FOREX', fmp: 'USDCHF', fxBase: 'USD', fxQuote: 'CHF', tz: 'UTC' },
-        AUDUSD: { code: 'AUDUSD', cat: 'forex', name: 'Avustralya Doları / USD', dec: 5, yahoo: 'AUDUSD=X', yahooAlt: null, biquote: 'AUDUSD', biquoteAlt: [], tiingo: 'audusd', td: 'AUD/USD', massive: 'C:AUDUSD', eodhd: 'AUDUSD.FOREX', fmp: 'AUDUSD', fxBase: 'AUD', fxQuote: 'USD', tz: 'UTC' },
+        EURUSD: { code: 'EURUSD', cat: 'forex', name: 'Euro / ABD Doları', dec: 5, yahoo: 'EURUSD=X', yahooAlt: null, yahooCash: null, biquote: ['EURUSD'], tm: 'EURUSD', finnhub: 'OANDA:EUR_USD', tiingo: 'eurusd', td: 'EUR/USD', massive: 'C:EURUSD', fcs: 'EUR/USD', av: { fx: 'EUR', to: 'USD' }, eodhd: 'EURUSD.FOREX', fmp: 'EURUSD', fxBase: 'EUR', fxQuote: 'USD', tz: 'UTC' },
+        GBPUSD: { code: 'GBPUSD', cat: 'forex', name: 'Sterlin / ABD Doları', dec: 5, yahoo: 'GBPUSD=X', yahooAlt: null, yahooCash: null, biquote: ['GBPUSD'], tm: 'GBPUSD', finnhub: 'OANDA:GBP_USD', tiingo: 'gbpusd', td: 'GBP/USD', massive: 'C:GBPUSD', fcs: 'GBP/USD', av: { fx: 'GBP', to: 'USD' }, eodhd: 'GBPUSD.FOREX', fmp: 'GBPUSD', fxBase: 'GBP', fxQuote: 'USD', tz: 'UTC' },
+        USDJPY: { code: 'USDJPY', cat: 'forex', name: 'ABD Doları / Japon Yeni', dec: 3, yahoo: 'USDJPY=X', yahooAlt: null, yahooCash: null, biquote: ['USDJPY'], tm: 'USDJPY', finnhub: 'OANDA:USD_JPY', tiingo: 'usdjpy', td: 'USD/JPY', massive: 'C:USDJPY', fcs: 'USD/JPY', av: { fx: 'USD', to: 'JPY' }, eodhd: 'USDJPY.FOREX', fmp: 'USDJPY', fxBase: 'USD', fxQuote: 'JPY', tz: 'UTC' },
+        USDCHF: { code: 'USDCHF', cat: 'forex', name: 'ABD Doları / İsviçre Frangı', dec: 5, yahoo: 'USDCHF=X', yahooAlt: null, yahooCash: null, biquote: ['USDCHF'], tm: 'USDCHF', finnhub: 'OANDA:USD_CHF', tiingo: 'usdchf', td: 'USD/CHF', massive: 'C:USDCHF', fcs: 'USD/CHF', av: { fx: 'USD', to: 'CHF' }, eodhd: 'USDCHF.FOREX', fmp: 'USDCHF', fxBase: 'USD', fxQuote: 'CHF', tz: 'UTC' },
+        AUDUSD: { code: 'AUDUSD', cat: 'forex', name: 'Avustralya Doları / USD', dec: 5, yahoo: 'AUDUSD=X', yahooAlt: null, yahooCash: null, biquote: ['AUDUSD'], tm: 'AUDUSD', finnhub: 'OANDA:AUD_USD', tiingo: 'audusd', td: 'AUD/USD', massive: 'C:AUDUSD', fcs: 'AUD/USD', av: { fx: 'AUD', to: 'USD' }, eodhd: 'AUDUSD.FOREX', fmp: 'AUDUSD', fxBase: 'AUD', fxQuote: 'USD', tz: 'UTC' },
 
-        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: '^NDX', yahooAlt: 'NQ=F', biquote: 'USTEC', biquoteAlt: ['NAS100', 'US100'], tiingo: null, td: null, massive: 'I:NDX', eodhd: 'NDX.INDX', fmp: '^NDX', tz: 'America/New_York' },
-        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: '^GSPC', yahooAlt: 'ES=F', biquote: 'US500', biquoteAlt: ['SP500', 'SPX500'], tiingo: null, td: null, massive: 'I:SPX', eodhd: 'GSPC.INDX', fmp: '^GSPC', tz: 'America/New_York' },
-        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: '^DJI', yahooAlt: 'YM=F', biquote: 'US30', biquoteAlt: ['DJ30'], tiingo: null, td: null, massive: 'I:DJI', eodhd: 'DJI.INDX', fmp: '^DJI', tz: 'America/New_York' },
-        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: '^GDAXI', yahooAlt: null, biquote: 'DE30', biquoteAlt: ['DE40', 'GER40'], tiingo: null, td: null, massive: null, eodhd: 'GDAXI.INDX', fmp: '^GDAXI', tz: 'Europe/Berlin' },
-        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: '^FTSE', yahooAlt: null, biquote: 'UK100', biquoteAlt: ['FTSE100'], tiingo: null, td: null, massive: null, eodhd: 'FTSE.INDX', fmp: '^FTSE', tz: 'Europe/London' },
+        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: 'NQ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^NDX', biquote: ['USTEC', 'NAS100', 'US100', 'NDX100', 'TECH100'], tm: 'NAS100', finnhub: 'OANDA:NAS100_USD', tiingo: null, td: 'NDX', massive: 'I:NDX', fcs: 'NDX', av: null, eodhd: 'NDX.INDX', fmp: '^NDX', tz: 'America/New_York' },
+        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: 'ES=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^GSPC', biquote: ['US500', 'SP500', 'SPX500', 'USA500'], tm: 'SPX500', finnhub: 'OANDA:SPX500_USD', tiingo: null, td: 'SPX', massive: 'I:SPX', fcs: 'SPX', av: null, eodhd: 'GSPC.INDX', fmp: '^GSPC', tz: 'America/New_York' },
+        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: 'YM=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^DJI', biquote: ['US30', 'DJ30', 'USA30', 'WS30'], tm: 'USA30', finnhub: 'OANDA:US30_USD', tiingo: null, td: 'DJI', massive: 'I:DJI', fcs: 'DJI', av: null, eodhd: 'DJI.INDX', fmp: '^DJI', tz: 'America/New_York' },
+        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^GDAXI', biquote: ['DE40', 'DE30', 'GER40', 'GER30', 'DAX40', 'DAX'], tm: 'GER30', finnhub: 'OANDA:DE30_EUR', tiingo: null, td: 'GDAXI', massive: null, fcs: 'GDAXI', av: null, eodhd: 'GDAXI.INDX', fmp: '^GDAXI', tz: 'Europe/Berlin' },
+        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^FTSE', biquote: ['UK100', 'FTSE100', 'FT100'], tm: 'UK100', finnhub: 'OANDA:UK100_GBP', tiingo: null, td: 'FTSE', massive: null, fcs: 'FTSE', av: null, eodhd: 'FTSE.INDX', fmp: '^FTSE', tz: 'Europe/London' },
 
-        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'XAUUSD=X', yahooLastResort: 'GC=F', isSpotMetal: true, biquote: 'XAUUSD', biquoteAlt: [], tiingo: 'xauusd', td: 'XAU/USD', massive: 'C:XAUUSD', eodhd: 'XAUUSD.FOREX', fmp: 'GCUSD', tz: 'UTC' },
-        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'XAGUSD=X', yahooLastResort: 'SI=F', isSpotMetal: true, biquote: 'XAGUSD', biquoteAlt: [], tiingo: 'xagusd', td: 'XAG/USD', massive: 'C:XAGUSD', eodhd: 'XAGUSD.FOREX', fmp: 'SIUSD', tz: 'UTC' },
-        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooAlt: null, biquote: 'USOIL', biquoteAlt: ['WTI'], tiingo: null, td: 'WTI/USD', massive: null, eodhd: 'CL.COMM', fmp: 'CLUSD', tz: 'America/New_York' },
-        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooAlt: null, biquote: 'UKOIL', biquoteAlt: ['BRENT'], tiingo: null, td: 'XBR/USD', massive: null, eodhd: 'BZ.COMM', fmp: 'BZUSD', tz: 'Europe/London' },
-        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooAlt: null, biquote: 'NATGAS', biquoteAlt: ['NGAS'], tiingo: null, td: 'NG/USD', massive: null, eodhd: 'NG.COMM', fmp: 'NGUSD', tz: 'America/New_York' }
+        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'XAUUSD=X', yahooAlt: 'GC=F', yahooAltIsFutures: true, yahooCash: null, biquote: ['XAUUSD', 'GOLD'], tm: 'XAUUSD', finnhub: 'OANDA:XAU_USD', tiingo: 'xauusd', td: 'XAU/USD', massive: 'C:XAUUSD', fcs: 'XAU/USD', av: null, eodhd: 'XAUUSD.FOREX', fmp: 'GCUSD', tz: 'UTC' },
+        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'XAGUSD=X', yahooAlt: 'SI=F', yahooAltIsFutures: true, yahooCash: null, biquote: ['XAGUSD', 'SILVER'], tm: 'XAGUSD', finnhub: 'OANDA:XAG_USD', tiingo: 'xagusd', td: 'XAG/USD', massive: 'C:XAGUSD', fcs: 'XAG/USD', av: null, eodhd: 'XAGUSD.FOREX', fmp: 'SIUSD', tz: 'UTC' },
+        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['USOIL', 'WTI', 'XTIUSD', 'USOUSD'], tm: 'OIL', finnhub: 'OANDA:WTICO_USD', tiingo: null, td: 'WTI/USD', massive: null, fcs: 'WTI/USD', av: { comm: 'WTI' }, eodhd: 'CL.COMM', fmp: 'CLUSD', tz: 'America/New_York' },
+        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['UKOIL', 'BRENT', 'XBRUSD', 'UKOUSD'], tm: 'UKOIL', finnhub: 'OANDA:BCO_USD', tiingo: null, td: 'XBR/USD', massive: null, fcs: 'BRENT/USD', av: { comm: 'BRENT' }, eodhd: 'BZ.COMM', fmp: 'BZUSD', tz: 'Europe/London' },
+        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['NATGAS', 'NGAS', 'XNGUSD'], tm: 'NATGAS', finnhub: 'OANDA:NATGAS_USD', tiingo: null, td: 'NG/USD', massive: null, fcs: 'NG/USD', av: { comm: 'NATURAL_GAS' }, eodhd: 'NG.COMM', fmp: 'NGUSD', tz: 'America/New_York' }
       };
 
       const STORE = {
+        tm: 'cfd_key_tradermade',
+        finnhub: 'cfd_key_finnhub',
         tiingo: 'cfd_key_tiingo',
         td: 'cfd_key_twelvedata',
         massive: 'cfd_key_massive',
+        fcs: 'cfd_key_fcs',
+        av: 'cfd_key_alphavantage',
         eodhd: 'cfd_key_eodhd',
         fmp: 'cfd_key_fmp',
         proxy: 'cfd_custom_proxy',
         vol: 'cfd_include_volume'
       };
 
+      const BIQUOTE_TF = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', H4: '4h', D1: '1d' };
+      const TM_TF = { M1: ['minute', 1], M5: ['minute', 5], M15: ['minute', 15], M30: ['minute', 30], H1: ['hourly', 1], H4: ['hourly', 4], D1: ['daily', 1] };
+      const FINNHUB_TF = { M1: '1', M5: '5', M15: '15', M30: '30', H1: '60', D1: 'D', W1: 'W', MN1: 'M' };
       const TIINGO_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1hour', D1: '1day' };
       const TD_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1h', H4: '4h', D1: '1day' };
-      const MASSIVE_TF = {
-        M1: [1, 'minute'], M5: [5, 'minute'], M15: [15, 'minute'], M30: [30, 'minute'],
-        H1: [1, 'hour'], H4: [4, 'hour'], D1: [1, 'day'], W1: [1, 'week'], MN1: [1, 'month']
-      };
-      const BIQUOTE_TF = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', H4: '4h', D1: '1d' };
+      const MASSIVE_TF = { M1: [1, 'minute'], M5: [5, 'minute'], M15: [15, 'minute'], M30: [30, 'minute'], H1: [1, 'hour'], H4: [4, 'hour'], D1: [1, 'day'], W1: [1, 'week'], MN1: [1, 'month'] };
+      const FCS_TF = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', H4: '4h', D1: '1d', W1: '1w', MN1: '1M' };
+      const AV_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '60min', D1: 'daily' };
       const EODHD_TF = { M1: '1m', M5: '5m', H1: '1h', D1: 'd' };
       const FMP_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1hour', H4: '4hour', D1: '1day' };
 
       const state = {
-        cat: 'commodity',
-        pair: 'XAUUSD',
+        cat: 'index',
+        pair: 'NAS100',
         abortFetch: false,
         fetching: false,
         activeControllers: new Set(),
         hostRouteMemory: new Map(),
         hostDiscoveryLocks: new Map(),
+        badProxiesUntil: new Map(),
         tdTimes: [],
         massiveTimes: [],
+        finnhubTimes: [],
         biquoteSymbols: null,
         logs: [],
         result: null,
@@ -493,6 +556,10 @@
       const $ = id => document.getElementById(id);
       const pad2 = n => String(n).padStart(2, '0');
       const toYMD = d => `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+      const toYMDHM = ts => {
+        const d = new Date(ts * 1000);
+        return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}-${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+      };
       const isoUtc = ts => new Date(ts * 1000).toISOString().replace('.000Z', 'Z');
       const shortDate = ts => {
         const d = new Date(ts * 1000);
@@ -533,7 +600,7 @@
 
       function addLog(pair, source, tf, rangeStr, count, msg, level = 'ok') {
         state.logs.unshift({ time: nowTimeStr(), pair, source, tf, rangeStr, count, msg, level });
-        if (state.logs.length > 300) state.logs.pop();
+        if (state.logs.length > 350) state.logs.pop();
         renderLogs();
       }
 
@@ -559,9 +626,13 @@
 
       function getSettings() {
         return {
+          tm: (safeGet(STORE.tm) || '').trim(),
+          finnhub: (safeGet(STORE.finnhub) || '').trim(),
           tiingo: (safeGet(STORE.tiingo) || '').trim(),
           td: (safeGet(STORE.td) || '').trim(),
           massive: (safeGet(STORE.massive) || '').trim(),
+          fcs: (safeGet(STORE.fcs) || '').trim(),
+          av: (safeGet(STORE.av) || '').trim(),
           eodhd: (safeGet(STORE.eodhd) || '').trim(),
           fmp: (safeGet(STORE.fmp) || '').trim(),
           proxy: (safeGet(STORE.proxy) || '').trim(),
@@ -571,9 +642,13 @@
 
       function refreshSettingsUi() {
         const s = getSettings();
+        $('tmKey').value = s.tm;
+        $('finnhubKey').value = s.finnhub;
         $('tiingoKey').value = s.tiingo;
         $('tdKey').value = s.td;
         $('massiveKey').value = s.massive;
+        $('fcsKey').value = s.fcs;
+        $('avKey').value = s.av;
         $('eodhdKey').value = s.eodhd;
         $('fmpKey').value = s.fmp;
         $('customProxyInput').value = s.proxy;
@@ -583,15 +658,19 @@
           $(id).textContent = has ? 'Kayıtlı' : 'Yok';
           $(id).className = `badge ${has ? 'ok' : ''}`;
         };
+        setBadge('tmBadge', !!s.tm);
+        setBadge('finnhubBadge', !!s.finnhub);
         setBadge('tiingoBadge', !!s.tiingo);
         setBadge('tdBadge', !!s.td);
         setBadge('massiveBadge', !!s.massive);
+        setBadge('fcsBadge', !!s.fcs);
+        setBadge('avBadge', !!s.av);
         setBadge('eodhdBadge', !!s.eodhd);
         setBadge('fmpBadge', !!s.fmp);
         $('proxyBadge').textContent = s.proxy ? 'Özel Proxy Aktif' : 'Hazır Proxy';
         $('proxyBadge').className = `badge ${s.proxy ? 'ok' : ''}`;
 
-        const count = [s.tiingo, s.td, s.massive, s.eodhd, s.fmp].filter(Boolean).length;
+        const count = [s.tm, s.finnhub, s.tiingo, s.td, s.massive, s.fcs, s.av, s.eodhd, s.fmp].filter(Boolean).length;
         $('settingsKeyCount').textContent = `${count} Anahtar`;
       }
 
@@ -664,7 +743,7 @@
       }
 
       function parseTzDateTimeToUtcSec(str, tz) {
-        const m = String(str || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+        const m = String(str || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s-](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
         if (!m) return null;
         const [, y, mo, d, h, mi, se] = m;
         if (!h) return Math.floor(Date.UTC(+y, +mo - 1, +d, 0, 0, 0) / 1000);
@@ -679,11 +758,25 @@
         }
       }
 
+      // MT5/CFD broker gunluk mumu genelde 21:00Z/22:00Z (ertesi islem gunu) acilir
+      function toBrokerDailyMidnight(ts) {
+        const d = new Date(ts * 1000);
+        const h = d.getUTCHours();
+        const wd = d.getUTCDay();
+        if (h >= 20 && wd !== 5 && wd !== 6) {
+          const shifted = new Date((ts + 5 * 3600) * 1000);
+          return Math.floor(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()) / 1000);
+        }
+        return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+      }
+
       function toExchangeDateMidnight(ts, gmtoffset = 0, tz = '') {
         if (tz && tz !== 'UTC') {
           try {
             let p = getTzParts(ts, tz);
-            if (p.hour >= 22 && p.minute === 0 && p.weekday !== 'Fri' && p.weekday !== 'Sat') p = getTzParts(ts + 7200, tz);
+            if ((tz === 'America/New_York' ? p.hour >= 18 : p.hour >= 22) && p.minute === 0 && p.weekday !== 'Fri' && p.weekday !== 'Sat') {
+              p = getTzParts(ts + 8 * 3600, tz);
+            }
             return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / 1000);
           } catch (_) {}
         }
@@ -729,10 +822,15 @@
         return Array.from(map.values()).sort((a, b) => a.time - b.time);
       }
 
-      function mergeBars(existing, incoming) {
+      function mergeBars(existing, incoming, preferIncoming = false) {
         const map = new Map();
-        for (const b of sanitizeBars(incoming || [])) map.set(b.time, b);
-        for (const b of sanitizeBars(existing || [])) map.set(b.time, b);
+        if (preferIncoming) {
+          for (const b of sanitizeBars(existing || [])) map.set(b.time, b);
+          for (const b of sanitizeBars(incoming || [])) map.set(b.time, b);
+        } else {
+          for (const b of sanitizeBars(incoming || [])) map.set(b.time, b);
+          for (const b of sanitizeBars(existing || [])) map.set(b.time, b);
+        }
         return Array.from(map.values()).sort((a, b) => a.time - b.time);
       }
 
@@ -754,6 +852,32 @@
         return Array.from(map.values()).sort((a, b) => a.time - b.time);
       }
 
+      function buildDailyFromH1(h1Bars) {
+        if (!h1Bars || !h1Bars.length) return [];
+        const byDay = new Map();
+        for (const b of sanitizeBars(h1Bars)) {
+          const d = new Date(b.time * 1000);
+          const wd = d.getUTCDay();
+          if (wd === 6) continue;
+          const key = Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+          let arr = byDay.get(key);
+          if (!arr) { arr = []; byDay.set(key, arr); }
+          arr.push(b);
+        }
+        const out = [];
+        for (const [key, arr] of byDay.entries()) {
+          if (arr.length < 12) continue;
+          let hi = -Infinity, lo = Infinity, vol = 0;
+          for (const b of arr) {
+            if (b.high > hi) hi = b.high;
+            if (b.low < lo) lo = b.low;
+            vol += (b.volume || 0);
+          }
+          out.push({ time: key, open: arr[0].open, high: hi, low: lo, close: arr[arr.length - 1].close, volume: vol });
+        }
+        return out.sort((a, b) => a.time - b.time);
+      }
+
       function buildCalendarBars(d1Bars, mode) {
         if (!d1Bars || !d1Bars.length) return [];
         const map = new Map();
@@ -772,119 +896,149 @@
         return Array.from(map.values()).sort((a, b) => a.time - b.time);
       }
 
-      function checkPriceConsistency(tfBars, candidateBars, candTf, pair) {
-        if (!candidateBars?.length) return { ok: true, diff: 0 };
+      // Asya (00-07 UTC), Londra (07-13 UTC), NY (13-22 UTC) seans kontrolu
+      function analyzeSessionCoverage(bars) {
+        if (!bars || !bars.length) return { asia: 0, london: 0, ny: 0, totalDays: 0, fullDays: 0, hasAsia: false, hasLondon: false, hasNy: false, isCashOnly: false };
+        const dayMap = new Map();
+        let asia = 0, london = 0, ny = 0;
+        for (const b of bars) {
+          const d = new Date(b.time * 1000);
+          const wd = d.getUTCDay();
+          if (wd === 6 || (wd === 0 && d.getUTCHours() < 21)) continue;
+          const h = d.getUTCHours();
+          const dayKey = Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000);
+          let flags = dayMap.get(dayKey);
+          if (!flags) { flags = { a: false, l: false, n: false }; dayMap.set(dayKey, flags); }
+          if (h < 7) { asia++; flags.a = true; }
+          else if (h < 13) { london++; flags.l = true; }
+          else if (h < 22) { ny++; flags.n = true; }
+        }
+        let fullDays = 0;
+        for (const f of dayMap.values()) {
+          if (f.a && f.l && f.n) fullDays++;
+        }
+        const totalDays = dayMap.size;
+        const isCashOnly = totalDays >= 2 && (asia === 0 || (london === 0 && ny > 0));
+        return {
+          asia, london, ny, totalDays, fullDays,
+          hasAsia: asia > 0, hasLondon: london > 0, hasNy: ny > 0,
+          isCashOnly
+        };
+      }
+
+      // Vadeli/Spot baz farki (basis) otomatik hizalama ve tutarlilik dogrulamasi
+      function alignAndCheckConsistency(tfBars, candidateBars, candTf, pair, allowBasisShift, cachedRatio) {
+        if (!candidateBars?.length) return { ok: true, bars: candidateBars, diff: 0, ratio: 1, shifted: false };
         const isCandDailyPlus = candTf === 'D1' || candTf === 'W1' || candTf === 'MN1';
         const intraTfs = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'H2', 'M3'];
+        const ratios = [];
+
+        const pushRatio = (refVal, candVal) => {
+          if (refVal > 0 && candVal > 0) ratios.push(refVal / candVal);
+        };
 
         if (tfBars[candTf]?.length) {
           const base = tfBars[candTf];
           const cMap = new Map(candidateBars.map(c => [c.time, c]));
-          const diffs = [];
           for (const b of base) {
             const m = cMap.get(b.time);
-            if (m && b.close > 0) {
-              diffs.push(Math.abs(m.close - b.close) / b.close);
-              if (diffs.length >= 40) break;
-            }
+            if (m) { pushRatio(b.close, m.close); if (ratios.length >= 60) break; }
           }
-          if (!diffs.length && !isCandDailyPlus) {
+          if (!ratios.length && !isCandDailyPlus) {
             for (const b of base) {
               let best = null, bestDist = 2100;
               for (const c of candidateBars) {
-                const d = Math.abs(c.time - b.time);
-                if (d < bestDist) { bestDist = d; best = c; }
+                const dist = Math.abs(c.time - b.time);
+                if (dist < bestDist) { bestDist = dist; best = c; }
               }
-              if (best && b.close > 0) {
-                diffs.push(Math.abs(best.close - b.close) / b.close);
-                if (diffs.length >= 30) break;
-              }
+              if (best) { pushRatio(b.close, best.close); if (ratios.length >= 40) break; }
             }
-          }
-          if (diffs.length) {
-            diffs.sort((a, b) => a - b);
-            const med = diffs[Math.floor(diffs.length / 2)];
-            return { ok: med <= 0.004, diff: med };
           }
         }
 
-        if (!isCandDailyPlus) {
+        if (!ratios.length && !isCandDailyPlus) {
           for (const refTf of intraTfs) {
             const base = tfBars[refTf];
             if (!base?.length) continue;
             const bH1 = aggregateBars(base, 3600);
             const cH1 = aggregateBars(candidateBars, 3600);
             const cMap = new Map(cH1.map(x => [x.time, x]));
-            const diffs = [];
             for (const b of bH1) {
               const m = cMap.get(b.time);
-              if (m && b.close > 0) {
-                diffs.push(Math.abs(m.close - b.close) / b.close);
-                if (diffs.length >= 35) break;
-              }
+              if (m) { pushRatio(b.close, m.close); if (ratios.length >= 50) break; }
             }
-            if (diffs.length) {
-              diffs.sort((a, b) => a - b);
-              const med = diffs[Math.floor(diffs.length / 2)];
-              return { ok: med <= 0.004, diff: med };
-            }
-          }
-
-          if (tfBars.D1?.length) {
-            const d1Map = new Map(tfBars.D1.map(d => [d.time, d]));
-            const candByDay = new Map();
-            for (const c of candidateBars) {
-              const dk = toExchangeDateMidnight(c.time, 0, pair.tz);
-              let arr = candByDay.get(dk);
-              if (!arr) { arr = []; candByDay.set(dk, arr); }
-              arr.push(c);
-            }
-            const dayDevs = [];
-            for (const [dk, arr] of candByDay.entries()) {
-              const d1 = d1Map.get(dk);
-              if (!d1 || d1.low <= 0 || d1.high <= 0) continue;
-              let hi = -Infinity, lo = Infinity;
-              for (const b of arr) { if (b.high > hi) hi = b.high; if (b.low < lo) lo = b.low; }
-              const hiO = hi > d1.high ? (hi - d1.high) / d1.high : 0;
-              const loO = lo < d1.low ? (d1.low - lo) / d1.low : 0;
-              dayDevs.push(Math.max(hiO, loO));
-            }
-            if (dayDevs.length) {
-              dayDevs.sort((a, b) => a - b);
-              const med = dayDevs[Math.floor(dayDevs.length / 2)];
-              return { ok: med <= 0.004, diff: med };
-            }
+            if (ratios.length) break;
           }
         }
 
-        if (candTf === 'D1') {
+        if (!ratios.length && tfBars.D1?.length && !isCandDailyPlus) {
+          const d1Map = new Map(tfBars.D1.map(d => [d.time, d]));
+          const candByDay = new Map();
+          for (const c of candidateBars) {
+            const dk = toBrokerDailyMidnight(c.time);
+            let arr = candByDay.get(dk);
+            if (!arr) { arr = []; candByDay.set(dk, arr); }
+            arr.push(c);
+          }
+          for (const [dk, arr] of candByDay.entries()) {
+            const d1 = d1Map.get(dk);
+            if (!d1 || arr.length < 4) continue;
+            pushRatio(d1.close, arr[arr.length - 1].close);
+            if (ratios.length >= 25) break;
+          }
+        }
+
+        if (!ratios.length && candTf === 'D1') {
           for (const refTf of intraTfs) {
             const base = tfBars[refTf];
             if (!base?.length) continue;
             const baseByDay = new Map();
             for (const b of base) {
-              const dk = toExchangeDateMidnight(b.time, 0, pair.tz);
-              const cur = baseByDay.get(dk);
-              if (!cur) baseByDay.set(dk, { high: b.high, low: b.low });
-              else { if (b.high > cur.high) cur.high = b.high; if (b.low < cur.low) cur.low = b.low; }
+              const dk = toBrokerDailyMidnight(b.time);
+              baseByDay.set(dk, b.close);
             }
-            const dayDevs = [];
             for (const d of candidateBars) {
-              const r = baseByDay.get(d.time);
-              if (!r) continue;
-              const hiO = r.high > d.high ? (r.high - d.high) / d.high : 0;
-              const loO = r.low < d.low ? (d.low - r.low) / d.low : 0;
-              dayDevs.push(Math.max(hiO, loO));
+              const rClose = baseByDay.get(d.time);
+              if (rClose) { pushRatio(rClose, d.close); if (ratios.length >= 30) break; }
             }
-            if (dayDevs.length) {
-              dayDevs.sort((a, b) => a - b);
-              const med = dayDevs[Math.floor(dayDevs.length / 2)];
-              return { ok: med <= 0.004, diff: med };
-            }
+            if (ratios.length) break;
           }
         }
 
-        return { ok: true, diff: 0 };
+        let ratio = cachedRatio || 1;
+        let diff = 0;
+        let mad = 0;
+
+        if (ratios.length) {
+          const sorted = [...ratios].sort((a, b) => a - b);
+          ratio = sorted[Math.floor(sorted.length / 2)];
+          const devs = sorted.map(r => Math.abs(r - ratio)).sort((a, b) => a - b);
+          mad = devs[Math.floor(devs.length / 2)];
+          diff = Math.abs(1 - ratio);
+        } else if (cachedRatio && cachedRatio !== 1) {
+          ratio = cachedRatio;
+          diff = Math.abs(1 - ratio);
+        } else {
+          return { ok: true, bars: candidateBars, diff: 0, ratio: 1, shifted: false };
+        }
+
+        if (diff <= 0.004) {
+          return { ok: true, bars: candidateBars, diff, ratio: 1, shifted: false };
+        }
+
+        if (allowBasisShift && diff <= 0.03 && mad <= 0.003) {
+          const scaled = candidateBars.map(b => ({
+            time: b.time,
+            open: b.open * ratio,
+            high: b.high * ratio,
+            low: b.low * ratio,
+            close: b.close * ratio,
+            volume: b.volume
+          }));
+          return { ok: true, bars: scaled, diff, ratio, shifted: true };
+        }
+
+        return { ok: false, bars: [], diff, ratio, shifted: false };
       }
 
       function weekdaySecondsBetween(t1, t2) {
@@ -927,6 +1081,7 @@
         return { effStart, effEnd };
       }
 
+      // Eksik araliklari hem tarih bosluklarina hem seans eksikliklerine gore tespit eder
       function computeMissingRanges(bars, tf, reqStart, reqEnd, strictAssessment = false) {
         const { effStart, effEnd } = getMarketBounds(reqStart, reqEnd, tf);
         if (effStart >= effEnd) return (bars && bars.length) || strictAssessment ? [] : [[reqStart, reqEnd]];
@@ -941,8 +1096,8 @@
           return gaps;
         }
 
-        const edgeThresh = strictAssessment ? 44 * 3600 : 32 * 3600;
-        const innerThresh = tf === 'D1' ? 74 * 3600 : 50 * 3600;
+        const edgeThresh = strictAssessment ? 36 * 3600 : 26 * 3600;
+        const innerThresh = tf === 'D1' ? 76 * 3600 : 10 * 3600;
 
         if (weekdaySecondsBetween(effStart, bars[0].time) > edgeThresh) {
           gaps.push([reqStart, Math.min(reqEnd, bars[0].time + tfSec)]);
@@ -984,7 +1139,7 @@
           const now = Date.now();
           while (timesArr.length && now - timesArr[0] >= winMs) timesArr.shift();
           if (timesArr.length < maxCalls) return true;
-          const waitMs = Math.max(1000, winMs - (now - timesArr[0]) + 500);
+          const waitMs = Math.max(1000, winMs - (now - timesArr[0]) + 400);
           if (!await sleepAbort(waitMs, label)) return false;
         }
         return false;
@@ -1013,15 +1168,16 @@
       function getCorsRoutes(targetUrl) {
         const custom = getSettings().proxy;
         const enc = encodeURIComponent(targetUrl);
-        const routes = [{ id: 'direct', url: targetUrl }];
-        if (custom) routes.push({ id: 'custom', url: buildCustomProxyUrl(custom, targetUrl) });
-        routes.push(
+        const now = Date.now();
+        const all = [{ id: 'direct', url: targetUrl }];
+        if (custom) all.push({ id: 'custom', url: buildCustomProxyUrl(custom, targetUrl) });
+        all.push(
+          { id: 'corsproxy', url: `https://corsproxy.io/?url=${enc}` },
           { id: 'corsdev', url: `https://proxy.cors.dev/${targetUrl}` },
           { id: 'allorigins', url: `https://api.allorigins.win/raw?url=${enc}` },
-          { id: 'corsproxy', url: `https://corsproxy.io/?url=${enc}` },
           { id: 'codetabs', url: `https://api.codetabs.com/v1/proxy?quest=${enc}` }
         );
-        return routes;
+        return all.filter(r => r.id === 'direct' || r.id === 'custom' || (state.badProxiesUntil.get(r.id) || 0) <= now);
       }
 
       async function rawFetchJson(url, timeoutMs, isDirect) {
@@ -1036,8 +1192,10 @@
 
           const looksLikeTargetApi = parsed && typeof parsed === 'object' && (
             'chart' in parsed || 'results' in parsed || 'request_id' in parsed ||
-            'values' in parsed || 'bars' in parsed || 'rates' in parsed ||
-            'Error Message' in parsed || ('status' in parsed && 'code' in parsed) ||
+            'values' in parsed || 'bars' in parsed || 'rates' in parsed || 'quotes' in parsed ||
+            's' in parsed || 'response' in parsed || 'Note' in parsed || 'Information' in parsed ||
+            'Time Series FX (Daily)' in parsed || 'Error Message' in parsed ||
+            ('status' in parsed && ('code' in parsed || 'message' in parsed)) ||
             'detail' in parsed || Array.isArray(parsed)
           );
 
@@ -1061,7 +1219,7 @@
         let lastErr = null;
         for (const route of orderedRoutes) {
           if (state.abortFetch) throw new Error('Durduruldu');
-          const waitMs = route.id === 'direct' ? Math.min(timeoutMs, 8000) : Math.min(timeoutMs, 7500);
+          const waitMs = route.id === 'direct' ? Math.min(timeoutMs, 5500) : Math.min(timeoutMs, 6000);
           try {
             const data = await rawFetchJson(route.url, waitMs, route.id === 'direct');
             state.hostRouteMemory.set(host, route.id);
@@ -1075,6 +1233,9 @@
               state.hostRouteMemory.set(host, route.id);
               throw err;
             }
+            if (route.id !== 'direct' && route.id !== 'custom') {
+              state.badProxiesUntil.set(route.id, Date.now() + 90000);
+            }
             lastErr = err;
           }
         }
@@ -1083,10 +1244,14 @@
         throw transportErr;
       }
 
-      async function fetchWithCors(targetUrl, timeoutMs = 8000) {
+      async function fetchWithCors(targetUrl, timeoutMs = 6000) {
         if (state.abortFetch) throw new Error('Durduruldu');
         const host = new URL(targetUrl).hostname;
-        const routes = getCorsRoutes(targetUrl);
+        let routes = getCorsRoutes(targetUrl);
+        if (!routes.length) {
+          state.badProxiesUntil.clear();
+          routes = getCorsRoutes(targetUrl);
+        }
 
         if (!state.hostRouteMemory.has(host)) {
           if (state.hostDiscoveryLocks.has(host)) {
@@ -1111,7 +1276,89 @@
         return await probeRoutes(host, ordered, timeoutMs);
       }
 
-      // 1. YAHOO FINANCE
+      // 1. BIQUOTE.IO (Ucretsiz, Anahtarsiz MT5 24/5 CFD Verisi)
+      async function resolveBiquoteSym(pair) {
+        const candidates = Array.isArray(pair.biquote) ? pair.biquote : (pair.biquote ? [pair.biquote] : []);
+        if (!candidates.length) return null;
+        if (!state.biquoteSymbols) {
+          try {
+            const list = await fetchWithCors('https://biquote.io/api/symbols?quotedWithinDays=30', 6000);
+            const exact = new Map();
+            const norm = new Map();
+            if (Array.isArray(list)) {
+              for (const x of list) {
+                const raw = String(x.name || '').trim();
+                if (!raw) continue;
+                const up = raw.toUpperCase();
+                exact.set(up, raw);
+                const base = up.replace(/\.(CASH|PRO|RAW|ECN|STD|CFD)$/i, '');
+                if (!norm.has(base)) norm.set(base, raw);
+              }
+            }
+            state.biquoteSymbols = { exact, norm };
+          } catch (_) {
+            state.biquoteSymbols = { exact: new Map(), norm: new Map() };
+          }
+        }
+        const { exact, norm } = state.biquoteSymbols;
+        if (exact.size > 0) {
+          for (const c of candidates) {
+            const up = c.toUpperCase();
+            if (exact.has(up)) return exact.get(up);
+            if (norm.has(up)) return norm.get(up);
+          }
+          return null;
+        }
+        return candidates[0];
+      }
+
+      async function fetchBiquoteRange(pair, tf, gs, ge) {
+        const bInt = BIQUOTE_TF[tf];
+        if (!bInt) return { bars: [], note: '' };
+        const sym = await resolveBiquoteSym(pair);
+        if (!sym) return { bars: [], note: '' };
+
+        const map = new Map();
+        let cursorStart = gs, cursorEnd = ge;
+        const maxPages = tf === 'M1' ? 35 : 22;
+
+        for (let page = 0; page < maxPages && cursorStart < cursorEnd && !state.abortFetch; page++) {
+          const url = `https://biquote.io/api/${encodeURIComponent(sym)}/ohlc?interval=${encodeURIComponent(bInt)}&limit=1000&from=${encodeURIComponent(isoUtc(cursorStart))}&to=${encodeURIComponent(isoUtc(cursorEnd))}`;
+          let json = null;
+          for (let att = 0; att < 2; att++) {
+            try { json = await fetchWithCors(url, 6000); break; }
+            catch (e) { if (e.httpStatus === 404 || e.isTransportError || att === 1) throw e; await new Promise(r => setTimeout(r, 250)); }
+          }
+          const rows = json?.bars || [];
+          if (!Array.isArray(rows) || !rows.length) break;
+
+          let minTs = Infinity, maxTs = -Infinity, added = 0;
+          for (const r of rows) {
+            if (r.isOpen) continue;
+            const ms = Date.parse(r.openTime);
+            if (!Number.isFinite(ms)) continue;
+            let time = Math.floor(ms / 1000);
+            if (tf === 'D1') time = toBrokerDailyMidnight(time);
+            if (time >= gs && time <= ge && !map.has(time)) {
+              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || Number(r.tickVolume) || 0 });
+              added++;
+            }
+            if (time < minTs) minTs = time;
+            if (time > maxTs) maxTs = time;
+          }
+          if (rows.length < 900 || added === 0 || !Number.isFinite(minTs) || !Number.isFinite(maxTs)) break;
+          if ((minTs - cursorStart) <= (cursorEnd - maxTs)) {
+            if (maxTs < cursorStart) break;
+            cursorStart = maxTs + 1;
+          } else {
+            if (minTs > cursorEnd) break;
+            cursorEnd = minTs - 1;
+          }
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
+      }
+
+      // 2. YAHOO FINANCE (24/5 Vadeli & FX)
       async function fetchYahooChart(ticker, interval, p1, p2) {
         const qs = `period1=${p1}&period2=${p2}&interval=${encodeURIComponent(interval)}&includePrePost=true`;
         const urls = [
@@ -1121,7 +1368,7 @@
         let lastErr = null;
         for (const u of urls) {
           try {
-            const json = await fetchWithCors(u, 8000);
+            const json = await fetchWithCors(u, 6000);
             if (json?.chart?.error) {
               const e = new Error(json.chart.error.description || 'Yahoo API hatası');
               e.isYahooFatal = true;
@@ -1184,7 +1431,7 @@
       async function fetchYahooRange(ticker, tf, gs, ge, onChunkDone) {
         if (tf === 'D1') {
           let lastErr = null;
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             if (state.abortFetch) break;
             try {
               const res = await fetchYahooChart(ticker, '1d', gs - 2 * 86400, ge + 2 * 86400);
@@ -1192,7 +1439,7 @@
             } catch (e) {
               lastErr = e;
               if (e.isYahooFatal || e.isYahooEmpty || e.httpStatus === 404 || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 300 * (att + 1)));
+              await new Promise(r => setTimeout(r, 250));
             }
           }
           if (lastErr) throw lastErr;
@@ -1203,104 +1450,142 @@
         const [yInt, sec, chunkSec] = yMap[tf];
         const map = new Map();
         let lastErr = null, stopChunks = false, chunkIdx = 0;
-        const totalChunks = Math.max(1, Math.ceil((ge - gs) / chunkSec));
+        const chunks = [];
+        for (let cur = gs; cur < ge; cur += chunkSec) chunks.push([cur, Math.min(ge, cur + chunkSec)]);
 
-        for (let cur = gs; cur < ge && !state.abortFetch && !stopChunks; cur += chunkSec) {
-          chunkIdx++;
-          let s = cur;
-          const e = Math.min(ge, cur + chunkSec);
-          for (let att = 0; att < 3; att++) {
+        await runPool(chunks, 3, async ([cs, ce]) => {
+          if (state.abortFetch || stopChunks) return;
+          let s = cs;
+          for (let att = 0; att < 2; att++) {
             if (state.abortFetch) break;
             try {
-              const res = await fetchYahooChart(ticker, yInt, s, e + 60);
-              const bars = parseYahooBars(res, s, e, false, sec);
+              const res = await fetchYahooChart(ticker, yInt, s, ce + 60);
+              const bars = parseYahooBars(res, s, ce, false, sec);
               for (const b of bars) map.set(b.time, b);
               lastErr = null;
               break;
             } catch (err) {
               lastErr = err;
               if (/within the last|not available for startTime/i.test(err.message || '')) {
-                s = Math.min(e - 3600, s + 86400);
+                s = Math.min(ce - 3600, s + 86400);
                 continue;
               }
               if (err.httpStatus === 404 || err.isYahooFatal || err.isTransportError) { stopChunks = true; break; }
               if (err.isYahooEmpty) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 300 * (att + 1)));
+              await new Promise(r => setTimeout(r, 250));
             }
           }
-          if (onChunkDone) onChunkDone(chunkIdx, totalChunks);
-        }
+          chunkIdx++;
+          if (onChunkDone) onChunkDone(chunkIdx, chunks.length);
+        });
 
         const out = sanitizeBars(Array.from(map.values()), gs, ge);
         if (!out.length && lastErr) throw lastErr;
         return out;
       }
 
-      // 2. BIQUOTE.IO (Ücretsiz, Anahtarsız MT5 Verisi)
-      async function resolveBiquoteSym(pair) {
-        if (!pair.biquote) return null;
-        if (!state.biquoteSymbols) {
-          try {
-            const list = await fetchWithCors('https://biquote.io/api/symbols?quotedWithinDays=14', 8000);
-            state.biquoteSymbols = Array.isArray(list) ? new Set(list.map(x => String(x.name || '').toUpperCase())) : new Set();
-          } catch (_) {
-            state.biquoteSymbols = new Set();
-          }
-        }
-        const candidates = [pair.biquote, ...(pair.biquoteAlt || [])];
-        if (state.biquoteSymbols.size > 0) {
-          for (const c of candidates) if (state.biquoteSymbols.has(c.toUpperCase())) return c;
-          return null;
-        }
-        return candidates[0];
-      }
-
-      async function fetchBiquoteRange(pair, tf, gs, ge) {
-        const bInt = BIQUOTE_TF[tf];
-        if (!bInt) return { bars: [], note: '' };
-        const sym = await resolveBiquoteSym(pair);
-        if (!sym) return { bars: [], note: '' };
-
+      // 3. TRADERMADE (Ucretsiz ayda 1000 istek - Tum 15 CFD parite 24/5)
+      async function fetchTraderMadeRange(pair, tf, gs, ge, key) {
+        const spec = TM_TF[tf];
+        if (!spec || !pair.tm) return { bars: [], note: '' };
+        const [tmInt, tmPer] = spec;
         const map = new Map();
-        let cursorStart = gs, cursorEnd = ge;
-        const maxPages = tf === 'M1' ? 12 : 14;
+        let note = '';
 
-        for (let page = 0; page < maxPages && cursorStart < cursorEnd && !state.abortFetch; page++) {
-          const url = `https://biquote.io/api/${encodeURIComponent(sym)}/ohlc?interval=${encodeURIComponent(bInt)}&limit=1000&from=${encodeURIComponent(isoUtc(cursorStart))}&to=${encodeURIComponent(isoUtc(cursorEnd))}`;
-          let json = null;
-          for (let att = 0; att < 3; att++) {
-            try { json = await fetchWithCors(url, 8000); break; }
-            catch (e) { if (e.httpStatus === 404 || e.isTransportError || att === 2) throw e; await new Promise(r => setTimeout(r, 300)); }
+        if (tmInt === 'daily') {
+          const url = `https://marketdata.tradermade.com/api/v1/timeseries?currency=${encodeURIComponent(pair.tm)}&api_key=${encodeURIComponent(key)}&start_date=${toYMD(new Date(gs * 1000))}&end_date=${toYMD(new Date(ge * 1000))}&format=records&interval=daily&period=1`;
+          const json = await fetchWithCors(url, 7000);
+          if (json?.error || json?.message) {
+            const msg = String(json.message || json.error);
+            const e = new Error(msg);
+            if (/api_key|invalid|unauthorized|401|403|limit|quota/i.test(msg)) e.disableTm = true;
+            throw e;
           }
-          const rows = json?.bars || [];
-          if (!Array.isArray(rows) || !rows.length) break;
-
-          let minTs = Infinity, maxTs = -Infinity;
-          for (const r of rows) {
-            if (r.isOpen) continue;
-            const ms = Date.parse(r.openTime);
-            if (!Number.isFinite(ms)) continue;
-            let time = Math.floor(ms / 1000);
-            if (tf === 'D1') time = toExchangeDateMidnight(time, 0, pair.tz);
-            if (time >= gs && time <= ge) {
-              map.set(time, { time, open: Number(r.open), high: Number(r.high), low: Number(r.low), close: Number(r.close), volume: Number(r.volume) || Number(r.tickVolume) || 0 });
+          for (const q of (json?.quotes || [])) {
+            const ts = parseTzDateTimeToUtcSec(q.date, 'UTC');
+            if (ts !== null && ts >= gs && ts <= ge) {
+              map.set(ts, { time: ts, open: Number(q.open), high: Number(q.high), low: Number(q.low), close: Number(q.close), volume: 0 });
             }
-            if (time < minTs) minTs = time;
-            if (time > maxTs) maxTs = time;
           }
-          if (rows.length < 950 || !Number.isFinite(minTs) || !Number.isFinite(maxTs)) break;
-          if ((minTs - cursorStart) <= (cursorEnd - maxTs)) {
-            if (maxTs < cursorStart) break;
-            cursorStart = maxTs + 1;
-          } else {
-            if (minTs > cursorEnd) break;
-            cursorEnd = minTs - 1;
+          return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
+        }
+
+        const chunkSec = tmInt === 'minute' ? 2 * 86400 : 45 * 86400;
+        const maxChunks = tmInt === 'minute' ? 4 : 8;
+        let chunksDone = 0;
+
+        for (let cur = Math.max(gs, tmInt === 'minute' ? ge - 8 * 86400 : gs); cur < ge && chunksDone < maxChunks && !state.abortFetch; cur += chunkSec) {
+          chunksDone++;
+          const next = Math.min(ge, cur + chunkSec);
+          const url = `https://marketdata.tradermade.com/api/v1/timeseries?currency=${encodeURIComponent(pair.tm)}&api_key=${encodeURIComponent(key)}&start_date=${encodeURIComponent(toYMDHM(cur))}&end_date=${encodeURIComponent(toYMDHM(next))}&format=records&interval=${tmInt}&period=${tmPer}`;
+          try {
+            const json = await fetchWithCors(url, 7000);
+            if (json?.error || json?.message) {
+              const msg = String(json.message || json.error);
+              const e = new Error(msg);
+              if (/api_key|invalid|unauthorized|401|403|limit|quota/i.test(msg)) e.disableTm = true;
+              throw e;
+            }
+            for (const q of (json?.quotes || [])) {
+              const ts = parseTzDateTimeToUtcSec(q.date, 'UTC');
+              if (ts !== null && ts >= gs && ts <= ge) {
+                map.set(ts, { time: ts, open: Number(q.open), high: Number(q.high), low: Number(q.low), close: Number(q.close), volume: 0 });
+              }
+            }
+          } catch (e) {
+            if (!map.size) throw e;
+            note = e.message;
+            break;
           }
         }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
       }
 
-      // 3. TIINGO FX
+      // 4. FINNHUB (Ucretsiz 60 istek/dk - Dogrudan CORS - OANDA 24/5)
+      async function fetchFinnhubRange(pair, tf, gs, ge, token) {
+        const resStr = FINNHUB_TF[tf];
+        if (!resStr || !pair.finnhub) return { bars: [], note: '' };
+        const map = new Map();
+        const chunkSec = (tf === 'M1' ? 5 : (tf === 'M5' || tf === 'M15' ? 25 : 180)) * 86400;
+        let note = '';
+
+        for (let cur = gs; cur < ge && !state.abortFetch; cur += chunkSec) {
+          const next = Math.min(ge, cur + chunkSec);
+          if (!await waitRateSlot(state.finnhubTimes, 55, 61000, `${pair.code} ${tf} Finnhub limiti bekleniyor`)) break;
+          const url = `https://finnhub.io/api/v1/forex/candle?symbol=${encodeURIComponent(pair.finnhub)}&resolution=${encodeURIComponent(resStr)}&from=${cur}&to=${next}&token=${encodeURIComponent(token)}`;
+          try {
+            state.finnhubTimes.push(Date.now());
+            const json = await fetchWithCors(url, 6500);
+            if (json?.error) {
+              const e = new Error(json.error);
+              if (/access|403|401|invalid|limit/i.test(json.error)) e.disableFinnhub = true;
+              throw e;
+            }
+            if (json?.s === 'ok' && Array.isArray(json.t)) {
+              for (let i = 0; i < json.t.length; i++) {
+                let time = Math.floor(Number(json.t[i]));
+                if (tf === 'D1') time = toBrokerDailyMidnight(time);
+                if (time >= gs && time <= ge) {
+                  map.set(time, { time, open: Number(json.o[i]), high: Number(json.h[i]), low: Number(json.l[i]), close: Number(json.c[i]), volume: Number(json.v?.[i]) || 0 });
+                }
+              }
+            }
+          } catch (e) {
+            const msg = e.message || '';
+            const disable = e.disableFinnhub || e.httpStatus === 401 || e.httpStatus === 403 || /access|permission|invalid/i.test(msg);
+            if (!map.size) {
+              const err = new Error(disable && e.httpStatus === 403 ? 'Finnhub ücretsiz planda Forex/CFD mum erişimi kısıtlı' : msg);
+              err.disableFinnhub = disable;
+              throw err;
+            }
+            note = msg;
+            break;
+          }
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
+      }
+
+      // 5. TIINGO FX
       async function fetchTiingoRange(pair, tf, gs, ge, token) {
         const freq = TIINGO_TF[tf];
         if (!freq || !pair.tiingo) return { bars: [], note: '' };
@@ -1313,9 +1598,9 @@
           const next = Math.min(ge, cur + chunkSec - 1);
           const url = `https://api.tiingo.com/tiingo/fx/${encodeURIComponent(pair.tiingo)}/prices?startDate=${toYMD(new Date(cur * 1000))}&endDate=${toYMD(new Date((next + 86400) * 1000))}&resampleFreq=${encodeURIComponent(freq)}&token=${encodeURIComponent(token)}`;
           let rows = null, errLast = null;
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             try {
-              rows = await fetchWithCors(url, 9000);
+              rows = await fetchWithCors(url, 7000);
               if (!Array.isArray(rows)) {
                 const detail = rows?.detail || 'Tiingo geçersiz yanıt';
                 const err = new Error(detail);
@@ -1330,7 +1615,7 @@
               if (e.httpStatus === 429 || /allocation|limit|exceeded|throttled/i.test(e.message || '')) e.isTiingoLimit = true;
               if (e.httpStatus === 401 || e.httpStatus === 403 || /token|authorization/i.test(e.message || '')) e.isTiingoAuth = true;
               if (e.isTiingoLimit || e.isTiingoAuth || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 350 * (att + 1)));
+              await new Promise(r => setTimeout(r, 300));
             }
           }
           if (errLast) {
@@ -1360,12 +1645,12 @@
         return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
       }
 
-      // 4. TWELVE DATA (8 istek/dk korumalı)
+      // 6. TWELVE DATA (8 istek/dk korumali)
       async function fetchTdRange(pair, tf, gs, ge, key) {
         const tdInt = TD_TF[tf];
         if (!tdInt || !pair.td) return { bars: [], note: '' };
         const map = new Map();
-        const maxPages = tf === 'M1' ? 20 : 10;
+        const maxPages = tf === 'M1' ? 12 : 8;
         let cursorEnd = ge, note = '';
 
         for (let page = 0; page < maxPages && cursorEnd > gs && !state.abortFetch; page++) {
@@ -1375,13 +1660,13 @@
           const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair.td)}&interval=${encodeURIComponent(tdInt)}&start_date=${encodeURIComponent(sStr)}&end_date=${encodeURIComponent(eStr)}&outputsize=5000&timezone=UTC&apikey=${encodeURIComponent(key)}`;
 
           let json = null, errLast = null, rateRetries = 0;
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             try {
               state.tdTimes.push(Date.now());
-              json = await fetchWithCors(url, 9000);
+              json = await fetchWithCors(url, 7000);
               if (json?.status === 'error') {
                 const msg = String(json.message || 'Twelve Data hatası');
-                if (/credits|minute|too many/i.test(msg) && !/daily|day/i.test(msg) && ++rateRetries <= 2) {
+                if (/credits|minute|too many/i.test(msg) && !/daily|day/i.test(msg) && ++rateRetries <= 1) {
                   if (!await sleepAbort(62000, `${pair.code} Twelve Data dakikalık kota bekleniyor`)) break;
                   att = -1;
                   continue;
@@ -1395,7 +1680,7 @@
             } catch (e) {
               errLast = e;
               if (e.tdCode === 401 || e.tdCode === 403 || e.tdCode === 404 || /plan|upgrade|permission|apikey|daily/i.test(e.message || '') || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 400));
+              await new Promise(r => setTimeout(r, 300));
             }
           }
 
@@ -1431,7 +1716,7 @@
         return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
       }
 
-      // 5. MASSIVE (5 istek/dk korumalı)
+      // 7. MASSIVE (5 istek/dk korumali)
       async function fetchMassiveRange(pair, tf, gs, ge, key) {
         const spec = MASSIVE_TF[tf];
         if (!spec || !pair.massive) return { bars: [], note: '' };
@@ -1444,14 +1729,14 @@
         const minAccept = isW1 ? getWeekMondayKey(gs) : (isMN1 ? getMonthFirstKey(gs) : gs);
         let note = '';
 
-        for (let page = 0; page < 15 && nextUrl && !state.abortFetch; page++) {
+        for (let page = 0; page < 10 && nextUrl && !state.abortFetch; page++) {
           if (!await waitRateSlot(state.massiveTimes, 5, 62000, `${pair.code} ${tf} Massive 5/dk limiti bekleniyor`)) break;
           let json = null, errLast = null, rateRetries = 0;
 
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             try {
               state.massiveTimes.push(Date.now());
-              json = await fetchWithCors(nextUrl, 9000);
+              json = await fetchWithCors(nextUrl, 7000);
               if (json?.status === 'ERROR' || json?.status === 'NOT_AUTHORIZED' || json?.error) {
                 const err = new Error(json.error || json.message || 'Massive API hatası');
                 if (json.status === 'NOT_AUTHORIZED' || /not authorized|entitled|upgrade|plan/i.test(err.message)) err.httpStatus = 403;
@@ -1461,13 +1746,13 @@
               break;
             } catch (e) {
               errLast = e;
-              if (e.httpStatus === 429 && ++rateRetries <= 2) {
+              if (e.httpStatus === 429 && ++rateRetries <= 1) {
                 if (!await sleepAbort(62000, `${pair.code} Massive 429 limiti bekleniyor`)) break;
                 att = -1;
                 continue;
               }
               if (e.httpStatus === 401 || e.httpStatus === 403 || /not authorized|entitled|apiKey|invalid/i.test(e.message || '') || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 400));
+              await new Promise(r => setTimeout(r, 300));
             }
           }
 
@@ -1515,7 +1800,101 @@
         return { bars: sanitizeBars(Array.from(map.values()), minAccept, ge), note };
       }
 
-      // 6. EODHD (Tüm 15 Parite • Ücretsiz D1 + Ücretli Intraday)
+      // 8. FCS API (Ucretsiz 500 istek/ay)
+      async function fetchFcsRange(pair, tf, gs, ge, key) {
+        const fPeriod = FCS_TF[tf];
+        if (!fPeriod || !pair.fcs) return { bars: [], note: '' };
+        const endpoint = pair.cat === 'index' ? 'stock' : 'forex';
+        const map = new Map();
+        const maxPages = tf === 'M1' ? 6 : 4;
+
+        for (let page = 1; page <= maxPages && !state.abortFetch; page++) {
+          const url = `https://api-v4.fcsapi.com/${endpoint}/history?symbol=${encodeURIComponent(pair.fcs)}&period=${encodeURIComponent(fPeriod)}&length=500&page=${page}&access_key=${encodeURIComponent(key)}`;
+          const json = await fetchWithCors(url, 7000);
+          if (json?.status === false || json?.code >= 400) {
+            const msg = String(json?.msg || json?.message || 'FCS API hatası');
+            const err = new Error(msg);
+            if (/key|limit|credit|401|403|429/i.test(msg)) err.disableFcs = true;
+            throw err;
+          }
+          const resp = json?.response;
+          const items = Array.isArray(resp) ? resp : (resp && typeof resp === 'object' ? Object.entries(resp).map(([k, v]) => ({ ...v, _k: k })) : []);
+          if (!items.length) break;
+
+          let minTs = Infinity;
+          for (const r of items) {
+            let time = Number(r.t ?? r._k);
+            if (!Number.isFinite(time) || time < 631152000) time = parseTzDateTimeToUtcSec(r.tm, 'UTC');
+            if (!Number.isFinite(time)) continue;
+            if (tf === 'D1') time = toBrokerDailyMidnight(time);
+            if (time >= gs && time <= ge) {
+              map.set(time, { time, open: Number(r.o ?? r.open), high: Number(r.h ?? r.high), low: Number(r.l ?? r.low), close: Number(r.c ?? r.close), volume: Number(r.v ?? r.volume) || 0 });
+            }
+            if (time < minTs) minTs = time;
+          }
+          if (items.length < 450 || minTs <= gs) break;
+        }
+        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
+      }
+
+      // 9. ALPHA VANTAGE (Ucretsiz 25 istek/gun - Forex & Emtia)
+      async function fetchAlphaVantageRange(pair, tf, gs, ge, key) {
+        if (!pair.av) return { bars: [], note: '' };
+        const avInt = AV_TF[tf];
+        if (!avInt) return { bars: [], note: '' };
+
+        let url = '';
+        if (pair.av.comm) {
+          if (tf !== 'D1') return { bars: [], note: '' };
+          url = `https://www.alphavantage.co/query?function=${encodeURIComponent(pair.av.comm)}&interval=daily&apikey=${encodeURIComponent(key)}`;
+        } else {
+          url = tf === 'D1'
+            ? `https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=${pair.av.fx}&to_symbol=${pair.av.to}&outputsize=full&apikey=${encodeURIComponent(key)}`
+            : `https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol=${pair.av.fx}&to_symbol=${pair.av.to}&interval=${avInt}&outputsize=full&apikey=${encodeURIComponent(key)}`;
+        }
+
+        const json = await fetchWithCors(url, 7000);
+        if (json?.Information || json?.Note || json?.['Error Message']) {
+          const msg = json.Information || json.Note || json['Error Message'];
+          const e = new Error(msg);
+          if (/premium|subscription/i.test(msg)) e.disableAvIntraday = true;
+          else e.disableAv = true;
+          throw e;
+        }
+
+        const out = [];
+        if (pair.av.comm && Array.isArray(json?.data)) {
+          for (const r of json.data) {
+            const v = Number(r.value);
+            const time = parseTzDateTimeToUtcSec(r.date, 'UTC');
+            if (time !== null && time >= gs && time <= ge && Number.isFinite(v) && v > 0) {
+              out.push({ time, open: v, high: v, low: v, close: v, volume: 0 });
+            }
+          }
+          return { bars: sanitizeBars(out, gs, ge), note: out.length ? 'Alpha Vantage günlük emtia kapanışı' : '' };
+        }
+
+        const seriesKey = Object.keys(json || {}).find(k => k.toLowerCase().includes('time series'));
+        const series = seriesKey ? json[seriesKey] : null;
+        if (series && typeof series === 'object') {
+          for (const [dtStr, obj] of Object.entries(series)) {
+            const time = parseTzDateTimeToUtcSec(dtStr, 'UTC');
+            if (time !== null && time >= gs && time <= ge) {
+              out.push({
+                time,
+                open: Number(obj['1. open']),
+                high: Number(obj['2. high']),
+                low: Number(obj['3. low']),
+                close: Number(obj['4. close']),
+                volume: 0
+              });
+            }
+          }
+        }
+        return { bars: sanitizeBars(out, gs, ge), note: '' };
+      }
+
+      // 10. EODHD (Tum 15 Parite - Ucretsiz D1 + Ucretli Intraday)
       async function fetchEodhdRange(pair, tf, gs, ge, token) {
         const eInt = EODHD_TF[tf];
         if (!eInt || !pair.eodhd) return { bars: [], note: '' };
@@ -1539,14 +1918,14 @@
         if (tf === 'D1') {
           const url = `https://eodhd.com/api/eod/${encodeURIComponent(pair.eodhd)}?from=${toYMD(new Date(gs * 1000))}&to=${toYMD(new Date(ge * 1000))}&fmt=json&api_token=${encodeURIComponent(token)}`;
           let rows = null;
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             try {
-              rows = await fetchWithCors(url, 9000);
+              rows = await fetchWithCors(url, 7000);
               if (!Array.isArray(rows)) throw new Error('EODHD yanıt hatası');
               break;
             } catch (e) {
-              if (e.httpStatus === 401 || e.httpStatus === 402 || e.httpStatus === 403 || e.httpStatus === 429 || e.isTransportError || att === 2) handleErr(e);
-              await new Promise(r => setTimeout(r, 350));
+              if (e.httpStatus === 401 || e.httpStatus === 402 || e.httpStatus === 403 || e.httpStatus === 429 || e.isTransportError || att === 1) handleErr(e);
+              await new Promise(r => setTimeout(r, 250));
             }
           }
           for (const r of (rows || [])) {
@@ -1564,19 +1943,19 @@
           const next = Math.min(ge, cur + chunkSec - 1);
           const url = `https://eodhd.com/api/intraday/${encodeURIComponent(pair.eodhd)}?interval=${eInt}&from=${cur}&to=${next}&fmt=json&api_token=${encodeURIComponent(token)}`;
           let rows = null;
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             try {
-              rows = await fetchWithCors(url, 9000);
+              rows = await fetchWithCors(url, 7000);
               if (!Array.isArray(rows)) throw new Error('EODHD yanıt hatası');
               break;
             } catch (e) {
-              if (e.httpStatus === 401 || e.httpStatus === 402 || e.httpStatus === 403 || e.httpStatus === 429 || e.isTransportError || att === 2) {
+              if (e.httpStatus === 401 || e.httpStatus === 402 || e.httpStatus === 403 || e.httpStatus === 429 || e.isTransportError || att === 1) {
                 if (!map.size) handleErr(e);
                 note = e.message;
                 rows = null;
                 break;
               }
-              await new Promise(r => setTimeout(r, 350));
+              await new Promise(r => setTimeout(r, 250));
             }
           }
           if (!rows) break;
@@ -1590,7 +1969,7 @@
         return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
       }
 
-      // 7. FMP (Ek Yedek)
+      // 11. FMP
       async function fetchFmpRange(pair, tf, gs, ge, key) {
         const fInt = FMP_TF[tf];
         if (!fInt || !pair.fmp) return { bars: [], note: '' };
@@ -1605,19 +1984,19 @@
         if (tf === 'D1') {
           const url = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(pair.fmp)}&from=${toYMD(new Date(gs * 1000))}&to=${toYMD(new Date(ge * 1000))}&apikey=${encodeURIComponent(key)}`;
           let rows = null;
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             try {
-              rows = await fetchWithCors(url, 9000);
+              rows = await fetchWithCors(url, 7000);
               if (!Array.isArray(rows)) throw new Error(rows?.['Error Message'] || rows?.message || 'FMP yanıt hatası');
               break;
             } catch (e) {
               const info = parseErr(e.message || '');
-              if (info.disable || e.isTransportError || att === 2) {
+              if (info.disable || e.isTransportError || att === 1) {
                 const err = new Error(info.msg);
                 err.disableFmp = info.disable;
                 throw err;
               }
-              await new Promise(r => setTimeout(r, 350));
+              await new Promise(r => setTimeout(r, 250));
             }
           }
           const bars = (rows || []).map(r => ({
@@ -1635,9 +2014,9 @@
           const next = Math.min(ge, cur + chunkSec - 1);
           const url = `https://financialmodelingprep.com/stable/historical-chart/${encodeURIComponent(fInt)}?symbol=${encodeURIComponent(pair.fmp)}&from=${toYMD(new Date(cur * 1000))}&to=${toYMD(new Date((next + 86400) * 1000))}&apikey=${encodeURIComponent(key)}`;
           let rows = null, errLast = null;
-          for (let att = 0; att < 3; att++) {
+          for (let att = 0; att < 2; att++) {
             try {
-              rows = await fetchWithCors(url, 9000);
+              rows = await fetchWithCors(url, 7000);
               if (!Array.isArray(rows)) throw new Error(rows?.['Error Message'] || rows?.message || 'FMP yanıt hatası');
               errLast = null;
               break;
@@ -1645,7 +2024,7 @@
               errLast = e;
               const info = parseErr(e.message || '');
               if (info.disable || e.isTransportError) break;
-              if (att < 2) await new Promise(r => setTimeout(r, 350));
+              await new Promise(r => setTimeout(r, 250));
             }
           }
           if (errLast) {
@@ -1668,13 +2047,13 @@
         return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
       }
 
-      // 8. FRANKFURTER ECB (Ücretsiz Forex D1 Son Yedek)
+      // 12. FRANKFURTER ECB (Ucretsiz Forex D1 Son Yedek)
       async function fetchFrankfurterRange(pair, gs, ge) {
         if (!pair.fxBase || !pair.fxQuote) return { bars: [], note: '' };
         const sStr = toYMD(new Date(gs * 1000));
         const eStr = toYMD(new Date(ge * 1000));
         const path = sStr === eStr ? sStr : `${sStr}..${eStr}`;
-        const json = await fetchWithCors(`https://api.frankfurter.dev/v1/${path}?base=${encodeURIComponent(pair.fxBase)}&symbols=${encodeURIComponent(pair.fxQuote)}`, 9000);
+        const json = await fetchWithCors(`https://api.frankfurter.dev/v1/${path}?base=${encodeURIComponent(pair.fxBase)}&symbols=${encodeURIComponent(pair.fxQuote)}`, 7000);
         const rates = json?.rates || {};
         const out = [];
         if (typeof rates[pair.fxQuote] === 'number' && json.date) {
@@ -1691,7 +2070,7 @@
         return { bars: sanitizeBars(out, gs, ge), note: out.length ? 'Frankfurter ECB günlük kapanış kuru (O=H=L=C)' : '' };
       }
 
-      // Türetme kuralları: M3<-M1, M15/M30<-M5, H2/H4<-H1, W1/MN1<-D1
+      // Turetme: M1->M3/M5, M5->M15/M30, M15->M30, H1->H2/H4/D1, D1->W1/MN1
       function applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair) {
         const deriveFrom = (target, src, builder) => {
           if (!tfBars[src]?.length) return;
@@ -1700,7 +2079,10 @@
           const hadAny = (tfBars[target]?.length || 0) > 0;
           const gaps = computeMissingRanges(tfBars[target], target, reqStart, reqEnd, false);
           if (!hadAny || gaps.length > 0) {
-            if (hadAny && !checkPriceConsistency(tfBars, derived, target, pair).ok) return;
+            if (hadAny) {
+              const chk = alignAndCheckConsistency(tfBars, derived, target, pair, false, 1);
+              if (!chk.ok) return;
+            }
             const before = tfBars[target]?.length || 0;
             tfBars[target] = mergeBars(tfBars[target], derived);
             if (tfBars[target].length > before) {
@@ -1717,13 +2099,18 @@
         deriveFrom('M5', 'M1', b => aggregateBars(b, 300));
         deriveFrom('M15', 'M5', b => aggregateBars(b, 900));
         deriveFrom('M30', 'M5', b => aggregateBars(b, 1800));
+        deriveFrom('M30', 'M15', b => aggregateBars(b, 1800));
+        deriveFrom('H1', 'M30', b => aggregateBars(b, 3600));
+        deriveFrom('H1', 'M15', b => aggregateBars(b, 3600));
         deriveFrom('H2', 'H1', b => aggregateBars(b, 7200));
         deriveFrom('H4', 'H1', b => aggregateBars(b, 14400));
+        deriveFrom('H4', 'H2', b => aggregateBars(b, 14400));
+        deriveFrom('D1', 'H1', b => buildDailyFromH1(b));
         deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1'));
         deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1'));
       }
 
-      // ANA VERİ MOTORU
+      // ANA VERI MOTORU
       async function fetchAllData(pairKey, startStr, endStr) {
         const pair = PAIRS[pairKey];
         const cfg = getSettings();
@@ -1737,6 +2124,7 @@
 
         const tfBars = {}, tfSources = {}, tfNotes = {};
         let baseProviderId = '';
+        const basisCache = new Map();
 
         const addSource = (tf, label) => {
           if (!tfSources[tf]) tfSources[tf] = new Set();
@@ -1748,11 +2136,15 @@
           tfNotes[tf].add(note);
         };
 
-        const acceptBars = (tf, bars, providerId, sourceLabel, gs, ge) => {
+        const acceptBars = (tf, bars, providerId, sourceLabel, gs, ge, allowBasisShift = false) => {
           if (!bars || !bars.length) return { accepted: false, count: 0 };
-          if (!baseProviderId) baseProviderId = providerId;
-          if (providerId !== baseProviderId) {
-            const check = checkPriceConsistency(tfBars, bars, tf, pair);
+          let finalBars = bars;
+          let extraNote = '';
+          if (!baseProviderId) {
+            baseProviderId = providerId;
+          } else if (providerId !== baseProviderId) {
+            const cached = basisCache.get(providerId);
+            const check = alignAndCheckConsistency(tfBars, bars, tf, pair, allowBasisShift, cached);
             if (!check.ok) {
               const pctStr = (check.diff * 100).toFixed(2);
               const msg = `Fiyat sapması %${pctStr} (>%0.4), kaynak reddedildi`;
@@ -1760,27 +2152,83 @@
               addNote(tf, `${sourceLabel}: ${msg}`);
               return { accepted: false, count: 0 };
             }
+            if (check.shifted) {
+              basisCache.set(providerId, check.ratio);
+              finalBars = check.bars;
+              extraNote = `Baz farkı %${(check.diff * 100).toFixed(2)} spot fiyata hizalandı`;
+            }
           }
-          tfBars[tf] = mergeBars(tfBars[tf], bars);
-          addSource(tf, sourceLabel);
-          return { accepted: true, count: bars.length };
+          tfBars[tf] = mergeBars(tfBars[tf], finalBars);
+          addSource(tf, extraNote ? `${sourceLabel} [Hizalı]` : sourceLabel);
+          if (extraNote) addNote(tf, extraNote);
+          return { accepted: true, count: finalBars.length, note: extraNote };
         };
 
-        // ADIM 1: YAHOO FINANCE
-        let pct = 5;
-        setProgress(pct, `${pair.code} • Yahoo Finance çekiliyor...`);
+        // ADIM 1: BIQUOTE.IO (Ucretsiz, Anahtarsiz 24/5 MT5 CFD - Asya + Londra + NY)
+        setProgress(4, `${pair.code} • biquote.io 24/5 CFD verisi çekiliyor...`);
+        const biquoteBaseTfs = ['D1', 'H1', 'M5', 'M1'];
+        let bqSymOk = true;
+        try {
+          const sym = await resolveBiquoteSym(pair);
+          if (!sym) bqSymOk = false;
+        } catch (_) {
+          bqSymOk = false;
+        }
+
+        if (bqSymOk && !state.abortFetch) {
+          await runPool(biquoteBaseTfs, 4, async tf => {
+            if (state.abortFetch) return;
+            const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+            if (!gaps.length) return;
+            for (const [gs, ge] of gaps) {
+              if (state.abortFetch) break;
+              setStatus('busy', `${pair.code} biquote.io ${tf}...`);
+              try {
+                const res = await fetchBiquoteRange(pair, tf, gs, ge);
+                const acc = acceptBars(tf, res.bars, 'biquote', 'biquote.io', gs, ge, false);
+                if (acc.accepted) addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, 'Başarılı (24/5 CFD)', 'ok');
+                else addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
+              } catch (e) {
+                addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
+                addNote(tf, `biquote.io: ${e.message}`);
+              }
+            }
+          });
+          applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
+
+          const bqExtraTfs = ['H4', 'M30', 'M15'].filter(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
+          if (bqExtraTfs.length && !state.abortFetch) {
+            await runPool(bqExtraTfs, 3, async tf => {
+              const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+              for (const [gs, ge] of gaps) {
+                if (state.abortFetch) break;
+                try {
+                  const res = await fetchBiquoteRange(pair, tf, gs, ge);
+                  const acc = acceptBars(tf, res.bars, 'biquote', 'biquote.io', gs, ge, false);
+                  if (acc.accepted) addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, 'Başarılı (24/5 CFD)', 'ok');
+                } catch (e) {
+                  addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
+                }
+              }
+            });
+            applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
+          }
+        }
+        setProgress(24, `${pair.code} • biquote.io aşaması tamamlandı`);
+
+        // ADIM 2: YAHOO FINANCE 24/5 (Vadeli NQ=F/ES=F/YM=F/GC=F/SI=F/CL=F/BZ=F/NG=F ve Forex =X)
         const limM1 = nowSec - (28 * 86400 + 43200);
         const limM5 = nowSec - (58 * 86400 + 43200);
         const limH1 = nowSec - (720 * 86400);
-        const yahooTfs = ['D1', 'H1', 'M30', 'M15', 'M5', 'M1'];
 
-        const runYahooTicker = async (ticker, providerId, label) => {
+        const runYahooTicker = async (ticker, providerId, label, isFuturesSource, pctStart, pctSpan, allowedTfs = null) => {
           let transportFails = 0, reachable = false, yahooDead = false;
+          const yahooTfs = allowedTfs || ['D1', 'H1', 'M5', 'M1'];
 
           await runPool(yahooTfs, 3, async tf => {
             if (state.abortFetch || yahooDead) return;
             const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
-            if (!gaps.length) { pct = Math.min(32, pct + 4); setProgress(pct, `${pair.code} • ${label} ${tf} hazır`); return; }
+            if (!gaps.length) return;
 
             for (const [gs, ge] of gaps) {
               if (state.abortFetch || yahooDead) break;
@@ -1799,13 +2247,16 @@
               setStatus('busy', `${pair.code} ${label} ${tf}...`);
               try {
                 const bars = await fetchYahooRange(ticker, tf, effGs, ge, (c, tot) => {
-                  pct = Math.min(32, pct + Math.max(1, Math.round(4 / tot)));
-                  setProgress(pct, `${pair.code} • ${label} ${tf} (${c}/${tot})...`);
+                  setProgress(pctStart + Math.round((c / tot) * (pctSpan / 4)), `${pair.code} • ${label} ${tf} (${c}/${tot})...`);
                 });
                 reachable = true;
-                const acc = acceptBars(tf, bars, providerId, label, effGs, ge);
-                if (acc.accepted) addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, limitNote || 'Başarılı', limitNote ? 'partial' : 'ok');
-                else if (!bars.length) addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
+                const acc = acceptBars(tf, bars, providerId, label, effGs, ge, isFuturesSource);
+                if (acc.accepted) {
+                  const msg = [limitNote, acc.note].filter(Boolean).join(' • ') || 'Başarılı';
+                  addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, msg, limitNote ? 'partial' : 'ok');
+                } else if (!bars.length) {
+                  addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
+                }
                 if (limitNote) addNote(tf, limitNote);
               } catch (e) {
                 if (e.isTransportError) { transportFails++; if (!reachable && transportFails >= 2) yahooDead = true; }
@@ -1814,118 +2265,159 @@
                 addNote(tf, `Yahoo: ${e.message}`);
               }
             }
-            pct = Math.min(33, pct + 4);
-            setProgress(pct, `${pair.code} • Yahoo ${tf} tamamlandı`);
           });
+          applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
+
+          if (!yahooDead && !state.abortFetch) {
+            const extraY = allowedTfs ? [] : ['M30', 'M15'].filter(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
+            if (extraY.length) {
+              await runPool(extraY, 2, async tf => {
+                const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
+                for (const [gs, ge] of gaps) {
+                  if (state.abortFetch || ge <= limM5) continue;
+                  const effGs = Math.max(gs, limM5);
+                  try {
+                    const bars = await fetchYahooRange(ticker, tf, effGs, ge);
+                    const acc = acceptBars(tf, bars, providerId, label, effGs, ge, isFuturesSource);
+                    if (acc.accepted) addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, 'Başarılı', 'ok');
+                  } catch (e) {
+                    addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, e.message, 'err');
+                  }
+                }
+              });
+              applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
+            }
+          }
         };
 
-        await runYahooTicker(pair.yahoo, 'yahoo_primary', 'Yahoo Finance');
-        if (pair.yahooAlt && !state.abortFetch) {
-          const needAlt = yahooTfs.some(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
-          if (needAlt) await runYahooTicker(pair.yahooAlt, 'yahoo_alt', `Yahoo (${pair.yahooAlt})`);
+        if (pair.yahoo && !state.abortFetch) {
+          const yLabel = pair.yahooIsFutures ? `Yahoo Vadeli (${pair.yahoo})` : `Yahoo (${pair.yahoo})`;
+          await runYahooTicker(pair.yahoo, 'yahoo_primary', yLabel, !!pair.yahooIsFutures, 25, 15);
         }
-        applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
-        setProgress(36, `${pair.code} • Eksik dilimler tamamlanıyor...`);
+        if (pair.yahooAlt && !state.abortFetch) {
+          const needAlt = ['D1', 'H1', 'M15', 'M5', 'M1'].some(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
+          if (needAlt) {
+            const altLabel = pair.yahooAltIsFutures ? `Yahoo Vadeli (${pair.yahooAlt})` : `Yahoo (${pair.yahooAlt})`;
+            await runYahooTicker(pair.yahooAlt, 'yahoo_alt', altLabel, !!pair.yahooAltIsFutures, 40, 8);
+          }
+        }
+        setProgress(48, `${pair.code} • Ek ücretsiz API kaynakları kontrol ediliyor...`);
 
-        // ADIM 2: YEDEK KAYNAKLAR (biquote.io → Tiingo → Twelve Data → Massive → EODHD → FMP → Frankfurter)
+        // ADIM 3: YEDEK 24/5 KAYNAKLAR (TraderMade → Finnhub → Tiingo → TwelveData → Massive → FCS → AlphaVantage → EODHD → FMP → Frankfurter)
         const providers = [
-          { id: 'biquote', label: 'biquote.io', hasKey: true, sym: pair.biquote, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 3 },
-          { id: 'tiingo', label: 'Tiingo FX', hasKey: !!cfg.tiingo, sym: pair.tiingo, tfs: ['D1', 'H1', 'M1', 'M5', 'M15', 'M30'], conc: 2 },
-          { id: 'twelvedata', label: 'Twelve Data', hasKey: !!cfg.td, sym: pair.td, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 1 },
-          { id: 'massive', label: 'Massive', hasKey: !!cfg.massive, sym: pair.massive, tfs: ['D1', 'W1', 'MN1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 1 },
+          { id: 'tradermade', label: 'TraderMade', hasKey: !!cfg.tm, sym: pair.tm, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
+          { id: 'finnhub', label: 'Finnhub', hasKey: !!cfg.finnhub, sym: pair.finnhub, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
+          { id: 'tiingo', label: 'Tiingo FX', hasKey: !!cfg.tiingo, sym: pair.tiingo, tfs: ['D1', 'H1', 'M1', 'M5'], conc: 2 },
+          { id: 'twelvedata', label: 'Twelve Data', hasKey: !!cfg.td, sym: pair.td, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 1 },
+          { id: 'massive', label: 'Massive', hasKey: !!cfg.massive, sym: pair.massive, tfs: ['D1', 'W1', 'MN1', 'H4', 'H1', 'M5', 'M1'], conc: 1 },
+          { id: 'fcs', label: 'FCS API', hasKey: !!cfg.fcs, sym: pair.fcs, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
+          { id: 'av', label: 'Alpha Vantage', hasKey: !!cfg.av, sym: pair.av, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 1 },
           { id: 'eodhd', label: 'EODHD', hasKey: !!cfg.eodhd, sym: pair.eodhd, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
-          { id: 'fmp', label: 'FMP', hasKey: !!cfg.fmp, sym: pair.fmp, tfs: ['D1', 'H4', 'H1', 'M5', 'M15', 'M30', 'M1'], conc: 3 },
+          { id: 'fmp', label: 'FMP', hasKey: !!cfg.fmp, sym: pair.fmp, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
           { id: 'frankfurter', label: 'Frankfurter ECB', hasKey: true, sym: pair.fxBase, tfs: ['D1'], conc: 1 }
         ];
 
         const disabled = {};
         let massiveIntradayBlocked = false;
         let eodhdIntradayBlocked = false;
+        let avIntradayBlocked = false;
 
         for (let pIdx = 0; pIdx < providers.length && !state.abortFetch; pIdx++) {
           const prov = providers[pIdx];
           if (!prov.hasKey || !prov.sym || disabled[prov.id]) continue;
 
-          const startPct = 38 + Math.round((pIdx / providers.length) * 52);
-          const spanPct = Math.round(52 / providers.length);
-          setProgress(startPct, `${pair.code} • ${prov.label} kontrol ediliyor...`);
+          const startPct = 50 + Math.round((pIdx / providers.length) * 42);
+          const spanPct = Math.max(3, Math.round(42 / providers.length));
 
           const runProviderTf = async (tf, idxInProv, totalInProv) => {
             if (state.abortFetch || disabled[prov.id]) return;
-            if (prov.id === 'massive' && massiveIntradayBlocked && ['H4', 'H1', 'M30', 'M15', 'M5', 'M1'].includes(tf)) return;
+            if (prov.id === 'massive' && massiveIntradayBlocked && INTRADAY_TFS.has(tf)) return;
             if (prov.id === 'eodhd' && eodhdIntradayBlocked && tf !== 'D1') return;
+            if (prov.id === 'av' && avIntradayBlocked && tf !== 'D1') return;
 
             const gaps = computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false);
             if (!gaps.length) return;
 
-            for (const [gs, ge] of gaps) {
+            const effGaps = (['twelvedata', 'massive', 'tradermade', 'av'].includes(prov.id) && (tfBars[tf]?.length || 0) > 0)
+              ? gaps.filter(([gs, ge]) => weekdaySecondsBetween(gs, ge) >= 36 * 3600)
+              : gaps;
+            if (!effGaps.length) return;
+
+            for (const [gs, ge] of effGaps) {
               if (state.abortFetch || disabled[prov.id]) break;
               setStatus('busy', `${pair.code} ${prov.label} ${tf}...`);
               setProgress(startPct + Math.round(((idxInProv + 0.5) / totalInProv) * spanPct), `${pair.code} • ${prov.label} ${tf} çekiliyor...`);
               try {
                 let res = { bars: [], note: '' };
-                if (prov.id === 'biquote') res = await fetchBiquoteRange(pair, tf, gs, ge);
+                if (prov.id === 'tradermade') res = await fetchTraderMadeRange(pair, tf, gs, ge, cfg.tm);
+                else if (prov.id === 'finnhub') res = await fetchFinnhubRange(pair, tf, gs, ge, cfg.finnhub);
                 else if (prov.id === 'tiingo') res = await fetchTiingoRange(pair, tf, gs, ge, cfg.tiingo);
                 else if (prov.id === 'twelvedata') res = await fetchTdRange(pair, tf, gs, ge, cfg.td);
                 else if (prov.id === 'massive') res = await fetchMassiveRange(pair, tf, gs, ge, cfg.massive);
+                else if (prov.id === 'fcs') res = await fetchFcsRange(pair, tf, gs, ge, cfg.fcs);
+                else if (prov.id === 'av') res = await fetchAlphaVantageRange(pair, tf, gs, ge, cfg.av);
                 else if (prov.id === 'eodhd') res = await fetchEodhdRange(pair, tf, gs, ge, cfg.eodhd);
                 else if (prov.id === 'fmp') res = await fetchFmpRange(pair, tf, gs, ge, cfg.fmp);
                 else if (prov.id === 'frankfurter') res = await fetchFrankfurterRange(pair, gs, ge);
 
-                const acc = acceptBars(tf, res.bars, prov.id, prov.label, gs, ge);
+                const acc = acceptBars(tf, res.bars, prov.id, prov.label, gs, ge, false);
                 if (acc.accepted) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, res.note || 'Başarılı', res.note ? 'partial' : 'ok');
                 else if (!res.bars?.length) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, res.note || 'Veri bulunamadı', 'partial');
                 if (res.note) addNote(tf, res.note);
               } catch (e) {
                 addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
                 addNote(tf, e.message);
+                if (e.disableTm) disabled.tradermade = e.message;
+                if (e.disableFinnhub) disabled.finnhub = e.message;
                 if (e.disableTiingo) disabled.tiingo = e.message;
                 if (e.disableTd) disabled.twelvedata = e.message;
                 if (e.disableMassive) disabled.massive = e.message;
+                if (e.disableFcs) disabled.fcs = e.message;
+                if (e.disableAv) disabled.av = e.message;
                 if (e.disableEodhd) disabled.eodhd = e.message;
                 if (e.disableFmp) disabled.fmp = e.message;
                 if (e.disableMassiveIntraday) {
                   massiveIntradayBlocked = true;
-                  for (const iTf of ['H4', 'H1', 'M30', 'M15', 'M5', 'M1']) addNote(iTf, e.message);
+                  for (const iTf of INTRADAY_TFS) addNote(iTf, e.message);
                 }
                 if (e.disableEodhdIntraday) {
                   eodhdIntradayBlocked = true;
+                  for (const iTf of ['H1', 'M5', 'M1']) addNote(iTf, e.message);
+                }
+                if (e.disableAvIntraday) {
+                  avIntradayBlocked = true;
                   for (const iTf of ['H1', 'M5', 'M1']) addNote(iTf, e.message);
                 }
               }
             }
           };
 
-          if (prov.id === 'tiingo') {
-            for (let i = 0; i < 3; i++) {
-              await runProviderTf(['D1', 'H1', 'M1'][i], i, 6);
+          await runPool(prov.tfs, prov.conc, async tf => {
+            await runProviderTf(tf, prov.tfs.indexOf(tf), prov.tfs.length);
+            if (['M1', 'M5', 'H1', 'D1'].includes(tf)) {
               applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
             }
-            const rest = ['M5', 'M15', 'M30'];
-            await runPool(rest, 2, async tf => { await runProviderTf(tf, 3 + rest.indexOf(tf), 6); });
-            applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
-          } else {
-            await runPool(prov.tfs, prov.conc, async tf => {
-              await runProviderTf(tf, prov.tfs.indexOf(tf), prov.tfs.length);
-              if (tf === 'M1' || tf === 'M5' || tf === 'H1' || tf === 'D1') {
-                applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
-              }
-            });
-            applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
-          }
-        }
-
-        // ADIM 3: ALTIN / GÜMÜŞ SON ÇARE VADELİ (Yalnızca hiç spot veri yoksa)
-        let isLastResortFutures = false;
-        const hasAnySpot = ALL_TF.some(tf => (tfBars[tf]?.length || 0) > 0);
-        if (pair.isSpotMetal && !hasAnySpot && pair.yahooLastResort && !state.abortFetch) {
-          isLastResortFutures = true;
-          setProgress(93, `${pair.code} • Spot bulunamadı, son çare vadeli (${pair.yahooLastResort}) çekiliyor...`);
-          await runYahooTicker(pair.yahooLastResort, 'yahoo_futures', `Son Çare Vadeli (${pair.yahooLastResort})`);
+          });
           applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
         }
 
-        // ADIM 4: SON TEMİZLİK VE KART DEĞERLENDİRMESİ
+        // ADIM 4: NAKIT BORSA ENDEKSI SON CARE (Sadece hic 24/5 veri yoksa devreye girer)
+        let usedCashFallback = false;
+        if (pair.yahooCash && !state.abortFetch) {
+          const needCashTfs = ['D1', 'H1', 'M5', 'M1'].filter(tf => !(tfBars[tf]?.length > 0));
+          if (needCashTfs.length > 0) {
+            usedCashFallback = true;
+            setProgress(94, `${pair.code} • 24/5 kaynak bulunamadı, son çare borsa nakit (${pair.yahooCash}) deneniyor...`);
+            await runYahooTicker(pair.yahooCash, 'yahoo_cash', `Son Çare Nakit (${pair.yahooCash})`, false, 94, 4, needCashTfs);
+            for (const tf of needCashTfs) {
+              if (tfBars[tf]?.length > 0 && INTRADAY_TFS.has(tf)) {
+                addNote(tf, `Yalnızca borsa seansı (${pair.yahooCash}) — Asya/gece kapalı`);
+              }
+            }
+          }
+        }
+
+        // ADIM 5: SON TEMIZLIK VE SEANS/KAPSAM DEGERLENDIRMESI
         const meta = {};
         for (const tf of ALL_TF) {
           const minBound = tf === 'W1' ? getWeekMondayKey(reqStart) : (tf === 'MN1' ? getMonthFirstKey(reqStart) : reqStart);
@@ -1934,37 +2426,42 @@
           const bars = tfBars[tf] || [];
           const srcList = Array.from(tfSources[tf] || []);
           const notesList = Array.from(tfNotes[tf] || []);
+          const sess = INTRADAY_TFS.has(tf) ? analyzeSessionCoverage(bars) : null;
 
           if (!bars.length) {
             meta[tf] = {
               status: 'err',
               statusText: 'Yok',
               source: srcList.join(', ') || '-',
+              session: sess,
               reason: notesList.join(' • ') || (state.abortFetch ? 'İşlem durduruldu' : 'Hiçbir kaynaktan veri alınamadı')
             };
           } else {
             const remGaps = computeMissingRanges(bars, tf, reqStart, reqEnd, true);
-            const futuresWarn = isLastResortFutures ? `Spot bulunamadı — son çare vadeli (${pair.yahooLastResort})` : '';
-            if (remGaps.length > 0) {
-              const partMsg = `Kısmi: ${shortDate(bars[0].time)} – ${shortDate(bars[bars.length - 1].time)} arası var`;
+            const cashWarn = sess && sess.isCashOnly ? 'Eksik seans (Asya/Londra eksik — nakit borsa saatleri)' : '';
+            if (remGaps.length > 0 || (sess && sess.isCashOnly)) {
+              const partMsg = remGaps.length > 0 ? `Kısmi: ${shortDate(bars[0].time)} – ${shortDate(bars[bars.length - 1].time)}` : '';
               meta[tf] = {
                 status: 'partial',
-                statusText: 'Kısmi',
+                statusText: cashWarn ? 'Kısmi Seans' : 'Kısmi',
                 source: srcList.join(', '),
-                reason: [partMsg, futuresWarn, ...notesList].filter(Boolean).join(' • ')
+                session: sess,
+                reason: [cashWarn, partMsg, ...notesList].filter(Boolean).join(' • ')
               };
             } else {
+              const sessText = sess ? `24/5 (Asya:${sess.asia} • Lon:${sess.london} • NY:${sess.ny})` : 'Tam aralık kapsandı';
               meta[tf] = {
-                status: isLastResortFutures ? 'partial' : 'ok',
-                statusText: isLastResortFutures ? 'Vadeli Yedek' : 'Tam',
+                status: 'ok',
+                statusText: 'Tam',
                 source: srcList.join(', '),
-                reason: futuresWarn || 'Tam aralık kapsandı'
+                session: sess,
+                reason: [sessText, ...notesList.filter(n => n.includes('hizalandı'))].filter(Boolean).join(' • ')
               };
             }
           }
         }
 
-        setProgress(100, state.abortFetch ? 'Durduruldu (alınan veriler gösteriliyor)' : 'Tamamlandı');
+        setProgress(100, state.abortFetch ? 'Durduruldu (alınan veriler gösteriliyor)' : (usedCashFallback ? 'Tamamlandı (Son çare nakit uyarılı)' : 'Tamamlandı'));
         return { pair: pair.code, dec: pair.dec, startStr, endStr, tfBars, meta };
       }
 
@@ -1992,7 +2489,7 @@
         setTimeout(() => URL.revokeObjectURL(url), 1500);
       }
 
-      // GRAFİK
+      // GRAFIK
       function ensureChart() {
         if (state.chart) {
           const el = $('chartEl');
@@ -2037,6 +2534,17 @@
           state.activeTf = avail.includes('M15') ? 'M15' : (avail.includes('H1') ? 'H1' : avail[0]);
         }
 
+        const activeMeta = meta[state.activeTf];
+        const sessBadge = $('sessionCoverageBadge');
+        if (activeMeta?.session) {
+          const s = activeMeta.session;
+          sessBadge.textContent = `Asya:${s.asia} • Lon:${s.london} • NY:${s.ny}`;
+          sessBadge.className = `badge ${s.hasAsia && s.hasLondon && s.hasNy ? 'ok' : 'partial'}`;
+        } else {
+          sessBadge.textContent = `${state.activeTf} • Günlük/Üst Dilim`;
+          sessBadge.className = 'badge ok';
+        }
+
         const grid = $('tfGrid');
         grid.innerHTML = '';
         for (const tf of ALL_TF) {
@@ -2078,6 +2586,10 @@
 
         const activeBars = tfBars[state.activeTf] || [];
         $('chartTitle').textContent = `${pair} • ${state.activeTf} (${activeBars.length.toLocaleString('tr-TR')} mum)`;
+        $('chartSessionInfo').textContent = activeMeta?.session
+          ? `UTC Seans Mumları — Asya (00–07): ${activeMeta.session.asia} | Londra (07–13): ${activeMeta.session.london} | NY (13–22): ${activeMeta.session.ny}`
+          : 'Karta tıklayarak zaman dilimini değiştirin';
+
         if (ensureChart() && state.series) {
           state.series.applyOptions({
             priceFormat: { type: 'price', precision: dec, minMove: Number((1 / Math.pow(10, dec)).toFixed(dec)) }
@@ -2103,7 +2615,7 @@
           : `<tr><td colspan="${incVol ? 8 : 7}" style="color:var(--muted);">Gösterilecek mum yok.</td></tr>`;
       }
 
-      // OLAY DİNLEYİCİLERİ
+      // OLAY DINLEYICILERI
       $('settingsToggleBtn').addEventListener('click', () => {
         const isOpen = $('settingsPanel').classList.toggle('open');
         $('settingsToggleBtn').classList.toggle('active', isOpen);
@@ -2150,15 +2662,40 @@
         });
       }
 
+      bindKeyControls('tmKey', STORE.tm, 'tmMsg', async key => {
+        const from = toYMD(new Date(Date.now() - 7 * 86400000));
+        const to = toYMD(new Date());
+        const json = await fetchWithCors(`https://marketdata.tradermade.com/api/v1/timeseries?currency=NAS100&api_key=${encodeURIComponent(key)}&start_date=${from}&end_date=${to}&format=records&interval=daily&period=1`, 7000);
+        if (json?.error || json?.message) throw new Error(json.message || json.error);
+        if (!Array.isArray(json?.quotes) || !json.quotes.length) throw new Error('Veri alınamadı');
+        return `Başarılı: TraderMade NAS100 doğrulandı (${json.quotes.length} örnek bar).`;
+      });
+
+      bindKeyControls('finnhubKey', STORE.finnhub, 'finnhubMsg', async key => {
+        const to = Math.floor(Date.now() / 1000);
+        const from = to - 10 * 86400;
+        try {
+          const json = await fetchWithCors(`https://finnhub.io/api/v1/forex/candle?symbol=OANDA:EUR_USD&resolution=D&from=${from}&to=${to}&token=${encodeURIComponent(key)}`, 7000);
+          if (json?.s === 'ok' && json.t?.length) return `Başarılı: Finnhub OANDA mumları doğrulandı (${json.t.length} bar).`;
+          throw new Error(json?.error || 'Mum verisi alınamadı');
+        } catch (err) {
+          if (err.httpStatus === 403 || /access|permission/i.test(err.message || '')) {
+            const q = await fetchWithCors(`https://finnhub.io/api/v1/quote?symbol=AAPL&token=${encodeURIComponent(key)}`, 7000);
+            if (q && typeof q.c === 'number') return 'Anahtar geçerli, ancak ücretsiz Finnhub planı Forex/CFD mum verisini kısıtlıyor.';
+          }
+          throw err;
+        }
+      });
+
       bindKeyControls('tiingoKey', STORE.tiingo, 'tiingoMsg', async key => {
         const from = toYMD(new Date(Date.now() - 7 * 86400000));
-        const rows = await fetchWithCors(`https://api.tiingo.com/tiingo/fx/eurusd/prices?startDate=${from}&resampleFreq=1hour&token=${encodeURIComponent(key)}`, 9000);
+        const rows = await fetchWithCors(`https://api.tiingo.com/tiingo/fx/eurusd/prices?startDate=${from}&resampleFreq=1hour&token=${encodeURIComponent(key)}`, 7000);
         if (!Array.isArray(rows)) throw new Error(rows?.detail || 'Geçersiz yanıt');
         return `Başarılı: ${rows.length} örnek mum alındı.`;
       });
 
       bindKeyControls('tdKey', STORE.td, 'tdMsg', async key => {
-        const json = await fetchWithCors(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=1h&outputsize=2&apikey=${encodeURIComponent(key)}`, 9000);
+        const json = await fetchWithCors(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=1h&outputsize=2&apikey=${encodeURIComponent(key)}`, 7000);
         if (json.status === 'error') throw new Error(json.message || 'Geçersiz anahtar');
         if (!Array.isArray(json.values) || !json.values.length) throw new Error('Veri alınamadı');
         return `Başarılı: EUR/USD doğrulandı (${json.values[0].datetime}).`;
@@ -2167,17 +2704,33 @@
       bindKeyControls('massiveKey', STORE.massive, 'massiveMsg', async key => {
         const from = toYMD(new Date(Date.now() - 14 * 86400000));
         const to = toYMD(new Date());
-        const json = await fetchWithCors(`https://api.massive.com/v2/aggs/ticker/C:EURUSD/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=10&apiKey=${encodeURIComponent(key)}`, 9000);
+        const json = await fetchWithCors(`https://api.massive.com/v2/aggs/ticker/C:EURUSD/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=10&apiKey=${encodeURIComponent(key)}`, 7000);
         if (json?.status === 'ERROR' || json?.status === 'NOT_AUTHORIZED' || json?.error) {
           throw new Error(json.error || json.message || 'Yetki/anahtar hatası');
         }
         return `Başarılı: Massive doğrulandı (${(json?.results || []).length} örnek bar).`;
       });
 
+      bindKeyControls('fcsKey', STORE.fcs, 'fcsMsg', async key => {
+        const json = await fetchWithCors(`https://api-v4.fcsapi.com/forex/history?symbol=EUR/USD&period=1d&length=5&access_key=${encodeURIComponent(key)}`, 7000);
+        if (json?.status === false) throw new Error(json?.msg || 'Geçersiz anahtar');
+        const len = Array.isArray(json?.response) ? json.response.length : Object.keys(json?.response || {}).length;
+        if (!len) throw new Error('Veri alınamadı');
+        return `Başarılı: FCS API doğrulandı (${len} örnek bar).`;
+      });
+
+      bindKeyControls('avKey', STORE.av, 'avMsg', async key => {
+        const json = await fetchWithCors(`https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=EUR&to_symbol=USD&outputsize=compact&apikey=${encodeURIComponent(key)}`, 7000);
+        if (json?.Information || json?.Note || json?.['Error Message']) throw new Error(json.Information || json.Note || json['Error Message']);
+        const tsKey = Object.keys(json || {}).find(k => k.toLowerCase().includes('time series'));
+        if (!tsKey) throw new Error('Beklenen veri alınamadı');
+        return `Başarılı: Alpha Vantage FX_DAILY doğrulandı.`;
+      });
+
       bindKeyControls('eodhdKey', STORE.eodhd, 'eodhdMsg', async key => {
         const from = toYMD(new Date(Date.now() - 10 * 86400000));
         const to = toYMD(new Date());
-        const rows = await fetchWithCors(`https://eodhd.com/api/eod/EURUSD.FOREX?from=${from}&to=${to}&fmt=json&api_token=${encodeURIComponent(key)}`, 9000);
+        const rows = await fetchWithCors(`https://eodhd.com/api/eod/EURUSD.FOREX?from=${from}&to=${to}&fmt=json&api_token=${encodeURIComponent(key)}`, 7000);
         if (!Array.isArray(rows) || !rows.length) throw new Error('Veri alınamadı veya token geçersiz');
         return `Başarılı: EODHD doğrulandı (${rows[rows.length - 1].date}).`;
       });
@@ -2186,12 +2739,12 @@
         const from = toYMD(new Date(Date.now() - 10 * 86400000));
         const to = toYMD(new Date());
         try {
-          const rows = await fetchWithCors(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`, 9000);
+          const rows = await fetchWithCors(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`, 7000);
           if (!Array.isArray(rows) || !rows.length) throw new Error(rows?.['Error Message'] || rows?.message || 'Veri alınamadı');
           return `Başarılı: FMP EURUSD doğrulandı (${rows[0].date}).`;
         } catch (err) {
           if (/402|403|upgrade|plan|restricted/i.test(err.message || '')) {
-            const stockRows = await fetchWithCors(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=AAPL&from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`, 9000);
+            const stockRows = await fetchWithCors(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=AAPL&from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`, 7000);
             if (Array.isArray(stockRows) && stockRows.length) {
               return 'Anahtar geçerli, ancak ücretsiz FMP planı Forex/Endeksleri kısıtlıyor.';
             }
@@ -2226,7 +2779,7 @@
         $('proxyMsg').textContent = 'Proxy test ediliyor...';
         try {
           const testTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=1d&interval=1d';
-          const json = await rawFetchJson(buildCustomProxyUrl(val, testTarget), 9000, false);
+          const json = await rawFetchJson(buildCustomProxyUrl(val, testTarget), 7000, false);
           if (!json?.chart?.result?.[0]) throw new Error('Beklenen Yahoo JSON formatı dönmedi');
           safeSet(STORE.proxy, val);
           state.hostRouteMemory.clear();
@@ -2252,7 +2805,8 @@
       $('resetAllSettingsBtn').addEventListener('click', () => {
         Object.values(STORE).forEach(k => safeDel(k));
         state.hostRouteMemory.clear();
-        ['tiingoMsg', 'tdMsg', 'massiveMsg', 'eodhdMsg', 'fmpMsg', 'proxyMsg'].forEach(id => { $(id).textContent = ''; });
+        state.badProxiesUntil.clear();
+        ['tmMsg', 'finnhubMsg', 'tiingoMsg', 'tdMsg', 'massiveMsg', 'fcsMsg', 'avMsg', 'eodhdMsg', 'fmpMsg', 'proxyMsg'].forEach(id => { $(id).textContent = ''; });
         refreshSettingsUi();
       });
 
@@ -2320,7 +2874,7 @@
           renderResultView();
           const readyCount = ALL_TF.filter(tf => (data.tfBars[tf]?.length || 0) > 0).length;
           if (readyCount === 0 && !state.abortFetch) {
-            showAlert(`${state.pair} için hiçbir kaynaktan veri alınamadı. Aşağıdaki Kaynak Günlüğü tablosundan ayrıntıları inceleyin veya Ayarlar bölümünden proxy/API anahtarı ekleyin.`);
+            showAlert(`${state.pair} için hiçbir kaynaktan veri alınamadı. Aşağıdaki Kaynak Günlüğü tablosundan ayrıntıları inceleyin veya Ayarlar bölümünden ücretsiz API anahtarı / özel proxy ekleyin.`);
             setStatus('err', 'Veri alınamadı (0/11 Dilim)');
           } else {
             setStatus('ok', state.abortFetch ? `Durduruldu (${readyCount}/11 Dilim)` : `Hazır (${readyCount}/11 Dilim)`);
