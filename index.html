@@ -402,6 +402,10 @@
             <input type="checkbox" id="volumeChk" checked />
             <span>CSV'de volume sütunu olsun</span>
           </label>
+          <label class="chk-label" title="Prop Journal çoklu zaman dilimi (UTC H2/H4/D1), replay ve SP500→SPX500 kontrat tanıma kurallarıyla %100 uyumlu CSV üretir">
+            <input type="checkbox" id="pjCompatChk" checked />
+            <span>Prop Journal uyumlu CSV</span>
+          </label>
         </div>
         <div id="selectionInfo" class="selection-info"></div>
       </div>
@@ -519,7 +523,8 @@
         eodhd: 'cfd_key_eodhd',
         fmp: 'cfd_key_fmp',
         proxy: 'cfd_custom_proxy',
-        vol: 'cfd_include_volume'
+        vol: 'cfd_include_volume',
+        pjCompat: 'cfd_pj_compat'
       };
 
       const BIQUOTE_TF = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', H4: '4h', D1: '1d' };
@@ -638,7 +643,8 @@
           eodhd: (safeGet(STORE.eodhd) || '').trim(),
           fmp: (safeGet(STORE.fmp) || '').trim(),
           proxy: (safeGet(STORE.proxy) || '').trim(),
-          includeVol: safeGet(STORE.vol) !== '0'
+          includeVol: safeGet(STORE.vol) !== '0',
+          pjCompat: safeGet(STORE.pjCompat) !== '0'
         };
       }
 
@@ -655,6 +661,7 @@
         $('fmpKey').value = s.fmp;
         $('customProxyInput').value = s.proxy;
         $('volumeChk').checked = s.includeVol;
+        $('pjCompatChk').checked = s.pjCompat;
 
         const setBadge = (id, has) => {
           $(id).textContent = has ? 'Kayıtlı' : 'Yok';
@@ -2712,6 +2719,88 @@
         return incVol ? 'symbol,timeframe,time,open,high,low,close,volume' : 'symbol,timeframe,time,open,high,low,close';
       }
 
+      function getCsvExportSymbol(pairCode, pjCompat) {
+        if (pjCompat && pairCode === 'SP500') return 'SPX500';
+        return pairCode;
+      }
+
+      function getPropJournalBucketStartSec(timeSec, tf) {
+        if (tf === 'MN1') return getMonthFirstKey(timeSec);
+        if (tf === 'W1') return getWeekMondayKey(timeSec);
+        const p = TF_SEC[tf] || 900;
+        return Math.floor(timeSec / p) * p;
+      }
+
+      function buildPropJournalTfBars(tfBars) {
+        const out = {};
+        for (const tf of ALL_TF) {
+          out[tf] = sanitizeBars(tfBars[tf] || []);
+        }
+
+        // Prop Journal reconcileRpMultiTfCandles ile birebir ayni kova hiyerarsisi:
+        // M3..H4 saf UTC epoch kovalari, D1 UTC 00:00Z, W1 Pazartesi 00:00Z, MN1 Ay 1 00:00Z
+        const childSources = {
+          M3: ['M1'],
+          M5: ['M1'],
+          M15: ['M5', 'M1'],
+          M30: ['M15', 'M5', 'M1'],
+          H1: ['M30', 'M15', 'M5', 'M1'],
+          H2: ['H1', 'M30', 'M15', 'M5', 'M1'],
+          H4: ['H2', 'H1', 'M30', 'M15', 'M5', 'M1'],
+          D1: ['H4', 'H2', 'H1', 'M30', 'M15', 'M5', 'M1'],
+          W1: ['D1', 'H4', 'H2', 'H1'],
+          MN1: ['D1', 'H4', 'H2', 'H1']
+        };
+        const parents = ['M3', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'D1', 'W1', 'MN1'];
+
+        for (const tf of parents) {
+          const orig = out[tf] || [];
+          const srcTf = (childSources[tf] || []).find(s => (out[s]?.length || 0) > 0);
+          if (!srcTf) continue;
+          const srcList = out[srcTf];
+
+          // H2 ve H4'te NY Close (21Z/22Z) ile UTC (00Z/04Z) karismasin diye alt TF varsa
+          // yalnizca Prop Journal'in UTC kovasina uyan baz mumlari tutar, ustune turetiriz.
+          const merged = new Map();
+          for (const c of orig) {
+            const expectedKey = getPropJournalBucketStartSec(c.time, tf);
+            if ((tf === 'H2' || tf === 'H4') && c.time !== expectedKey) continue;
+            merged.set(c.time, { ...c });
+          }
+
+          const agg = new Map();
+          for (let i = 0; i < srcList.length; i++) {
+            const sc = srcList[i];
+            const bStart = getPropJournalBucketStartSec(sc.time, tf);
+            let cur = agg.get(bStart);
+            if (!cur) {
+              agg.set(bStart, { time: bStart, open: sc.open, high: sc.high, low: sc.low, close: sc.close, volume: sc.volume || 0 });
+            } else {
+              if (sc.high > cur.high) cur.high = sc.high;
+              if (sc.low < cur.low) cur.low = sc.low;
+              cur.close = sc.close;
+              cur.volume += (sc.volume || 0);
+            }
+          }
+          for (const [bStart, cur] of agg.entries()) {
+            merged.set(bStart, cur);
+          }
+          out[tf] = sanitizeBars(Array.from(merged.values()));
+        }
+
+        return out;
+      }
+
+      function getExportPayload() {
+        if (!state.result) return null;
+        const { pair, dec, startStr, endStr, tfBars, meta } = state.result;
+        const incVol = $('volumeChk').checked;
+        const pjCompat = $('pjCompatChk').checked;
+        const exportSym = getCsvExportSymbol(pair, pjCompat);
+        const exportTfBars = pjCompat ? buildPropJournalTfBars(tfBars) : tfBars;
+        return { pair, exportSym, dec, startStr, endStr, tfBars, exportTfBars, meta, incVol, pjCompat };
+      }
+
       function buildCsvRows(sym, tf, bars, dec, incVol) {
         return bars.map(b => {
           const base = `${sym},${tf},${isoUtc(b.time)},${b.open.toFixed(dec)},${b.high.toFixed(dec)},${b.low.toFixed(dec)},${b.close.toFixed(dec)}`;
@@ -2761,15 +2850,18 @@
       }
 
       function renderResultView() {
-        if (!state.result) return;
-        const { pair, dec, startStr, endStr, tfBars, meta } = state.result;
-        const incVol = $('volumeChk').checked;
+        const payload = getExportPayload();
+        if (!payload) return;
+        const { pair, exportSym, dec, startStr, endStr, tfBars, exportTfBars, meta, incVol, pjCompat } = payload;
         const avail = ALL_TF.filter(tf => (tfBars[tf]?.length || 0) > 0);
         const totalBars = avail.reduce((sum, tf) => sum + tfBars[tf].length, 0);
 
         $('resultSection').classList.add('visible');
         $('resultTitle').textContent = `${pair} • ${avail.length}/11 Zaman Dilimi Hazır`;
-        $('resultSubtitle').textContent = `${startStr} → ${endStr} • Toplam ${totalBars.toLocaleString('tr-TR')} mum • Başlık: ${csvHeader(incVol)}`;
+        const modeLabel = pjCompat
+          ? `Prop Journal Uyumlu (${exportSym} • UTC H2/H4/D1)`
+          : 'NY Kapanışı (17:00 NY / MT5)';
+        $('resultSubtitle').textContent = `${startStr} → ${endStr} • Toplam ${totalBars.toLocaleString('tr-TR')} mum • Başlık: ${csvHeader(incVol)} • CSV Modu: ${modeLabel}`;
         $('downloadMergedBtn').disabled = totalBars === 0;
 
         if (!tfBars[state.activeTf]?.length && avail.length) {
@@ -2791,6 +2883,7 @@
         grid.innerHTML = '';
         for (const tf of ALL_TF) {
           const bars = tfBars[tf] || [];
+          const csvBars = exportTfBars[tf] || bars;
           const m = meta[tf];
           const card = document.createElement('div');
           card.className = `tf-card ${tf === state.activeTf && bars.length ? 'active' : ''} ${!bars.length ? 'empty' : (m.status === 'partial' ? 'partial' : '')}`;
@@ -2803,7 +2896,7 @@
               <span class="tf-name">${tf}</span>
               <div class="tf-actions">
                 <span class="badge ${badgeCls}">${escapeHtml(m.statusText)}</span>
-                <button type="button" class="btn btn-sm tf-csv-btn" ${bars.length ? '' : 'disabled'}>CSV</button>
+                <button type="button" class="btn btn-sm tf-csv-btn" ${csvBars.length ? '' : 'disabled'}>CSV</button>
               </div>
             </div>
             <div class="tf-meta">${bars.length.toLocaleString('tr-TR')} mum • ${spanStr}</div>
@@ -2813,8 +2906,8 @@
 
           card.querySelector('.tf-csv-btn').addEventListener('click', e => {
             e.stopPropagation();
-            const content = [csvHeader(incVol), ...buildCsvRows(pair, tf, bars, dec, incVol)].join('\n');
-            downloadTextFile(`${pair}_${tf}_${startStr}_${endStr}.csv`, content);
+            const content = [csvHeader(incVol), ...buildCsvRows(exportSym, tf, csvBars, dec, incVol)].join('\n');
+            downloadTextFile(`${exportSym}_${tf}_${startStr}_${endStr}.csv`, content);
           });
 
           if (bars.length) {
@@ -3108,6 +3201,11 @@
         renderResultView();
       });
 
+      $('pjCompatChk').addEventListener('change', e => {
+        safeSet(STORE.pjCompat, e.target.checked ? '1' : '0');
+        renderResultView();
+      });
+
       $('clearLogBtn').addEventListener('click', () => {
         state.logs = [];
         renderLogs();
@@ -3164,18 +3262,18 @@
       });
 
       $('downloadMergedBtn').addEventListener('click', () => {
-        if (!state.result) return;
-        const { pair, dec, startStr, endStr, tfBars } = state.result;
-        const incVol = $('volumeChk').checked;
+        const payload = getExportPayload();
+        if (!payload) return;
+        const { exportSym, dec, startStr, endStr, exportTfBars, incVol } = payload;
         const lines = [csvHeader(incVol)];
         let countTf = 0;
         for (const tf of ALL_TF) {
-          const bars = tfBars[tf];
+          const bars = exportTfBars[tf];
           if (!bars?.length) continue;
           countTf++;
-          lines.push(...buildCsvRows(pair, tf, bars, dec, incVol));
+          lines.push(...buildCsvRows(exportSym, tf, bars, dec, incVol));
         }
-        downloadTextFile(`${pair}_BIRLESIK_${countTf}TF_${startStr}_${endStr}.csv`, lines.join('\n'));
+        downloadTextFile(`${exportSym}_BIRLESIK_${countTf}TF_${startStr}_${endStr}.csv`, lines.join('\n'));
       });
 
       refreshSettingsUi();
