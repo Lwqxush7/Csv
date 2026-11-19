@@ -543,6 +543,7 @@
         hostDiscoveryLocks: new Map(),
         badProxiesUntil: new Map(),
         localProxyDisabled: !(location.protocol === 'http:' || location.protocol === 'https:'),
+        tmTodayBlocked: false,
         tdTimes: [],
         massiveTimes: [],
         finnhubTimes: [],
@@ -1300,6 +1301,7 @@
             'values' in parsed || 'bars' in parsed || 'rates' in parsed || 'quotes' in parsed ||
             's' in parsed || 'response' in parsed || 'Note' in parsed || 'Information' in parsed ||
             'Time Series FX (Daily)' in parsed || 'Error Message' in parsed ||
+            ('error' in parsed && ('message' in parsed || 'upgrade_url' in parsed)) ||
             ('status' in parsed && ('code' in parsed || 'message' in parsed)) ||
             'detail' in parsed || Array.isArray(parsed)
           );
@@ -1597,20 +1599,26 @@
         return out;
       }
 
-      // 3. TRADERMADE (Ucretsiz/Trial ayda 1000 istek - Plana gore FX ve/veya CFD)
+      // 3. TRADERMADE (Ucretsiz/Trial ayda 1000 istek - Plana gore dünün kapanisina kadar FX ve CFD)
       async function fetchTraderMadeRange(pair, tf, gs, ge, key) {
         const spec = TM_TF[tf];
         if (!spec || !pair.tm) return { bars: [], note: '' };
         const [tmInt, tmPer] = spec;
         const map = new Map();
+        const todayUtcMid = Math.floor(Date.now() / 86400000) * 86400;
+        const yesterdayEnd = todayUtcMid - 60;
+        let effGe = (state.tmTodayBlocked && ge >= todayUtcMid) ? yesterdayEnd : ge;
+        if (effGe < gs) {
+          return { bars: [], note: 'TraderMade ücretsiz planda bugünün verisi kısıtlı (düne kadar desteklenir)' };
+        }
         let note = '';
 
         const buildTmErr = (rawMsg) => {
           const msg = String(rawMsg || 'TraderMade API hatası');
+          const isAuthOrQuota = /api_key|invalid|unauthorized|401|limit|quota|exceeded/i.test(msg);
           const isPlan = /dataset_not_in_plan|not_in_plan|plan|subscription|upgrade|not allowed|not permitted/i.test(msg);
-          const isAuthOrQuota = /api_key|invalid|unauthorized|401|403|limit|quota|exceeded/i.test(msg);
           const clean = isPlan
-            ? `TraderMade planı ${pair.code} ${tf} veri setini desteklemiyor (dataset_not_in_plan)`
+            ? `TraderMade planı ${pair.code} ${tf} veri setini desteklemiyor`
             : msg;
           const e = new Error(clean);
           if (isAuthOrQuota) e.disableTm = true;
@@ -1622,50 +1630,95 @@
           return e;
         };
 
-        if (tmInt === 'daily') {
-          const url = `https://marketdata.tradermade.com/api/v1/timeseries?currency=${encodeURIComponent(pair.tm)}&api_key=${encodeURIComponent(key)}&start_date=${toYMD(new Date(gs * 1000))}&end_date=${toYMD(new Date(ge * 1000))}&format=records&interval=daily&period=1`;
-          const json = await fetchWithCors(url, 7000);
-          if (json?.error || json?.message) {
-            throw buildTmErr(json.message || json.error);
+        const fetchTmJson = async (url) => {
+          try {
+            const json = await fetchWithCors(url, 7000);
+            if (json?.error || json?.message) {
+              const errText = [json.error, json.message].filter(Boolean).join(': ');
+              const err = new Error(errText);
+              err.tmRaw = errText;
+              throw err;
+            }
+            return json;
+          } catch (e) {
+            const errText = [e.parsed?.error, e.parsed?.message, e.tmRaw, e.message].filter(Boolean).join(': ');
+            const out = new Error(errText || 'TraderMade API hatası');
+            out.tmRaw = errText;
+            out.isTransportError = e.isTransportError;
+            out.httpStatus = e.httpStatus;
+            throw out;
           }
-          for (const q of (json?.quotes || [])) {
-            const ts = parseTzDateTimeToUtcSec(q.date, 'UTC');
-            if (ts !== null && ts >= gs && ts <= ge) {
-              map.set(ts, { time: ts, open: Number(q.open), high: Number(q.high), low: Number(q.low), close: Number(q.close), volume: 0 });
+        };
+
+        const isTodayPlanErr = (err) => /not available for today|dataset_not_in_plan/i.test(err?.tmRaw || err?.message || '') && effGe >= todayUtcMid;
+
+        if (tmInt === 'daily') {
+          for (let attempt = 0; attempt < 2; attempt++) {
+            const url = `https://marketdata.tradermade.com/api/v1/timeseries?currency=${encodeURIComponent(pair.tm)}&api_key=${encodeURIComponent(key)}&start_date=${toYMD(new Date(gs * 1000))}&end_date=${toYMD(new Date(effGe * 1000))}&format=records&interval=daily&period=1`;
+            try {
+              const json = await fetchTmJson(url);
+              for (const q of (json?.quotes || [])) {
+                const ts = parseTzDateTimeToUtcSec(q.date, 'UTC');
+                if (ts !== null && ts >= gs && ts <= effGe) {
+                  map.set(ts, { time: ts, open: Number(q.open), high: Number(q.high), low: Number(q.low), close: Number(q.close), volume: 0 });
+                }
+              }
+              return { bars: sanitizeBars(Array.from(map.values()), gs, effGe), note };
+            } catch (e) {
+              if (attempt === 0 && isTodayPlanErr(e)) {
+                state.tmTodayBlocked = true;
+                effGe = yesterdayEnd;
+                note = 'TraderMade ücretsiz planda bugünün verisi hariç (düne kadar alındı)';
+                if (effGe < gs) return { bars: [], note };
+                continue;
+              }
+              throw buildTmErr(e.tmRaw || e.message);
             }
           }
-          return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note: '' };
         }
 
         const chunkSec = tmInt === 'minute' ? 2 * 86400 : 45 * 86400;
         const maxChunks = tmInt === 'minute' ? 16 : 10;
         let chunksDone = 0;
 
-        for (let cur = gs; cur < ge && chunksDone < maxChunks && !state.abortFetch; cur += chunkSec) {
+        for (let cur = gs; cur < effGe && chunksDone < maxChunks && !state.abortFetch; cur += chunkSec) {
           chunksDone++;
-          const next = Math.min(ge, cur + chunkSec);
+          let next = Math.min(effGe, cur + chunkSec);
           const url = `https://marketdata.tradermade.com/api/v1/timeseries?currency=${encodeURIComponent(pair.tm)}&api_key=${encodeURIComponent(key)}&start_date=${encodeURIComponent(toYMDHM(cur))}&end_date=${encodeURIComponent(toYMDHM(next))}&format=records&interval=${tmInt}&period=${tmPer}`;
           try {
-            const json = await fetchWithCors(url, 7000);
-            if (json?.error || json?.message) {
-              throw buildTmErr(json.message || json.error);
+            let json = null;
+            try {
+              json = await fetchTmJson(url);
+            } catch (e) {
+              if (isTodayPlanErr(e)) {
+                state.tmTodayBlocked = true;
+                effGe = yesterdayEnd;
+                note = 'TraderMade ücretsiz planda bugünün verisi hariç (düne kadar alındı)';
+                if (cur >= effGe) break;
+                next = Math.min(effGe, cur + chunkSec);
+                const retryUrl = `https://marketdata.tradermade.com/api/v1/timeseries?currency=${encodeURIComponent(pair.tm)}&api_key=${encodeURIComponent(key)}&start_date=${encodeURIComponent(toYMDHM(cur))}&end_date=${encodeURIComponent(toYMDHM(next))}&format=records&interval=${tmInt}&period=${tmPer}`;
+                json = await fetchTmJson(retryUrl);
+              } else {
+                throw e;
+              }
             }
             for (const q of (json?.quotes || [])) {
               let ts = parseTzDateTimeToUtcSec(q.date, 'UTC');
               if (ts !== null) {
                 if (tf === 'H4') ts = getNyCloseBucketKey(ts, 4);
-                if (ts >= gs && ts <= ge) {
+                if (ts >= gs && ts <= effGe) {
                   map.set(ts, { time: ts, open: Number(q.open), high: Number(q.high), low: Number(q.low), close: Number(q.close), volume: 0 });
                 }
               }
             }
           } catch (e) {
-            if (!map.size) throw e;
-            note = e.message;
+            const built = buildTmErr(e.tmRaw || e.message);
+            if (!map.size) throw built;
+            note = built.message;
             break;
           }
         }
-        return { bars: sanitizeBars(Array.from(map.values()), gs, ge), note };
+        return { bars: sanitizeBars(Array.from(map.values()), gs, effGe), note };
       }
 
       // 4. FINNHUB (Ucretsiz 60 istek/dk - Dogrudan CORS - OANDA 24/5)
@@ -2852,27 +2905,42 @@
       }
 
       bindKeyControls('tmKey', STORE.tm, 'tmMsg', async key => {
-        const from = toYMD(new Date(Date.now() - 7 * 86400000));
-        const to = toYMD(new Date());
-        const fxJson = await fetchWithCors(`https://marketdata.tradermade.com/api/v1/timeseries?currency=EURUSD&api_key=${encodeURIComponent(key)}&start_date=${from}&end_date=${to}&format=records&interval=daily&period=1`, 7000);
-        const fxErr = fxJson?.error || fxJson?.message;
-        if (!fxErr && Array.isArray(fxJson?.quotes) && fxJson.quotes.length) {
-          try {
-            const cfdJson = await fetchWithCors(`https://marketdata.tradermade.com/api/v1/timeseries?currency=NAS100&api_key=${encodeURIComponent(key)}&start_date=${from}&end_date=${to}&format=records&interval=daily&period=1`, 7000);
-            if (!cfdJson?.error && !cfdJson?.message && Array.isArray(cfdJson?.quotes) && cfdJson.quotes.length) {
-              return `Başarılı: TraderMade FX ve CFD doğrulandı (${fxJson.quotes.length} FX / ${cfdJson.quotes.length} CFD bar).`;
-            }
-          } catch (_) {}
-          return `Anahtar geçerli: TraderMade FX (EURUSD) doğrulandı (${fxJson.quotes.length} bar), ancak ücretsiz/Trial planda CFD endeksleri kısıtlı.`;
+        state.tmTodayBlocked = false;
+        const from = toYMD(new Date(Date.now() - 8 * 86400000));
+        const toYesterday = toYMD(new Date(Date.now() - 86400000));
+        const getErrMsg = (e) => [e?.parsed?.error, e?.parsed?.message, e?.message].filter(Boolean).join(': ');
+        let lastErr = '';
+
+        try {
+          const cfdJson = await fetchWithCors(`https://marketdata.tradermade.com/api/v1/timeseries?currency=NAS100&api_key=${encodeURIComponent(key)}&start_date=${from}&end_date=${toYesterday}&format=records&interval=daily&period=1`, 7000);
+          if (!cfdJson?.error && !cfdJson?.message && Array.isArray(cfdJson?.quotes) && cfdJson.quotes.length) {
+            return `Başarılı: TraderMade NAS100 & FX doğrulandı (${cfdJson.quotes.length} örnek bar, dünün kapanışına kadar).`;
+          }
+          lastErr = cfdJson?.message || cfdJson?.error || '';
+        } catch (e) {
+          lastErr = getErrMsg(e);
         }
-        if (/dataset_not_in_plan|not_in_plan|plan|subscription|upgrade/i.test(String(fxErr || ''))) {
-          const liveJson = await fetchWithCors(`https://marketdata.tradermade.com/api/v1/live?currency=EURUSD&api_key=${encodeURIComponent(key)}`, 7000);
-          if (liveJson?.error || liveJson?.message) throw new Error(liveJson.message || liveJson.error);
-          if (Array.isArray(liveJson?.quotes) && liveJson.quotes.length) {
-            return 'Anahtar geçerli (/live aktif), ancak TraderMade Trial planı tarihsel mum (timeseries) veri setini kısıtlıyor.';
+
+        if (/dataset_not_in_plan|not_in_plan|plan|subscription|upgrade/i.test(lastErr)) {
+          try {
+            const fxJson = await fetchWithCors(`https://marketdata.tradermade.com/api/v1/timeseries?currency=EURUSD&api_key=${encodeURIComponent(key)}&start_date=${from}&end_date=${toYesterday}&format=records&interval=daily&period=1`, 7000);
+            if (!fxJson?.error && !fxJson?.message && Array.isArray(fxJson?.quotes) && fxJson.quotes.length) {
+              return `Anahtar geçerli: TraderMade FX (EURUSD) doğrulandı (${fxJson.quotes.length} bar), ancak bu plan CFD endekslerini kısıtlıyor.`;
+            }
+            lastErr = fxJson?.message || fxJson?.error || lastErr;
+          } catch (e) {
+            lastErr = getErrMsg(e) || lastErr;
+          }
+
+          if (/dataset_not_in_plan|not_in_plan|plan|subscription|upgrade/i.test(lastErr)) {
+            const liveJson = await fetchWithCors(`https://marketdata.tradermade.com/api/v1/live?currency=EURUSD&api_key=${encodeURIComponent(key)}`, 7000);
+            if (liveJson?.error || liveJson?.message) throw new Error(liveJson.message || liveJson.error);
+            if (Array.isArray(liveJson?.quotes) && liveJson.quotes.length) {
+              return 'Anahtar geçerli (/live aktif), ancak TraderMade Trial planı tarihsel mum (timeseries) veri setini kısıtlıyor.';
+            }
           }
         }
-        throw new Error(fxErr || 'Veri alınamadı');
+        throw new Error(lastErr || 'Veri alınamadı');
       });
 
       bindKeyControls('finnhubKey', STORE.finnhub, 'finnhubMsg', async key => {
