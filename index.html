@@ -1129,10 +1129,10 @@
             </span>
             Prop Journal Erişim Doğrulaması
           </div>
-          <span id="authStateBadge" class="badge err">Erişim Kilitli</span>
+          <span id="authStateBadge" class="badge err">1/2 Link Gerekli</span>
         </div>
-        <div class="auth-gate-desc">
-          Veri çekme, Ayarlar ve CSV / ZIP / PNG indirme özellikleri yalnızca Prop Journal hesabıyla giriş yapan kullanıcılar içindir. Prop Journal'dan imzalı bağlantıyla gelin veya Prop Journal içindeki 30 saniyelik 6 haneli kodu girin.
+        <div id="authGateDesc" class="auth-gate-desc">
+          Veri çekme, Ayarlar ve CSV / ZIP / PNG indirme özellikleri yalnızca Prop Journal üzerinden gelenler içindir. Önce Prop Journal'daki "Veri Merkezini Aç" butonuyla gelin, ardından oradaki 30 saniyelik 6 haneli kodu girin.
         </div>
         <div class="auth-grid">
           <div class="auth-form-row">
@@ -1569,6 +1569,9 @@
         chartOpts: { ema20: false, ema50: false, volume: false },
         authConfigured: true,
         authBackendMode: 'server',
+        authLinkVerified: false,
+        authLinkProof: '',
+        authLinkExpiresAt: 0,
         authVerified: false,
         authToken: '',
         authExpiresAt: 0,
@@ -4861,6 +4864,7 @@
 
       function syncAuthLockUi() {
         const unlocked = Boolean(state.authVerified && state.authToken && Date.now() < state.authExpiresAt);
+        const linkReady = Boolean(state.authLinkVerified && Date.now() < state.authLinkExpiresAt);
         const card = $('authGateCard');
         if (card) {
           card.classList.toggle('is-verified', unlocked);
@@ -4872,6 +4876,25 @@
         if ($('authGoogleRow')) {
           $('authGoogleRow').style.display = (!unlocked && state.authBackendMode === 'firebase' && !state.fbUser) ? '' : 'none';
         }
+
+        if ($('authStateBadge') && !unlocked) {
+          if (linkReady) {
+            $('authStateBadge').className = 'badge partial';
+            $('authStateBadge').textContent = '2/2 Link Onaylı · Kod Girin';
+          } else {
+            $('authStateBadge').className = 'badge err';
+            $('authStateBadge').textContent = '1/2 Prop Journal Linki Gerekli';
+          }
+        }
+        if ($('authGateDesc') && !unlocked) {
+          $('authGateDesc').textContent = linkReady
+            ? 'Adım 1/2 tamamlandı: İmzalı Prop Journal bağlantısı doğrulandı. Kilidi açmak için şimdi Prop Journal ekranındaki 30 saniyelik 6 haneli kodu girin.'
+            : 'Doğrudan erişim kapalıdır. Önce Prop Journal içindeki "Veri Merkezini Aç" butonundan bu sayfayı açın, ardından orada görünen 30 saniyelik 6 haneli kodu girin.';
+        }
+
+        const canTypeCode = linkReady && (state.authBackendMode !== 'firebase' || Boolean(state.fbUser));
+        if ($('authCodeInput')) $('authCodeInput').disabled = !canTypeCode;
+        if ($('authVerifyBtn')) $('authVerifyBtn').disabled = !canTypeCode;
 
         if (!unlocked) {
           $('settingsPanel').classList.remove('open');
@@ -4893,7 +4916,7 @@
         });
 
         if (unlocked) {
-          const modeTxt = state.authMode === 'signed-link' ? 'İmzalı Link' : '30 sn Kod';
+          const modeTxt = 'Link + 30 sn Kod';
           if ($('authModeBadge')) $('authModeBadge').textContent = modeTxt;
           if ($('authSessionRemain')) $('authSessionRemain').textContent = formatRemainMs(state.authExpiresAt - Date.now());
           if (!state.fetching && $('statusText')?.textContent === 'Erişim Kilitli') {
@@ -4912,6 +4935,9 @@
         state.authExpiresAt = 0;
         state.authUid = '';
         state.authMode = '';
+        state.authLinkVerified = false;
+        state.authLinkProof = '';
+        state.authLinkExpiresAt = 0;
         syncAuthLockUi();
         if (reason) setAuthMsg('err', reason);
       }
@@ -5158,13 +5184,23 @@
           saveStaticReplayCache('pj_used_sigs', staticUsedSigs);
           state.fbFailCount = 0;
           state.fbPendingLink = null;
-          applyVerifiedSession({
-            token: `fb:${state.fbUser.uid}`,
-            uid: state.fbUser.uid,
-            mode: 'signed-link',
-            expiresAt: Date.now() + 7200000
-          }, toastTitle);
+          state.authLinkVerified = true;
+          state.authLinkProof = `fb-link:${state.fbUser.uid}:${tsStr}`;
+          state.authLinkExpiresAt = Date.now() + 300000;
+          syncAuthLockUi();
+          setAuthMsg('ok', 'Adım 1/2 tamam: İmzalı link doğrulandı. Şimdi Prop Journal ekranındaki 6 haneli kodu girin.');
+          playFeedbackTone('ok');
+          showToast(toastTitle || 'Adım 1/2 Tamamlandı', 'Şimdi Prop Journal’daki 30 saniyelik 6 haneli kodu girin.', 'ok', 4200);
+          $('authCodeInput')?.focus();
           return true;
+        }
+
+        if (!state.authLinkVerified || Date.now() >= state.authLinkExpiresAt) {
+          const msg = 'Önce Prop Journal üzerinden "Veri Merkezini Aç" bağlantısı ile gelmelisiniz.';
+          setAuthMsg('err', msg);
+          syncAuthLockUi();
+          showToast('Link Doğrulaması Gerekli', msg, 'warn', 4200);
+          return false;
         }
 
         const code = String(payload.code || '').trim();
@@ -5211,10 +5247,13 @@
         staticUsedCodes.add(replayKey);
         saveStaticReplayCache('pj_used_codes', staticUsedCodes);
         state.fbFailCount = 0;
+        state.authLinkVerified = false;
+        state.authLinkProof = '';
+        state.authLinkExpiresAt = 0;
         applyVerifiedSession({
           token: `fb:${state.fbUser.uid}`,
           uid: state.fbUser.uid,
-          mode: 'dynamic-code',
+          mode: 'link+code',
           expiresAt: Date.now() + 7200000
         }, toastTitle);
         return true;
@@ -5236,20 +5275,38 @@
           });
           let data = null;
           try { data = await resp.json(); } catch (_) {}
-          if (!resp.ok || !data?.ok || !data?.token) {
+          if (!resp.ok || !data?.ok) {
             const msg = data?.error || `Doğrulama başarısız (HTTP ${resp.status}).`;
             setAuthMsg('err', msg);
             playFeedbackTone('err');
             showToast('Doğrulama Başarısız', msg, 'err', 3800);
             return false;
           }
+          if (data.step === 'link_verified' && data.linkProof) {
+            state.authLinkVerified = true;
+            state.authLinkProof = String(data.linkProof);
+            state.authLinkExpiresAt = Number(data.linkExpiresAt) || (Date.now() + 300000);
+            syncAuthLockUi();
+            setAuthMsg('ok', 'Adım 1/2 tamam: İmzalı link doğrulandı. Şimdi Prop Journal ekranındaki 6 haneli kodu girin.');
+            playFeedbackTone('ok');
+            showToast('Adım 1/2 Tamamlandı', 'Şimdi Prop Journal’daki 30 saniyelik 6 haneli kodu girin.', 'ok', 4200);
+            $('authCodeInput')?.focus();
+            return true;
+          }
+          if (!data.token) {
+            setAuthMsg('err', 'Sunucudan geçerli oturum jetonu alınamadı.');
+            return false;
+          }
+          state.authLinkVerified = false;
+          state.authLinkProof = '';
+          state.authLinkExpiresAt = 0;
           applyVerifiedSession(data, toastTitle);
           return true;
         } catch {
           setAuthMsg('err', 'Doğrulama bağlantısı kurulamadı.');
           return false;
         } finally {
-          if (btn) btn.disabled = false;
+          syncAuthLockUi();
         }
       }
 
@@ -5257,6 +5314,14 @@
         const remainSec = 30 - (Math.floor(Date.now() / 1000) % 30);
         if ($('authTimerSec')) $('authTimerSec').textContent = `${remainSec} sn`;
         if ($('authTimerFill')) $('authTimerFill').style.width = `${((remainSec / 30) * 100).toFixed(1)}%`;
+
+        if (!state.authVerified && state.authLinkVerified && state.authLinkExpiresAt && Date.now() >= state.authLinkExpiresAt) {
+          state.authLinkVerified = false;
+          state.authLinkProof = '';
+          state.authLinkExpiresAt = 0;
+          syncAuthLockUi();
+          setAuthMsg('err', 'İmzalı bağlantı onay süresi doldu. Lütfen Prop Journal üzerinden yeniden açın.');
+        }
 
         if (state.authVerified) {
           const leftMs = state.authExpiresAt - Date.now();
@@ -5339,9 +5404,9 @@
             uid: pjUid,
             sig: pjSig,
             referrer: document.referrer || ''
-          }, 'İmzalı Link Doğrulandı');
+          }, 'Adım 1/2: İmzalı Link Doğrulandı');
         } else if (pjCode) {
-          await verifyWithPayload({ code: pjCode }, 'Prop Journal Kodu Doğrulandı');
+          setAuthMsg('err', 'Tek başına kod ile giriş kapalıdır. Önce Prop Journal’daki "Veri Merkezini Aç" butonundan gelin.');
         }
       }
 
@@ -5357,7 +5422,7 @@
             if (state.fbPendingLink) {
               const pending = state.fbPendingLink;
               state.fbPendingLink = null;
-              await verifyWithPayload(pending, 'İmzalı Link Doğrulandı');
+              await verifyWithPayload(pending, 'Adım 1/2: İmzalı Link Doğrulandı');
             }
           }
         } catch (err) {
@@ -5388,8 +5453,8 @@
           if ($('authBootstrapInput')) $('authBootstrapInput').value = '';
           state.authConfigured = true;
           syncAuthLockUi();
-          setAuthMsg('ok', 'Anahtar tanımlandı. Şimdi Prop Journal üzerinden gelen 30 saniyelik kodu girin veya imzalı bağlantıyı açın.');
-          showToast('Anahtar Tanımlandı', 'Şimdi 30 saniyelik kod veya imzalı link ile giriş yapabilirsiniz.', 'ok');
+          setAuthMsg('ok', 'Anahtar tanımlandı. Şimdi Prop Journal içindeki "Veri Merkezini Aç" linkinden gelip 6 haneli kodu girin.');
+          showToast('Anahtar Tanımlandı', 'Şimdi Prop Journal bağlantısı + 6 haneli kod ile açabilirsiniz.', 'ok');
         } catch {
           setAuthMsg('err', 'Sunucuya ulaşılamadı.');
         } finally {
@@ -5409,13 +5474,18 @@
       });
 
       $('authVerifyBtn')?.addEventListener('click', async () => {
+        if (!state.authLinkVerified || Date.now() >= state.authLinkExpiresAt) {
+          setAuthMsg('err', 'Önce Prop Journal üzerinden "Veri Merkezini Aç" bağlantısı ile gelmelisiniz.');
+          showToast('Link Gerekli', 'Önce Prop Journal’dan "Veri Merkezini Aç" ile sayfayı açın.', 'warn');
+          return;
+        }
         const code = ($('authCodeInput')?.value || '').trim();
         if (!/^\d{6}$/.test(code)) {
           setAuthMsg('err', 'Lütfen Prop Journal içindeki 6 haneli sayısal kodu girin.');
           $('authCodeInput')?.focus();
           return;
         }
-        await verifyWithPayload({ code }, '30 Saniyelik Kod Doğrulandı');
+        await verifyWithPayload({ code, linkProof: state.authLinkProof }, 'Erişim Açıldı (2/2)');
       });
 
       $('authLockBtn')?.addEventListener('click', async () => {

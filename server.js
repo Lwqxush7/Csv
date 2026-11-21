@@ -98,17 +98,17 @@ function clearAuthFailures(ip) {
   authFailures.delete(ip);
 }
 
-function issueSessionToken(uid, mode) {
+function issueToken(uid, mode, stage = 'session', ttlSec = SESSION_TTL_SEC) {
   const iat = Math.floor(Date.now() / 1000);
-  const exp = iat + SESSION_TTL_SEC;
+  const exp = iat + ttlSec;
   const jti = crypto.randomBytes(16).toString('hex');
-  const payload = { jti, uid: String(uid || 'prop-journal-user').slice(0, 128), mode, iat, exp };
+  const payload = { jti, stage, uid: String(uid || 'prop-journal-user').slice(0, 128), mode, iat, exp };
   const payloadB64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
   const sigB64 = crypto.createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('base64url');
   return { token: `${payloadB64}.${sigB64}`, payload };
 }
 
-function verifySessionToken(token) {
+function verifyToken(token, expectedStage = 'session') {
   if (typeof token !== 'string' || !token) return null;
   const dot = token.indexOf('.');
   if (dot <= 0 || dot === token.length - 1) return null;
@@ -127,6 +127,7 @@ function verifySessionToken(token) {
   }
   if (!payload || typeof payload !== 'object') return null;
   if (typeof payload.jti !== 'string' || typeof payload.exp !== 'number') return null;
+  if (expectedStage && payload.stage !== expectedStage) return null;
   const nowSec = Math.floor(Date.now() / 1000);
   if (payload.exp <= nowSec) return null;
   if (revokedJtis.has(payload.jti)) return null;
@@ -145,7 +146,7 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Erişim anahtarı henüz yapılandırılmamış.' });
   }
   const token = extractBearerToken(req);
-  const session = verifySessionToken(token);
+  const session = verifyToken(token, 'session');
   if (!session) {
     return res.status(401).json({ error: 'Prop Journal oturum doğrulaması gerekli veya süresi dolmuş.' });
   }
@@ -275,7 +276,7 @@ function isBlockedHost(hostname) {
 app.get('/api/auth/status', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const token = extractBearerToken(req);
-  const session = getPjSecret() ? verifySessionToken(token) : null;
+  const session = getPjSecret() ? verifyToken(token, 'session') : null;
   return res.json({
     configured: Boolean(getPjSecret()),
     source: ENV_PJ_SECRET ? 'env' : (bootstrappedSecret ? 'memory' : 'none'),
@@ -322,44 +323,67 @@ app.post('/api/auth/verify', (req, res) => {
   }
 
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  let result;
-  let mode;
 
+  // Adım 1: İmzalı Prop Journal bağlantısı doğrulaması (tek başına tam oturum açmaz)
   if (body.sig !== undefined && body.ts !== undefined) {
-    mode = 'signed-link';
-    result = verifySignedLink(secret, body.ts, body.uid, body.sig, body.referrer);
-  } else if (body.code !== undefined) {
-    mode = 'dynamic-code';
-    result = verifyDynamicCode(secret, body.code);
-  } else {
-    recordAuthFailure(ip);
-    return res.status(400).json({ error: 'Doğrulama için 6 haneli kod veya imzalı bağlantı gereklidir.' });
-  }
-
-  if (!result.ok) {
-    const fails = recordAuthFailure(ip);
-    const remaining = Math.max(0, RATE_LIMIT_MAX_FAILS - fails);
-    return res.status(401).json({
-      error: result.reason,
-      remainingAttempts: remaining
+    const linkRes = verifySignedLink(secret, body.ts, body.uid, body.sig, body.referrer);
+    if (!linkRes.ok) {
+      const fails = recordAuthFailure(ip);
+      return res.status(401).json({
+        error: linkRes.reason,
+        remainingAttempts: Math.max(0, RATE_LIMIT_MAX_FAILS - fails)
+      });
+    }
+    clearAuthFailures(ip);
+    const { token: linkProof, payload } = issueToken(linkRes.uid, 'signed-link', 'step1', 300);
+    return res.json({
+      ok: true,
+      step: 'link_verified',
+      linkProof,
+      uid: payload.uid,
+      linkExpiresAt: payload.exp * 1000
     });
   }
 
-  clearAuthFailures(ip);
-  const { token, payload } = issueSessionToken(result.uid, mode);
-  return res.json({
-    ok: true,
-    token,
-    uid: payload.uid,
-    mode: payload.mode,
-    expiresAt: payload.exp * 1000
-  });
+  // Adım 2: İmzalı link onayı (linkProof) + 30 saniyelik 6 haneli kod zorunlu
+  if (body.code !== undefined) {
+    const step1 = verifyToken(String(body.linkProof || ''), 'step1');
+    if (!step1) {
+      const fails = recordAuthFailure(ip);
+      return res.status(401).json({
+        error: 'Önce Prop Journal üzerinden "Veri Merkezini Aç" bağlantısı ile gelmelisiniz.',
+        remainingAttempts: Math.max(0, RATE_LIMIT_MAX_FAILS - fails)
+      });
+    }
+    const codeRes = verifyDynamicCode(secret, body.code);
+    if (!codeRes.ok) {
+      const fails = recordAuthFailure(ip);
+      return res.status(401).json({
+        error: codeRes.reason,
+        remainingAttempts: Math.max(0, RATE_LIMIT_MAX_FAILS - fails)
+      });
+    }
+    revokedJtis.set(step1.jti, step1.exp * 1000);
+    clearAuthFailures(ip);
+    const { token, payload } = issueToken(step1.uid, 'link+code', 'session', SESSION_TTL_SEC);
+    return res.json({
+      ok: true,
+      step: 'verified',
+      token,
+      uid: payload.uid,
+      mode: payload.mode,
+      expiresAt: payload.exp * 1000
+    });
+  }
+
+  recordAuthFailure(ip);
+  return res.status(400).json({ error: 'Doğrulama için önce Prop Journal imzalı bağlantısı, ardından 6 haneli kod gereklidir.' });
 });
 
 app.post('/api/auth/logout', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const token = extractBearerToken(req);
-  const session = verifySessionToken(token);
+  const session = verifyToken(token, 'session');
   if (session) {
     revokedJtis.set(session.jti, session.exp * 1000);
   }
