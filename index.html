@@ -924,9 +924,140 @@
     .toast.warn .toast-dot { background: var(--amber); }
     .toast.err .toast-dot { background: var(--red); }
 
+    .auth-gate {
+      margin-bottom: 18px;
+      padding: 15px 18px;
+      border-color: rgba(229, 182, 92, 0.28);
+      transition: border-color 0.25s var(--ease), padding 0.25s var(--ease);
+    }
+    .auth-gate.is-verified {
+      padding: 11px 18px;
+      border-color: rgba(34, 197, 94, 0.30);
+    }
+    .auth-gate-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .auth-gate-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--white);
+    }
+    .auth-lock-ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(229, 182, 92, 0.22), rgba(229, 182, 92, 0.06));
+      border: 1px solid rgba(229, 182, 92, 0.36);
+      color: var(--accent-soft);
+      flex-shrink: 0;
+    }
+    .auth-gate-desc {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .auth-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(220px, 1fr);
+      gap: 14px;
+      align-items: center;
+    }
+    .auth-form-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .auth-code-input {
+      width: 170px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      font-variant-numeric: tabular-nums;
+      padding: 9px 12px;
+    }
+    .auth-secret-input {
+      flex: 1;
+      min-width: 220px;
+    }
+    .auth-timer-wrap {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(11, 13, 18, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .auth-timer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+    .auth-timer-head strong {
+      color: var(--accent-soft);
+      font-family: var(--mono);
+    }
+    .auth-timer-track {
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    .auth-timer-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), #f5d284);
+      transition: width 0.35s linear;
+    }
+    .auth-verified-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .auth-verified-left, .auth-verified-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .auth-verified-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+      flex-shrink: 0;
+    }
+    .auth-session-pill {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
     @media (max-width: 960px) {
       .ambient-orb { opacity: 0.55; }
       .toast-stack { right: 12px; bottom: 12px; }
+      .auth-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -969,6 +1100,69 @@
         <div class="status-pill"><span id="statusDot" class="dot"></span><span id="statusText">Hazır</span></div>
       </div>
     </header>
+
+    <section id="authGateCard" class="card auth-gate is-locked" aria-live="polite">
+      <div id="authSetupBox" style="display:none;">
+        <div class="auth-gate-head">
+          <div class="auth-gate-title">
+            <span class="auth-lock-ico" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            </span>
+            İlk Kurulum · Prop Journal Ortak Gizli Anahtarı
+          </div>
+          <span class="badge partial">Anahtar Bekleniyor</span>
+        </div>
+        <div class="auth-gate-desc">
+          Sunucu ortamında <code>PROP_JOURNAL_SECRET</code> henüz tanımlı değil. Önizleme veya ilk kurulum için Prop Journal ile paylaşacağınız en az 12 karakterli gizli anahtarı yalnızca sunucu belleğine tanımlayın.
+        </div>
+        <div class="auth-form-row">
+          <input type="password" id="authBootstrapInput" class="input auth-secret-input" placeholder="En az 12 karakterli ortak gizli anahtar..." autocomplete="off" />
+          <button type="button" id="authBootstrapBtn" class="btn btn-primary">Anahtarı Tanımla</button>
+        </div>
+      </div>
+
+      <div id="authLockedBox">
+        <div class="auth-gate-head">
+          <div class="auth-gate-title">
+            <span class="auth-lock-ico" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            Prop Journal Erişim Doğrulaması
+          </div>
+          <span id="authStateBadge" class="badge err">Erişim Kilitli</span>
+        </div>
+        <div class="auth-gate-desc">
+          Veri çekme, Ayarlar ve CSV / ZIP / PNG indirme özellikleri yalnızca Prop Journal hesabıyla giriş yapan kullanıcılar içindir. Prop Journal'dan imzalı bağlantıyla gelin veya Prop Journal içindeki 30 saniyelik 6 haneli kodu girin.
+        </div>
+        <div class="auth-grid">
+          <div class="auth-form-row">
+            <input type="text" id="authCodeInput" class="input auth-code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" aria-label="Prop Journal 6 haneli doğrulama kodu" />
+            <button type="button" id="authVerifyBtn" class="btn btn-primary">Kilidi Aç</button>
+          </div>
+          <div class="auth-timer-wrap">
+            <div class="auth-timer-head">
+              <span>30 sn kod penceresi</span>
+              <strong id="authTimerSec">30 sn</strong>
+            </div>
+            <div class="auth-timer-track"><div id="authTimerFill" class="auth-timer-fill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="authVerifiedBox" class="auth-verified-strip" style="display:none;">
+        <div class="auth-verified-left">
+          <span class="auth-verified-dot" aria-hidden="true"></span>
+          <strong style="font-size:13.5px;color:var(--white);">Prop Journal Doğrulandı</strong>
+          <span id="authModeBadge" class="badge ok">Aktif Oturum</span>
+          <span id="authSessionRemain" class="auth-session-pill"></span>
+        </div>
+        <div class="auth-verified-right">
+          <button type="button" id="authLockBtn" class="btn btn-sm btn-danger">Oturumu Kilitle</button>
+        </div>
+      </div>
+
+      <div id="authMsg" class="msg-line" style="margin-top:8px;"></div>
+    </section>
 
     <section id="settingsPanel" class="card settings-panel">
       <div class="setting-head">
@@ -1368,7 +1562,14 @@
         ema20Series: null,
         ema50Series: null,
         volSeries: null,
-        chartOpts: { ema20: false, ema50: false, volume: false }
+        chartOpts: { ema20: false, ema50: false, volume: false },
+        authConfigured: true,
+        authVerified: false,
+        authToken: '',
+        authExpiresAt: 0,
+        authUid: '',
+        authMode: '',
+        authTickerId: null
       };
 
       const $ = id => document.getElementById(id);
@@ -2190,8 +2391,13 @@
         const ctrl = new AbortController();
         state.activeControllers.add(ctrl);
         const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        const isLocalProxy = typeof url === 'string' && url.startsWith('/api/proxy');
         try {
-          const resp = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+          const fetchOpts = { signal: ctrl.signal, cache: 'no-store' };
+          if (isLocalProxy && state.authToken) {
+            fetchOpts.headers = { Authorization: `Bearer ${state.authToken}` };
+          }
+          const resp = await fetch(url, fetchOpts);
           const text = await resp.text();
           let parsed = null;
           try { parsed = JSON.parse(text); } catch (_) {}
@@ -2207,6 +2413,9 @@
           );
 
           if (!resp.ok) {
+            if (isLocalProxy && resp.status === 401) {
+              handleUnauthorizedSession(parsed?.error || 'Prop Journal oturumu geçersiz veya süresi doldu.');
+            }
             const msg = parsed?.chart?.error?.description || parsed?.error || parsed?.detail || parsed?.message || parsed?.['Error Message'] || text?.slice(0, 140) || `HTTP ${resp.status}`;
             const err = new Error(msg);
             err.httpStatus = resp.status;
@@ -3872,6 +4081,8 @@
         bar.classList.add('visible');
         $('downloadBatchCsvBtn').style.display = '';
         $('downloadBatchZipBtn').style.display = '';
+        $('downloadBatchCsvBtn').disabled = !state.authVerified;
+        $('downloadBatchZipBtn').disabled = !state.authVerified;
         bar.innerHTML = '';
         for (const [code, res] of state.batchResults.entries()) {
           const availCnt = ALL_TF.filter(tf => (res.tfBars[tf]?.length || 0) > 0).length;
@@ -3900,7 +4111,7 @@
           ? `Prop Journal Uyumlu (${exportSym} • UTC H2/H4/D1)`
           : 'NY Kapanışı (17:00 NY / MT5)';
         $('resultSubtitle').textContent = `${startStr} → ${endStr} • Toplam ${totalBars.toLocaleString('tr-TR')} mum • Başlık: ${csvHeader(incVol)} • CSV Modu: ${modeLabel}`;
-        $('downloadMergedBtn').disabled = totalBars === 0;
+        $('downloadMergedBtn').disabled = !state.authVerified || totalBars === 0;
 
         const perfEl = $('perfMeta');
         if (state.result.perf) {
@@ -3951,7 +4162,7 @@
               <span class="tf-name">${tf}</span>
               <div class="tf-actions">
                 <span class="badge ${badgeCls}">${escapeHtml(m.statusText)}</span>
-                <button type="button" class="btn btn-sm tf-csv-btn" ${csvBars.length ? '' : 'disabled'}>CSV</button>
+                <button type="button" class="btn btn-sm tf-csv-btn" data-has-bars="${csvBars.length ? '1' : '0'}" ${(csvBars.length && state.authVerified) ? '' : 'disabled'}>CSV</button>
               </div>
             </div>
             <div class="tf-meta">${bars.length.toLocaleString('tr-TR')} mum • ${spanStr}</div>
@@ -3959,8 +4170,9 @@
             <div class="tf-reason">${escapeHtml(m.reason)}</div>
           `;
 
-          card.querySelector('.tf-csv-btn').addEventListener('click', e => {
+          card.querySelector('.tf-csv-btn').addEventListener('click', async e => {
             e.stopPropagation();
+            if (!(await authorizeProtectedAction('CSV indirme'))) return;
             const content = [csvHeader(incVol), ...buildCsvRows(exportSym, tf, csvBars, dec, incVol)].join('\n');
             const fname = `${exportSym}_${tf}_${startStr}_${endStr}.csv`;
             downloadTextFile(fname, content);
@@ -4009,7 +4221,8 @@
       }
 
       // OLAY DINLEYICILERI
-      $('settingsToggleBtn').addEventListener('click', () => {
+      $('settingsToggleBtn').addEventListener('click', async () => {
+        if (!(await authorizeProtectedAction('Ayarlar paneli'))) return;
         const isOpen = $('settingsPanel').classList.toggle('open');
         $('settingsToggleBtn').classList.toggle('active', isOpen);
       });
@@ -4376,7 +4589,8 @@
         }
       });
 
-      $('chartPngBtn').addEventListener('click', () => {
+      $('chartPngBtn').addEventListener('click', async () => {
+        if (!(await authorizeProtectedAction('PNG ekran görüntüsü'))) return;
         if (!state.chart || !state.result) {
           showToast('Grafik Hazır Değil', 'PNG almak için önce veri çekin.', 'warn');
           return;
@@ -4411,6 +4625,7 @@
 
       $('fetchBtn').addEventListener('click', async () => {
         if (state.fetching) return;
+        if (!(await authorizeProtectedAction('Veri çekme'))) return;
         const startVal = $('startDate').value;
         const endVal = $('endDate').value;
         if (!startVal || !endVal || startVal > endVal) {
@@ -4505,12 +4720,13 @@
           state.fetching = false;
           state.abortFetch = false;
           state.batchQueue = null;
-          $('fetchBtn').disabled = false;
+          $('fetchBtn').disabled = !state.authVerified;
           $('stopBtn').disabled = true;
         }
       });
 
-      $('downloadMergedBtn').addEventListener('click', () => {
+      $('downloadMergedBtn').addEventListener('click', async () => {
+        if (!(await authorizeProtectedAction('Birleşik CSV indirme'))) return;
         const payload = getExportPayload();
         if (!payload) return;
         const { exportSym, dec, startStr, endStr, exportTfBars, incVol } = payload;
@@ -4527,7 +4743,8 @@
         showToast('Birleşik CSV İndirildi', `${fname} (${countTf} zaman dilimi)`, 'ok', 2800);
       });
 
-      $('downloadBatchCsvBtn').addEventListener('click', () => {
+      $('downloadBatchCsvBtn').addEventListener('click', async () => {
+        if (!(await authorizeProtectedAction('Toplu CSV indirme'))) return;
         if (state.batchResults.size < 2) return;
         const incVol = $('volumeChk').checked;
         const lines = [csvHeader(incVol)];
@@ -4552,7 +4769,8 @@
         showToast('Toplu CSV İndirildi', `${fname} (${(lines.length - 1).toLocaleString('tr-TR')} satır)`, 'ok', 3200);
       });
 
-      $('downloadBatchZipBtn').addEventListener('click', () => {
+      $('downloadBatchZipBtn').addEventListener('click', async () => {
+        if (!(await authorizeProtectedAction('Toplu ZIP indirme'))) return;
         if (state.batchResults.size < 2) return;
         const incVol = $('volumeChk').checked;
         const zipFiles = [];
@@ -4587,11 +4805,301 @@
         showToast('ZIP Arşivi İndirildi', `${fname} (${zipFiles.length} CSV dosyası)`, 'ok', 3200);
       });
 
+      // ===== PROP JOURNAL ERISIM KILIDI =====
+      function setAuthMsg(type, text) {
+        const el = $('authMsg');
+        if (!el) return;
+        el.className = `msg-line${type ? ' ' + type : ''}`;
+        el.textContent = text || '';
+      }
+
+      function formatRemainMs(ms) {
+        const totalSec = Math.max(0, Math.floor(ms / 1000));
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = totalSec % 60;
+        if (h > 0) return `Kalan: ${h}s ${pad2(m)}d`;
+        return `Kalan: ${m}d ${pad2(s)}sn`;
+      }
+
+      function syncAuthLockUi() {
+        const unlocked = Boolean(state.authVerified && state.authToken && Date.now() < state.authExpiresAt);
+        const card = $('authGateCard');
+        if (card) {
+          card.classList.toggle('is-verified', unlocked);
+          card.classList.toggle('is-locked', !unlocked);
+        }
+        if ($('authSetupBox')) $('authSetupBox').style.display = (!unlocked && !state.authConfigured) ? '' : 'none';
+        if ($('authLockedBox')) $('authLockedBox').style.display = (!unlocked && state.authConfigured) ? '' : 'none';
+        if ($('authVerifiedBox')) $('authVerifiedBox').style.display = unlocked ? '' : 'none';
+
+        if (!unlocked) {
+          $('settingsPanel').classList.remove('open');
+          $('settingsToggleBtn').classList.remove('active');
+        }
+
+        $('settingsToggleBtn').disabled = !unlocked;
+        $('fetchBtn').disabled = !unlocked || state.fetching;
+        $('chartPngBtn').disabled = !unlocked;
+
+        const hasResultBars = Boolean(state.result && ALL_TF.some(tf => (state.result.tfBars[tf]?.length || 0) > 0));
+        $('downloadMergedBtn').disabled = !unlocked || !hasResultBars;
+        $('downloadBatchCsvBtn').disabled = !unlocked || state.batchResults.size < 2;
+        $('downloadBatchZipBtn').disabled = !unlocked || state.batchResults.size < 2;
+
+        document.querySelectorAll('.tf-csv-btn').forEach(btn => {
+          const hasBars = btn.dataset.hasBars === '1';
+          btn.disabled = !unlocked || !hasBars;
+        });
+
+        if (unlocked) {
+          const modeTxt = state.authMode === 'signed-link' ? 'İmzalı Link' : '30 sn Kod';
+          if ($('authModeBadge')) $('authModeBadge').textContent = modeTxt;
+          if ($('authSessionRemain')) $('authSessionRemain').textContent = formatRemainMs(state.authExpiresAt - Date.now());
+          if (!state.fetching && $('statusText')?.textContent === 'Erişim Kilitli') {
+            setStatus('ok', 'Hazır');
+          }
+        } else {
+          if (!state.fetching) {
+            setStatus('err', 'Erişim Kilitli');
+          }
+        }
+      }
+
+      function handleUnauthorizedSession(reason) {
+        state.authVerified = false;
+        state.authToken = '';
+        state.authExpiresAt = 0;
+        state.authUid = '';
+        state.authMode = '';
+        syncAuthLockUi();
+        if (reason) setAuthMsg('err', reason);
+      }
+
+      async function authorizeProtectedAction(actionLabel) {
+        if (!state.authVerified || !state.authToken || Date.now() >= state.authExpiresAt) {
+          handleUnauthorizedSession(`${actionLabel} için önce Prop Journal doğrulaması yapın.`);
+          showToast('Erişim Kilitli', `${actionLabel} yalnızca Prop Journal kullanıcılarına açıktır.`, 'warn', 3600);
+          $('authGateCard')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (state.authConfigured) $('authCodeInput')?.focus();
+          return false;
+        }
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 5000);
+          const resp = await fetch('/api/auth/authorize-action', {
+            method: 'POST',
+            signal: ctrl.signal,
+            cache: 'no-store',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${state.authToken}`
+            }
+          });
+          clearTimeout(t);
+          if (!resp.ok) {
+            let errData = null;
+            try { errData = await resp.json(); } catch (_) {}
+            handleUnauthorizedSession(errData?.error || 'Oturum süresi doldu. Lütfen tekrar doğrulayın.');
+            showToast('Oturum Geçersiz', `${actionLabel} engellendi. Tekrar doğrulayın.`, 'err', 3600);
+            $('authGateCard')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+          const data = await resp.json();
+          if (data?.expiresAt) state.authExpiresAt = data.expiresAt;
+          return true;
+        } catch {
+          showToast('Doğrulama Hatası', 'Sunucu oturum kontrolüne ulaşılamadı.', 'err');
+          return false;
+        }
+      }
+
+      function applyVerifiedSession(data, toastTitle) {
+        state.authConfigured = true;
+        state.authVerified = true;
+        state.authToken = String(data.token || '');
+        state.authExpiresAt = Number(data.expiresAt) || (Date.now() + 7200000);
+        state.authUid = String(data.uid || '');
+        state.authMode = String(data.mode || 'dynamic-code');
+        if ($('authCodeInput')) $('authCodeInput').value = '';
+        setAuthMsg('', '');
+        syncAuthLockUi();
+        setStatus('ok', 'Hazır');
+        playFeedbackTone('ok');
+        showToast(toastTitle || 'Erişim Açıldı', 'Prop Journal doğrulaması tamamlandı.', 'ok', 3200);
+      }
+
+      async function verifyWithPayload(payload, toastTitle) {
+        const btn = $('authVerifyBtn');
+        if (btn) btn.disabled = true;
+        setAuthMsg('', 'Prop Journal doğrulaması kontrol ediliyor...');
+        try {
+          const resp = await fetch('/api/auth/verify', {
+            method: 'POST',
+            cache: 'no-store',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          let data = null;
+          try { data = await resp.json(); } catch (_) {}
+          if (!resp.ok || !data?.ok || !data?.token) {
+            const msg = data?.error || `Doğrulama başarısız (HTTP ${resp.status}).`;
+            setAuthMsg('err', msg);
+            playFeedbackTone('err');
+            showToast('Doğrulama Başarısız', msg, 'err', 3800);
+            return false;
+          }
+          applyVerifiedSession(data, toastTitle);
+          return true;
+        } catch {
+          setAuthMsg('err', 'Doğrulama sunucusuna bağlanılamadı.');
+          return false;
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
+      function tickAuthClock() {
+        const remainSec = 30 - (Math.floor(Date.now() / 1000) % 30);
+        if ($('authTimerSec')) $('authTimerSec').textContent = `${remainSec} sn`;
+        if ($('authTimerFill')) $('authTimerFill').style.width = `${((remainSec / 30) * 100).toFixed(1)}%`;
+
+        if (state.authVerified) {
+          const leftMs = state.authExpiresAt - Date.now();
+          if (leftMs <= 0) {
+            handleUnauthorizedSession('Oturum süresi doldu. Lütfen yeniden doğrulayın.');
+            showToast('Oturum Süresi Doldu', 'Devam etmek için Prop Journal ile yeniden doğrulayın.', 'warn');
+          } else if ($('authSessionRemain')) {
+            $('authSessionRemain').textContent = formatRemainMs(leftMs);
+          }
+        }
+      }
+
+      async function initAuthGate() {
+        const params = new URLSearchParams(location.search);
+        const pjTs = params.get('pj_ts');
+        const pjUid = params.get('pj_uid') || '';
+        const pjSig = params.get('pj_sig');
+        const pjCode = params.get('pj_code');
+
+        if (pjTs || pjUid || pjSig || pjCode) {
+          params.delete('pj_ts');
+          params.delete('pj_uid');
+          params.delete('pj_sig');
+          params.delete('pj_code');
+          const qs = params.toString();
+          const cleanUrl = `${location.pathname}${qs ? '?' + qs : ''}${location.hash}`;
+          try { history.replaceState(null, '', cleanUrl); } catch (_) {}
+        }
+
+        syncAuthLockUi();
+        if (state.authTickerId) clearInterval(state.authTickerId);
+        tickAuthClock();
+        state.authTickerId = setInterval(tickAuthClock, 1000);
+
+        try {
+          const resp = await fetch('/api/auth/status', { cache: 'no-store' });
+          if (resp.ok) {
+            const st = await resp.json();
+            state.authConfigured = Boolean(st?.configured);
+          }
+        } catch (_) {}
+
+        syncAuthLockUi();
+
+        if (!state.authConfigured) {
+          if (pjSig || pjCode) {
+            setAuthMsg('err', 'Sunucu gizli anahtarı henüz tanımlanmamış. Önce yukarıdan gizli anahtarı tanımlayın.');
+          }
+          return;
+        }
+
+        if (pjTs && pjSig) {
+          await verifyWithPayload({
+            ts: pjTs,
+            uid: pjUid,
+            sig: pjSig,
+            referrer: document.referrer || ''
+          }, 'İmzalı Link Doğrulandı');
+        } else if (pjCode) {
+          await verifyWithPayload({ code: pjCode }, 'Prop Journal Kodu Doğrulandı');
+        }
+      }
+
+      $('authBootstrapBtn')?.addEventListener('click', async () => {
+        const val = ($('authBootstrapInput')?.value || '').trim();
+        if (val.length < 12) {
+          setAuthMsg('err', 'Gizli anahtar en az 12 karakter olmalıdır.');
+          return;
+        }
+        $('authBootstrapBtn').disabled = true;
+        setAuthMsg('', 'Gizli anahtar tanımlanıyor...');
+        try {
+          const resp = await fetch('/api/auth/bootstrap', {
+            method: 'POST',
+            cache: 'no-store',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret: val })
+          });
+          const data = await resp.json().catch(() => null);
+          if (!resp.ok || !data?.ok) {
+            setAuthMsg('err', data?.error || 'Gizli anahtar tanımlanamadı.');
+            return;
+          }
+          if ($('authBootstrapInput')) $('authBootstrapInput').value = '';
+          state.authConfigured = true;
+          syncAuthLockUi();
+          setAuthMsg('ok', 'Anahtar tanımlandı. Şimdi Prop Journal üzerinden gelen 30 saniyelik kodu girin veya imzalı bağlantıyı açın.');
+          showToast('Anahtar Tanımlandı', 'Şimdi 30 saniyelik kod veya imzalı link ile giriş yapabilirsiniz.', 'ok');
+        } catch {
+          setAuthMsg('err', 'Sunucuya ulaşılamadı.');
+        } finally {
+          $('authBootstrapBtn').disabled = false;
+        }
+      });
+
+      $('authCodeInput')?.addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D+/g, '').slice(0, 6);
+      });
+
+      $('authCodeInput')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          $('authVerifyBtn')?.click();
+        }
+      });
+
+      $('authVerifyBtn')?.addEventListener('click', async () => {
+        const code = ($('authCodeInput')?.value || '').trim();
+        if (!/^\d{6}$/.test(code)) {
+          setAuthMsg('err', 'Lütfen Prop Journal içindeki 6 haneli sayısal kodu girin.');
+          $('authCodeInput')?.focus();
+          return;
+        }
+        await verifyWithPayload({ code }, '30 Saniyelik Kod Doğrulandı');
+      });
+
+      $('authLockBtn')?.addEventListener('click', async () => {
+        const tok = state.authToken;
+        handleUnauthorizedSession('Oturum manuel olarak kilitlendi.');
+        showToast('Oturum Kilitlendi', 'Veri çekme, indirme ve ayarlar kapatıldı.', 'warn');
+        if (tok) {
+          try {
+            await fetch('/api/auth/logout', {
+              method: 'POST',
+              cache: 'no-store',
+              headers: { Authorization: `Bearer ${tok}` }
+            });
+          } catch (_) {}
+        }
+      });
+
       refreshSoundUi();
       refreshSettingsUi();
       renderPairs();
       applyQuickRange('1m');
       renderLogs();
+      initAuthGate();
 
       // ===== 3D LIQUID GLASS TILT =====
       (() => {
