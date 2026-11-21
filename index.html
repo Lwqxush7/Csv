@@ -1147,6 +1147,10 @@
             <div class="auth-timer-track"><div id="authTimerFill" class="auth-timer-fill"></div></div>
           </div>
         </div>
+        <div id="authGoogleRow" class="auth-form-row" style="display:none;margin-top:10px;">
+          <button type="button" id="authGoogleBtn" class="btn btn-sm">Prop Journal (Google) ile Giriş Yap</button>
+          <span style="font-size:12px;color:var(--muted);">Aynı tarayıcıda Prop Journal'a giriş yaptığınızda otomatik algılanır.</span>
+        </div>
       </div>
 
       <div id="authVerifiedBox" class="auth-verified-strip" style="display:none;">
@@ -1564,12 +1568,17 @@
         volSeries: null,
         chartOpts: { ema20: false, ema50: false, volume: false },
         authConfigured: true,
+        authBackendMode: 'server',
         authVerified: false,
         authToken: '',
         authExpiresAt: 0,
         authUid: '',
         authMode: '',
-        authTickerId: null
+        authTickerId: null,
+        fbUser: null,
+        fbFailCount: 0,
+        fbLockUntil: 0,
+        fbPendingLink: null
       };
 
       const $ = id => document.getElementById(id);
@@ -4806,6 +4815,34 @@
       });
 
       // ===== PROP JOURNAL ERISIM KILIDI =====
+      const PJ_FIREBASE_CONFIG = {
+        apiKey: 'AIzaSyB13wDsbCVsexplGSXMwLY3CmwZJq7g-SY',
+        authDomain: 'trade-d981b.firebaseapp.com',
+        projectId: 'trade-d981b',
+        storageBucket: 'trade-d981b.firebasestorage.app',
+        messagingSenderId: '725558486984',
+        appId: '1:725558486984:web:3cfeb27abb19638fec42fd',
+        measurementId: 'G-Z9CVXFDTNK'
+      };
+      const fbRuntime = { ready: false, auth: null, db: null, fns: null };
+      const staticUsedCodes = new Set();
+      const staticUsedSigs = new Set();
+
+      function loadStaticReplayCache() {
+        try {
+          const rawS = sessionStorage.getItem('pj_used_sigs');
+          if (rawS) JSON.parse(rawS).forEach(v => staticUsedSigs.add(v));
+          const rawC = sessionStorage.getItem('pj_used_codes');
+          if (rawC) JSON.parse(rawC).forEach(v => staticUsedCodes.add(v));
+        } catch (_) {}
+      }
+
+      function saveStaticReplayCache(key, setObj) {
+        try {
+          sessionStorage.setItem(key, JSON.stringify(Array.from(setObj).slice(-40)));
+        } catch (_) {}
+      }
+
       function setAuthMsg(type, text) {
         const el = $('authMsg');
         if (!el) return;
@@ -4829,9 +4866,12 @@
           card.classList.toggle('is-verified', unlocked);
           card.classList.toggle('is-locked', !unlocked);
         }
-        if ($('authSetupBox')) $('authSetupBox').style.display = (!unlocked && !state.authConfigured) ? '' : 'none';
-        if ($('authLockedBox')) $('authLockedBox').style.display = (!unlocked && state.authConfigured) ? '' : 'none';
+        if ($('authSetupBox')) $('authSetupBox').style.display = (!unlocked && state.authBackendMode === 'server' && !state.authConfigured) ? '' : 'none';
+        if ($('authLockedBox')) $('authLockedBox').style.display = (!unlocked && (state.authBackendMode === 'firebase' || state.authConfigured)) ? '' : 'none';
         if ($('authVerifiedBox')) $('authVerifiedBox').style.display = unlocked ? '' : 'none';
+        if ($('authGoogleRow')) {
+          $('authGoogleRow').style.display = (!unlocked && state.authBackendMode === 'firebase' && !state.fbUser) ? '' : 'none';
+        }
 
         if (!unlocked) {
           $('settingsPanel').classList.remove('open');
@@ -4884,6 +4924,15 @@
           if (state.authConfigured) $('authCodeInput')?.focus();
           return false;
         }
+        if (state.authBackendMode === 'firebase') {
+          if (!state.fbUser) {
+            handleUnauthorizedSession('Prop Journal Google oturumu kapalı görünüyor. Lütfen tekrar giriş yapın.');
+            showToast('Oturum Kapalı', `${actionLabel} için Prop Journal hesabınızla giriş yapın.`, 'err', 3600);
+            $('authGateCard')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+          return true;
+        }
         try {
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 5000);
@@ -4929,11 +4978,256 @@
         showToast(toastTitle || 'Erişim Açıldı', 'Prop Journal doğrulaması tamamlandı.', 'ok', 3200);
       }
 
+      function constantTimeEqualStr(a, b) {
+        if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+        let diff = 0;
+        for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+        return diff === 0;
+      }
+
+      async function webCryptoHmac(algo, secret, dataBytes) {
+        const enc = new TextEncoder();
+        const key = await crypto.subtle.importKey(
+          'raw',
+          enc.encode(secret),
+          { name: 'HMAC', hash: { name: algo } },
+          false,
+          ['sign']
+        );
+        const sig = await crypto.subtle.sign('HMAC', key, dataBytes);
+        return new Uint8Array(sig);
+      }
+
+      function bytesToHex(bytes) {
+        let out = '';
+        for (let i = 0; i < bytes.length; i++) out += bytes[i].toString(16).padStart(2, '0');
+        return out;
+      }
+
+      function truncateHmacBytesTo6Digits(hash) {
+        const offset = hash[hash.length - 1] & 0x0f;
+        const bin =
+          ((hash[offset] & 0x7f) << 24) |
+          ((hash[offset + 1] & 0xff) << 16) |
+          ((hash[offset + 2] & 0xff) << 8) |
+          (hash[offset + 3] & 0xff);
+        return String(bin % 1000000).padStart(6, '0');
+      }
+
+      function stepToBigEndianBytes(step) {
+        const buf = new Uint8Array(8);
+        let n = BigInt(step);
+        for (let i = 7; i >= 0; i--) {
+          buf[i] = Number(n & 0xffn);
+          n >>= 8n;
+        }
+        return buf;
+      }
+
+      async function ensureFirebaseClient() {
+        if (fbRuntime.ready) return fbRuntime;
+        const base = 'https://www.gstatic.com/firebasejs/10.14.1';
+        const [appMod, authMod, fsMod] = await Promise.all([
+          import(`${base}/firebase-app.js`),
+          import(`${base}/firebase-auth.js`),
+          import(`${base}/firebase-firestore.js`)
+        ]);
+        const fbApp = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(PJ_FIREBASE_CONFIG);
+        const fbAuth = authMod.getAuth(fbApp);
+        const fbDb = fsMod.getFirestore(fbApp);
+        fbRuntime.auth = fbAuth;
+        fbRuntime.db = fbDb;
+        fbRuntime.fns = {
+          onAuthStateChanged: authMod.onAuthStateChanged,
+          signInWithPopup: authMod.signInWithPopup,
+          GoogleAuthProvider: authMod.GoogleAuthProvider,
+          doc: fsMod.doc,
+          getDoc: fsMod.getDoc
+        };
+        fbRuntime.ready = true;
+
+        const initialUser = await new Promise(resolve => {
+          let done = false;
+          const timer = setTimeout(() => {
+            if (!done) { done = true; resolve(fbAuth.currentUser || null); }
+          }, 4000);
+          const unsub = authMod.onAuthStateChanged(fbAuth, user => {
+            if (!done) {
+              done = true;
+              clearTimeout(timer);
+              unsub();
+              resolve(user || null);
+            }
+          });
+        });
+        state.fbUser = initialUser;
+
+        authMod.onAuthStateChanged(fbAuth, user => {
+          state.fbUser = user || null;
+          if (!user && state.authBackendMode === 'firebase' && state.authVerified) {
+            handleUnauthorizedSession('Prop Journal Google oturumu kapatıldı.');
+          } else {
+            syncAuthLockUi();
+          }
+        });
+
+        return fbRuntime;
+      }
+
+      async function fetchFirebaseSharedSecret() {
+        const fb = await ensureFirebaseClient();
+        if (!state.fbUser) {
+          throw new Error('Önce Prop Journal Google hesabınızla giriş yapın.');
+        }
+        const snap = await fb.fns.getDoc(fb.fns.doc(fb.db, 'appConfig', 'dataCenter'));
+        if (!snap.exists()) {
+          throw new Error('Prop Journal Firestore (appConfig/dataCenter) henüz yapılandırılmamış.');
+        }
+        const secret = String(snap.data()?.secret || '').trim();
+        if (secret.length < 12) {
+          throw new Error('Prop Journal ortak gizli anahtarı bulunamadı.');
+        }
+        return secret;
+      }
+
+      async function verifyInFirebaseMode(payload, toastTitle) {
+        if (Date.now() < state.fbLockUntil) {
+          const waitSec = Math.max(1, Math.ceil((state.fbLockUntil - Date.now()) / 1000));
+          const msg = `Çok fazla hatalı deneme. ${waitSec} saniye bekleyin.`;
+          setAuthMsg('err', msg);
+          showToast('Çok Fazla Deneme', msg, 'err');
+          return false;
+        }
+        await ensureFirebaseClient();
+        if (!state.fbUser) {
+          if (payload.sig && payload.ts) state.fbPendingLink = payload;
+          const msg = 'Prop Journal Google oturumu açık değil. Lütfen aşağıdan giriş yapın veya önce Prop Journal’a giriş yapın.';
+          setAuthMsg('err', msg);
+          syncAuthLockUi();
+          showToast('Giriş Gerekli', msg, 'warn', 4200);
+          return false;
+        }
+
+        let secret;
+        try {
+          secret = await fetchFirebaseSharedSecret();
+        } catch (err) {
+          const msg = err?.message || 'Firestore erişim doğrulaması başarısız.';
+          setAuthMsg('err', msg);
+          playFeedbackTone('err');
+          showToast('Doğrulama Hatası', msg, 'err', 4200);
+          return false;
+        }
+
+        const enc = new TextEncoder();
+        if (payload.sig !== undefined && payload.ts !== undefined) {
+          const tsStr = String(payload.ts || '').trim();
+          const uid = String(payload.uid || '').trim();
+          const sig = String(payload.sig || '').trim().toLowerCase();
+          if (!/^\d{9,13}$/.test(tsStr) || !/^[a-f0-9]{64}$/.test(sig)) {
+            setAuthMsg('err', 'İmzalı bağlantı parametreleri geçersiz.');
+            return false;
+          }
+          if (uid && uid !== state.fbUser.uid) {
+            setAuthMsg('err', 'Bu imzalı bağlantı şu anki Prop Journal hesabınıza ait değil.');
+            return false;
+          }
+          const nowSec = Math.floor(Date.now() / 1000);
+          if (Math.abs(nowSec - Number(tsStr)) > 120) {
+            setAuthMsg('err', 'İmzalı bağlantının süresi dolmuş. Prop Journal üzerinden yeniden açın.');
+            return false;
+          }
+          const expectedPrimary = bytesToHex(await webCryptoHmac('SHA-256', secret, enc.encode(`${tsStr}:${uid}`)));
+          let matched = constantTimeEqualStr(sig, expectedPrimary);
+          if (!matched && !uid) {
+            const expectedNoUid = bytesToHex(await webCryptoHmac('SHA-256', secret, enc.encode(tsStr)));
+            matched = constantTimeEqualStr(sig, expectedNoUid);
+          }
+          if (!matched) {
+            state.fbFailCount += 1;
+            if (state.fbFailCount >= 8) { state.fbLockUntil = Date.now() + 60000; state.fbFailCount = 0; }
+            setAuthMsg('err', 'Bağlantı imzası doğrulanamadı.');
+            playFeedbackTone('err');
+            return false;
+          }
+          if (staticUsedSigs.has(sig)) {
+            setAuthMsg('err', 'Bu tek kullanımlık bağlantı zaten kullanılmış.');
+            return false;
+          }
+          staticUsedSigs.add(sig);
+          saveStaticReplayCache('pj_used_sigs', staticUsedSigs);
+          state.fbFailCount = 0;
+          state.fbPendingLink = null;
+          applyVerifiedSession({
+            token: `fb:${state.fbUser.uid}`,
+            uid: state.fbUser.uid,
+            mode: 'signed-link',
+            expiresAt: Date.now() + 7200000
+          }, toastTitle);
+          return true;
+        }
+
+        const code = String(payload.code || '').trim();
+        if (!/^\d{6}$/.test(code)) {
+          setAuthMsg('err', 'Doğrulama kodu 6 haneli rakam olmalıdır.');
+          return false;
+        }
+        const currentStep = Math.floor(Date.now() / 30000);
+        const windows = [currentStep, currentStep - 1, currentStep + 1];
+        let matchedWindow = null;
+
+        for (const w of windows) {
+          if (w < 0) continue;
+          const hStr = await webCryptoHmac('SHA-256', secret, enc.encode(String(w)));
+          const c1 = truncateHmacBytesTo6Digits(hStr);
+          const buf8 = stepToBigEndianBytes(w);
+          const c2 = truncateHmacBytesTo6Digits(await webCryptoHmac('SHA-256', secret, buf8));
+          const c3 = truncateHmacBytesTo6Digits(await webCryptoHmac('SHA-1', secret, buf8));
+          if (constantTimeEqualStr(c1, code) || constantTimeEqualStr(c2, code) || constantTimeEqualStr(c3, code)) {
+            matchedWindow = w;
+            break;
+          }
+        }
+
+        if (matchedWindow === null) {
+          state.fbFailCount += 1;
+          if (state.fbFailCount >= 8) { state.fbLockUntil = Date.now() + 60000; state.fbFailCount = 0; }
+          const msg = 'Kod geçersiz veya 30 saniyelik süresi dolmuş.';
+          setAuthMsg('err', msg);
+          playFeedbackTone('err');
+          showToast('Doğrulama Başarısız', msg, 'err', 3600);
+          return false;
+        }
+
+        const replayKey = `${matchedWindow}:${code}`;
+        if (staticUsedCodes.has(replayKey)) {
+          const msg = 'Bu 30 saniyelik kod zaten kullanıldı. Yeni kodu bekleyin.';
+          setAuthMsg('err', msg);
+          playFeedbackTone('err');
+          showToast('Kod Kullanıldı', msg, 'warn', 3600);
+          return false;
+        }
+
+        staticUsedCodes.add(replayKey);
+        saveStaticReplayCache('pj_used_codes', staticUsedCodes);
+        state.fbFailCount = 0;
+        applyVerifiedSession({
+          token: `fb:${state.fbUser.uid}`,
+          uid: state.fbUser.uid,
+          mode: 'dynamic-code',
+          expiresAt: Date.now() + 7200000
+        }, toastTitle);
+        return true;
+      }
+
       async function verifyWithPayload(payload, toastTitle) {
         const btn = $('authVerifyBtn');
         if (btn) btn.disabled = true;
         setAuthMsg('', 'Prop Journal doğrulaması kontrol ediliyor...');
         try {
+          if (state.authBackendMode === 'firebase') {
+            return await verifyInFirebaseMode(payload, toastTitle);
+          }
           const resp = await fetch('/api/auth/verify', {
             method: 'POST',
             cache: 'no-store',
@@ -4952,7 +5246,7 @@
           applyVerifiedSession(data, toastTitle);
           return true;
         } catch {
-          setAuthMsg('err', 'Doğrulama sunucusuna bağlanılamadı.');
+          setAuthMsg('err', 'Doğrulama bağlantısı kurulamadı.');
           return false;
         } finally {
           if (btn) btn.disabled = false;
@@ -4976,6 +5270,7 @@
       }
 
       async function initAuthGate() {
+        loadStaticReplayCache();
         const params = new URLSearchParams(location.search);
         const pjTs = params.get('pj_ts');
         const pjUid = params.get('pj_uid') || '';
@@ -4997,17 +5292,41 @@
         tickAuthClock();
         state.authTickerId = setInterval(tickAuthClock, 1000);
 
-        try {
-          const resp = await fetch('/api/auth/status', { cache: 'no-store' });
-          if (resp.ok) {
-            const st = await resp.json();
-            state.authConfigured = Boolean(st?.configured);
+        let hasNodeServer = false;
+        if (location.protocol === 'http:' || location.protocol === 'https:') {
+          try {
+            const resp = await fetch('/api/auth/status', { cache: 'no-store' });
+            const ctype = resp.headers.get('content-type') || '';
+            if (resp.ok && ctype.includes('application/json')) {
+              const st = await resp.json();
+              if (typeof st?.configured === 'boolean') {
+                hasNodeServer = true;
+                state.authBackendMode = 'server';
+                state.authConfigured = st.configured;
+              }
+            }
+          } catch (_) {}
+        }
+
+        if (!hasNodeServer) {
+          state.authBackendMode = 'firebase';
+          state.localProxyDisabled = true;
+          state.authConfigured = true;
+          try {
+            await ensureFirebaseClient();
+            if (state.fbUser) {
+              setAuthMsg('ok', `Prop Journal oturumu algılandı (${state.fbUser.email || 'Giriş yapıldı'}).`);
+            } else {
+              setAuthMsg('err', 'Önce Prop Journal hesabınızla Google girişi yapın.');
+            }
+          } catch {
+            setAuthMsg('err', 'Firebase doğrulama modülü yüklenemedi. İnternet bağlantınızı kontrol edin.');
           }
-        } catch (_) {}
+        }
 
         syncAuthLockUi();
 
-        if (!state.authConfigured) {
+        if (state.authBackendMode === 'server' && !state.authConfigured) {
           if (pjSig || pjCode) {
             setAuthMsg('err', 'Sunucu gizli anahtarı henüz tanımlanmamış. Önce yukarıdan gizli anahtarı tanımlayın.');
           }
@@ -5025,6 +5344,26 @@
           await verifyWithPayload({ code: pjCode }, 'Prop Journal Kodu Doğrulandı');
         }
       }
+
+      $('authGoogleBtn')?.addEventListener('click', async () => {
+        try {
+          const fb = await ensureFirebaseClient();
+          const provider = new fb.fns.GoogleAuthProvider();
+          const res = await fb.fns.signInWithPopup(fb.auth, provider);
+          state.fbUser = res?.user || fb.auth.currentUser || null;
+          syncAuthLockUi();
+          if (state.fbUser) {
+            setAuthMsg('ok', `Giriş yapıldı (${state.fbUser.email || ''}).`);
+            if (state.fbPendingLink) {
+              const pending = state.fbPendingLink;
+              state.fbPendingLink = null;
+              await verifyWithPayload(pending, 'İmzalı Link Doğrulandı');
+            }
+          }
+        } catch (err) {
+          setAuthMsg('err', err?.message || 'Google girişi tamamlanamadı.');
+        }
+      });
 
       $('authBootstrapBtn')?.addEventListener('click', async () => {
         const val = ($('authBootstrapInput')?.value || '').trim();
@@ -5083,7 +5422,7 @@
         const tok = state.authToken;
         handleUnauthorizedSession('Oturum manuel olarak kilitlendi.');
         showToast('Oturum Kilitlendi', 'Veri çekme, indirme ve ayarlar kapatıldı.', 'warn');
-        if (tok) {
+        if (state.authBackendMode === 'server' && tok) {
           try {
             await fetch('/api/auth/logout', {
               method: 'POST',
