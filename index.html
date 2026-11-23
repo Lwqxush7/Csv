@@ -3426,12 +3426,29 @@
             const beforeLen = tfBars[target]?.length || 0;
             const beforeSet = new Set((tfBars[target] || []).map(b => b.time));
             if (upgradeExisting && hadAny) {
-              const map = new Map((tfBars[target] || []).map(b => [b.time, b]));
+              const origArr = tfBars[target] || [];
+              const origLastTime = origArr.length ? origArr[origArr.length - 1].time : 0;
+              const srcArr = tfBars[src];
+              const srcFirstTime = srcArr[0].time;
+              const firstDerivedTime = derived[0].time;
+              const lastDerivedTime = derived[derived.length - 1].time;
+              const skipFirstPartial = (
+                (target === 'W1' && srcFirstTime > firstDerivedTime + 86400) ||
+                (target === 'MN1' && srcFirstTime > firstDerivedTime + 3 * 86400) ||
+                ((target === 'H2' || target === 'H4') && srcFirstTime > firstDerivedTime)
+              );
+              const skipLastPartial = origLastTime > lastDerivedTime;
+
+              const map = new Map(origArr.map(b => [b.time, b]));
               let changed = false;
               for (const d of derived) {
                 const clean = sanitizeBars([d])[0];
                 if (!clean) continue;
                 const prev = map.get(clean.time);
+                if (prev) {
+                  if (clean.time === firstDerivedTime && skipFirstPartial) continue;
+                  if (clean.time === lastDerivedTime && skipLastPartial) continue;
+                }
                 if (!prev || d._isFullDay) {
                   if (!prev || prev.open !== clean.open || prev.high !== clean.high || prev.low !== clean.low || prev.close !== clean.close) {
                     changed = true;
@@ -3468,8 +3485,8 @@
         deriveFrom('H4', 'H1', b => aggregateBars(b, 14400).map(x => ({ ...x, _isFullDay: true })), true);
         deriveFrom('H4', 'H2', b => aggregateBars(b, 14400));
         deriveFrom('D1', 'H1', b => buildDailyFromH1(b, false), true);
-        deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1'), true);
-        deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1'), true);
+        deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1').map(x => ({ ...x, _isFullDay: true })), true);
+        deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1').map(x => ({ ...x, _isFullDay: true })), true);
       }
 
       // ANA VERI MOTORU
@@ -3908,6 +3925,19 @@
             merged.set(c.time, { ...c });
           }
 
+          const srcFirstTime = srcList[0].time;
+          const srcLastTime = srcList[srcList.length - 1].time;
+          const firstBStart = getPropJournalBucketStartSec(srcFirstTime, tf);
+          const lastBStart = getPropJournalBucketStartSec(srcLastTime, tf);
+          const origLastTime = orig.length ? orig[orig.length - 1].time : 0;
+          const firstBoundaryIncomplete = (
+            (tf === 'D1' && srcFirstTime > firstBStart + 3 * 3600) ||
+            (tf === 'W1' && srcFirstTime > firstBStart + 86400) ||
+            (tf === 'MN1' && srcFirstTime > firstBStart + 3 * 86400) ||
+            (tf !== 'D1' && tf !== 'W1' && tf !== 'MN1' && srcFirstTime > firstBStart)
+          );
+          const lastBoundaryIncomplete = origLastTime > lastBStart;
+
           const agg = new Map();
           for (let i = 0; i < srcList.length; i++) {
             const sc = srcList[i];
@@ -3923,6 +3953,10 @@
             }
           }
           for (const [bStart, cur] of agg.entries()) {
+            if (merged.has(bStart)) {
+              if (bStart === firstBStart && firstBoundaryIncomplete) continue;
+              if (bStart === lastBStart && lastBoundaryIncomplete) continue;
+            }
             merged.set(bStart, cur);
           }
           out[tf] = sanitizeBars(Array.from(merged.values()));
@@ -3942,10 +3976,34 @@
       }
 
       function buildCsvRows(sym, tf, bars, dec, incVol) {
-        return bars.map(b => {
+        const rows = [];
+        appendCsvRows(rows, sym, tf, bars, dec, incVol);
+        return rows;
+      }
+
+      function appendCsvRows(targetLines, sym, tf, bars, dec, incVol) {
+        if (!bars || !bars.length) return 0;
+        let added = 0;
+        for (let i = 0; i < bars.length; i++) {
+          const b = bars[i];
           const base = `${sym},${tf},${isoUtc(b.time)},${b.open.toFixed(dec)},${b.high.toFixed(dec)},${b.low.toFixed(dec)},${b.close.toFixed(dec)}`;
-          return incVol ? `${base},${Math.round(b.volume || 0)}` : base;
-        });
+          targetLines.push(incVol ? `${base},${Math.round(b.volume || 0)}` : base);
+          added++;
+        }
+        return added;
+      }
+
+      function linesToCsvBlob(lines) {
+        const CHUNK = 25000;
+        if (lines.length <= CHUNK) {
+          return new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        }
+        const parts = [];
+        for (let i = 0; i < lines.length; i += CHUNK) {
+          const sliceStr = lines.slice(i, i + CHUNK).join('\n');
+          parts.push(i > 0 ? '\n' + sliceStr : sliceStr);
+        }
+        return new Blob(parts, { type: 'text/csv;charset=utf-8;' });
       }
 
       function downloadBlobFile(filename, blob) {
@@ -4211,9 +4269,10 @@
           card.querySelector('.tf-csv-btn').addEventListener('click', async e => {
             e.stopPropagation();
             if (!(await authorizeProtectedAction('CSV indirme'))) return;
-            const content = [csvHeader(incVol), ...buildCsvRows(exportSym, tf, csvBars, dec, incVol)].join('\n');
+            const lines = [csvHeader(incVol)];
+            appendCsvRows(lines, exportSym, tf, csvBars, dec, incVol);
             const fname = `${exportSym}_${tf}_${startStr}_${endStr}.csv`;
-            downloadTextFile(fname, content);
+            downloadBlobFile(fname, linesToCsvBlob(lines));
             showToast('CSV İndirildi', `${fname} (${csvBars.length.toLocaleString('tr-TR')} mum)`, 'ok', 2800);
           });
 
@@ -4774,10 +4833,14 @@
           const bars = exportTfBars[tf];
           if (!bars?.length) continue;
           countTf++;
-          lines.push(...buildCsvRows(exportSym, tf, bars, dec, incVol));
+          appendCsvRows(lines, exportSym, tf, bars, dec, incVol);
+        }
+        if (countTf === 0) {
+          showToast('CSV Boş', 'Birleştirilecek mum verisi bulunamadı.', 'warn');
+          return;
         }
         const fname = `${exportSym}_BIRLESIK_${countTf}TF_${startStr}_${endStr}.csv`;
-        downloadTextFile(fname, lines.join('\n'));
+        downloadBlobFile(fname, linesToCsvBlob(lines));
         showToast('Birleşik CSV İndirildi', `${fname} (${countTf} zaman dilimi)`, 'ok', 2800);
       });
 
@@ -4798,12 +4861,16 @@
             const bars = payload.exportTfBars[tf];
             if (!bars?.length) continue;
             hasBars = true;
-            lines.push(...buildCsvRows(payload.exportSym, tf, bars, payload.dec, incVol));
+            appendCsvRows(lines, payload.exportSym, tf, bars, payload.dec, incVol);
           }
           if (hasBars) pairCount++;
         }
+        if (pairCount === 0) {
+          showToast('Toplu CSV Boş', 'Dışa aktarılacak mum verisi bulunamadı.', 'warn');
+          return;
+        }
         const fname = `TOPLU_${pairCount}PARITE_11TF_${firstStart}_${firstEnd}.csv`;
-        downloadTextFile(fname, lines.join('\n'));
+        downloadBlobFile(fname, linesToCsvBlob(lines));
         showToast('Toplu CSV İndirildi', `${fname} (${(lines.length - 1).toLocaleString('tr-TR')} satır)`, 'ok', 3200);
       });
 
@@ -4824,7 +4891,7 @@
             const bars = payload.exportTfBars[tf];
             if (!bars?.length) continue;
             countTf++;
-            lines.push(...buildCsvRows(payload.exportSym, tf, bars, payload.dec, incVol));
+            appendCsvRows(lines, payload.exportSym, tf, bars, payload.dec, incVol);
           }
           if (countTf > 0) {
             zipFiles.push({
