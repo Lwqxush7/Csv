@@ -148,6 +148,7 @@
       padding: 9px 16px;
       background: linear-gradient(165deg, rgba(32, 37, 50, 0.72) 0%, rgba(16, 19, 27, 0.90) 100%);
       color: var(--text);
+      text-decoration: none;
       font-family: inherit;
       font-size: 13px;
       font-weight: 600;
@@ -1053,6 +1054,27 @@
       color: var(--muted);
       font-variant-numeric: tabular-nums;
     }
+    .auth-pj-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      background: rgba(229, 182, 92, 0.08);
+      border: 1px solid rgba(229, 182, 92, 0.24);
+      font-size: 12px;
+      color: var(--text);
+    }
+    .auth-pj-row .auth-pj-text strong {
+      color: #f6dc9b;
+    }
+    .btn.btn-step-locked {
+      opacity: 0.55;
+      filter: grayscale(0.25);
+    }
 
     @media (max-width: 960px) {
       .ambient-orb { opacity: 0.55; }
@@ -1129,10 +1151,10 @@
             </span>
             Prop Journal Erişim Doğrulaması
           </div>
-          <span id="authStateBadge" class="badge err">1/2 Link Gerekli</span>
+          <span id="authStateBadge" class="badge err">0/2 Prop Journal Linki Gerekli</span>
         </div>
         <div id="authGateDesc" class="auth-gate-desc">
-          Veri çekme, Ayarlar ve CSV / ZIP / PNG indirme özellikleri yalnızca Prop Journal üzerinden gelenler içindir. Önce Prop Journal'daki "Veri Merkezini Aç" butonuyla gelin, ardından oradaki 30 saniyelik 6 haneli kodu girin.
+          Doğrudan erişim kapalıdır (0/2). Önce Prop Journal içindeki "Veri Merkezini Aç" linkiyle bu sayfayı açın, ardından orada görünen 30 saniyelik 6 haneli kodu buraya yazın.
         </div>
         <div class="auth-grid">
           <div class="auth-form-row">
@@ -1146,6 +1168,10 @@
             </div>
             <div class="auth-timer-track"><div id="authTimerFill" class="auth-timer-fill"></div></div>
           </div>
+        </div>
+        <div id="authPjLinkRow" class="auth-pj-row">
+          <span id="authPjHintText" class="auth-pj-text">Önce Prop Journal’a gidip <strong>"Veri Merkezini Aç"</strong> linkiyle bu sayfayı açın, sonra kodu girin.</span>
+          <a id="authOpenPjLink" href="https://lwqxush7.github.io/Trade/" target="_blank" rel="noopener" class="btn btn-sm btn-primary">Prop Journal’ı Aç →</a>
         </div>
         <div id="authGoogleRow" class="auth-form-row" style="display:none;margin-top:10px;">
           <button type="button" id="authGoogleBtn" class="btn btn-sm">Prop Journal (Google) ile Giriş Yap</button>
@@ -4880,21 +4906,39 @@
         if ($('authStateBadge') && !unlocked) {
           if (linkReady) {
             $('authStateBadge').className = 'badge partial';
-            $('authStateBadge').textContent = '2/2 Link Onaylı · Kod Girin';
+            $('authStateBadge').textContent = '1/2 Link Onaylı · Kod Girin';
           } else {
             $('authStateBadge').className = 'badge err';
-            $('authStateBadge').textContent = '1/2 Prop Journal Linki Gerekli';
+            $('authStateBadge').textContent = '0/2 Prop Journal Linki Gerekli';
           }
         }
         if ($('authGateDesc') && !unlocked) {
           $('authGateDesc').textContent = linkReady
-            ? 'Adım 1/2 tamamlandı: İmzalı Prop Journal bağlantısı doğrulandı. Kilidi açmak için şimdi Prop Journal ekranındaki 30 saniyelik 6 haneli kodu girin.'
-            : 'Doğrudan erişim kapalıdır. Önce Prop Journal içindeki "Veri Merkezini Aç" butonundan bu sayfayı açın, ardından orada görünen 30 saniyelik 6 haneli kodu girin.';
+            ? 'Adım 1/2 tamamlandı: İmzalı Prop Journal bağlantısı doğrulandı. Kilidi tamamen açmak için şimdi Prop Journal ekranındaki 30 saniyelik 6 haneli kodu buraya yazın.'
+            : 'Doğrudan erişim kapalıdır (0/2). Aşağıdaki bağlantıdan Prop Journal’a geçip "Veri Merkezini Aç" linkiyle bu sayfayı açın, ardından orada görünen 30 saniyelik 6 haneli kodu girin.';
+        }
+
+        if ($('authPjLinkRow') && !unlocked) {
+          $('authPjLinkRow').style.display = linkReady ? 'none' : '';
+          if ($('authPjHintText')) {
+            if (state.authBackendMode === 'firebase' && state.fbUser) {
+              const emailEsc = escapeHtml(state.fbUser.email || 'Oturum açık');
+              $('authPjHintText').innerHTML = `Prop Journal oturumu algılandı (<strong>${emailEsc}</strong>) — henüz linkle gelinmedi. Buradan açıp <strong>"Veri Merkezini Aç"</strong> deyin ve kodu buraya yazın.`;
+            } else {
+              $('authPjHintText').innerHTML = 'Önce Prop Journal’a gidip <strong>"Veri Merkezini Aç"</strong> linkiyle bu sayfayı açın, sonra oradaki 6 haneli kodu buraya yazın.';
+            }
+          }
         }
 
         const canTypeCode = linkReady && (state.authBackendMode !== 'firebase' || Boolean(state.fbUser));
-        if ($('authCodeInput')) $('authCodeInput').disabled = !canTypeCode;
-        if ($('authVerifyBtn')) $('authVerifyBtn').disabled = !canTypeCode;
+        if ($('authCodeInput')) {
+          $('authCodeInput').disabled = !canTypeCode;
+          $('authCodeInput').placeholder = canTypeCode ? '000000' : 'Önce link';
+        }
+        if ($('authVerifyBtn')) {
+          $('authVerifyBtn').disabled = false;
+          $('authVerifyBtn').classList.toggle('btn-step-locked', !canTypeCode);
+        }
 
         if (!unlocked) {
           $('settingsPanel').classList.remove('open');
@@ -5380,7 +5424,7 @@
           try {
             await ensureFirebaseClient();
             if (state.fbUser) {
-              setAuthMsg('ok', `Prop Journal oturumu algılandı (${state.fbUser.email || 'Giriş yapıldı'}).`);
+              setAuthMsg('', '');
             } else {
               setAuthMsg('err', 'Önce Prop Journal hesabınızla Google girişi yapın.');
             }
