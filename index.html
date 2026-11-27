@@ -1076,10 +1076,69 @@
       filter: grayscale(0.25);
     }
 
+    /* ===== PROP JOURNAL DENETIM & YEREL CSV BIRLESTIRICI ===== */
+    .pj-audit-box {
+      padding: 12px 15px;
+      border-radius: 12px;
+      border: 1px solid rgba(229, 182, 92, 0.28);
+      background: linear-gradient(160deg, rgba(22, 26, 36, 0.72), rgba(10, 12, 18, 0.9));
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-size: 12px;
+    }
+    .pj-audit-box.ok { border-color: rgba(34, 197, 94, 0.36); background: linear-gradient(160deg, rgba(16, 32, 24, 0.62), rgba(10, 12, 18, 0.9)); }
+    .pj-audit-box.warn { border-color: rgba(245, 158, 11, 0.42); background: linear-gradient(160deg, rgba(36, 26, 12, 0.64), rgba(10, 12, 18, 0.9)); }
+    .pj-audit-box.err { border-color: rgba(239, 68, 68, 0.44); background: linear-gradient(160deg, rgba(38, 16, 18, 0.64), rgba(10, 12, 18, 0.9)); }
+    .pj-audit-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    .pj-audit-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--white); font-size: 12.5px; }
+    .pj-audit-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pj-audit-list { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.5; }
+    .pj-audit-list li strong { color: var(--text); }
+
+    .local-merge-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .local-merge-head-left { display: flex; flex-direction: column; gap: 3px; }
+    .local-merge-head-left h3 { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--white); }
+    .local-merge-head-left p { font-size: 12px; color: var(--muted); }
+    .local-merge-body { display: none; flex-direction: column; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .local-merge-body.open { display: flex; animation: panelReveal 0.24s var(--ease) backwards; }
+    .dropzone {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-align: center;
+      padding: 20px 16px;
+      border-radius: 13px;
+      border: 1.5px dashed rgba(229, 182, 92, 0.36);
+      background: linear-gradient(160deg, rgba(20, 24, 34, 0.56), rgba(9, 11, 16, 0.85));
+      cursor: pointer;
+      transition: border-color 0.18s var(--ease), background 0.18s var(--ease), transform 0.18s var(--ease);
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: rgba(246, 220, 155, 0.78);
+      background: linear-gradient(160deg, rgba(229, 182, 92, 0.14), rgba(12, 14, 20, 0.9));
+      transform: translateY(-1px);
+    }
+    .dropzone strong { color: #f6dc9b; font-size: 13.5px; }
+    .dropzone span { color: var(--muted); font-size: 12px; }
+    .local-merge-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .local-merge-left { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; flex: 1; }
+    .local-merge-sym { max-width: 240px; min-width: 170px; font-family: var(--font-mono); text-transform: uppercase; }
+
     @media (max-width: 960px) {
       .ambient-orb { opacity: 0.55; }
       .toast-stack { right: 12px; bottom: 12px; }
       .auth-grid { grid-template-columns: 1fr; }
+      .local-merge-sym { max-width: 100%; width: 100%; }
     }
   </style>
 </head>
@@ -1426,11 +1485,11 @@
             <svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19h16"/></svg>
             Tek Birleşik CSV İndir
           </button>
-          <button type="button" id="downloadBatchCsvBtn" class="btn btn-primary" style="display:none;">
+          <button type="button" id="downloadBatchCsvBtn" class="btn btn-primary" style="display:none;" title="Tüm pariteleri tek CSV dosyasında birleştirir (Excel/Python için; Prop Journal Replay tekil parite CSV'si ister, bunun için ZIP kullanın)">
             <svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19h16"/></svg>
             Toplu Tek CSV İndir
           </button>
-          <button type="button" id="downloadBatchZipBtn" class="btn" style="display:none;">
+          <button type="button" id="downloadBatchZipBtn" class="btn" style="display:none;" title="Her parite için ayrı Prop Journal Replay uyumlu birleşik CSV içeren ZIP arşivi">
             <svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
             Tüm Pariteler (.zip)
           </button>
@@ -1438,6 +1497,8 @@
       </div>
 
       <div id="batchPairBar" class="batch-pair-bar"></div>
+
+      <div id="pjAuditBox" class="pj-audit-box" style="display:none;" aria-live="polite"></div>
 
       <div id="tfGrid" class="tf-grid"></div>
 
@@ -1473,6 +1534,59 @@
           <table>
             <thead id="tableHead"></thead>
             <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="localCsvMergeCard" class="card local-merge-card">
+      <div class="local-merge-head">
+        <div class="local-merge-head-left">
+          <h3>
+            Yerel CSV Birleştirici &amp; Prop Journal Uyum Aracı
+            <span id="localMergeBadge" class="badge">0 Dosya</span>
+          </h3>
+          <p>MT5, TradingView, Dukascopy veya ayrı zaman dilimli CSV dosyalarınızı birleştirin, tekilleştirin ve Prop Journal UTC formatına dönüştürün.</p>
+        </div>
+        <button type="button" id="localMergeToggleBtn" class="btn btn-sm" aria-expanded="false" aria-controls="localMergeBody">Aracı Aç</button>
+      </div>
+      <div id="localMergeBody" class="local-merge-body">
+        <label for="localCsvFiles" id="localCsvDropzone" class="dropzone" tabindex="0">
+          <input type="file" id="localCsvFiles" accept=".csv,.txt,text/csv,text/plain" multiple style="display:none;" />
+          <strong>CSV / TXT dosyalarını buraya sürükleyin veya tıklayıp seçin</strong>
+          <span>Çoklu dosya destekler (virgül, noktalı virgül, sekme; MT5 Date+Time; Unix/ISO/Dukascopy; 1M/MN1 otomatik ayrımı)</span>
+        </label>
+        <div class="local-merge-controls">
+          <div class="local-merge-left">
+            <input type="text" id="localMergeSymbolInput" class="input local-merge-sym" placeholder="Sembol yoksa (örn. NAS100)" autocomplete="off" aria-label="Varsayılan parite sembolü" />
+            <label class="chk-label" title="UTC H2/H4/D1 kovalarını ve M1→MN1 çoklu dilim türetmesini Prop Journal Replay ile %100 hizalar">
+              <input type="checkbox" id="localMergePjCompatChk" checked />
+              <span>Prop Journal uyumlu (UTC + SPX500)</span>
+            </label>
+            <label class="chk-label">
+              <input type="checkbox" id="localMergeVolChk" checked />
+              <span>volume sütunu olsun</span>
+            </label>
+          </div>
+          <div class="session-bar">
+            <button type="button" id="localMergeClearBtn" class="btn btn-sm" disabled>Temizle</button>
+            <button type="button" id="localMergeDownloadBtn" class="btn btn-green btn-sm" disabled>Birleşik CSV İndir</button>
+            <button type="button" id="localMergeZipBtn" class="btn btn-primary btn-sm" style="display:none;" disabled>Paritelere Göre (.zip)</button>
+          </div>
+        </div>
+        <div id="localMergeAuditBox" class="pj-audit-box" style="display:none;" aria-live="polite"></div>
+        <div id="localMergeTableWrap" class="table-wrap" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th>Dosya / Parite</th>
+                <th>Ayırıcı / Sembol</th>
+                <th>Zaman Dilimi</th>
+                <th>Ham → Net Mum</th>
+                <th>Tarih Aralığı (UTC)</th>
+              </tr>
+            </thead>
+            <tbody id="localMergeTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -1607,7 +1721,9 @@
         fbUser: null,
         fbFailCount: 0,
         fbLockUntil: 0,
-        fbPendingLink: null
+        fbPendingLink: null,
+        localMergeFiles: [],
+        localMergeBuilt: null
       };
 
       const $ = id => document.getElementById(id);
@@ -1954,11 +2070,24 @@
         const map = new Map();
         const sorted = sanitizeBars(bars);
         for (const b of sorted) {
-          const wd = new Date(b.time * 1000).getUTCDay();
-          const targetTime = wd === 0 ? b.time + 86400 : (wd === 6 ? b.time - 86400 : b.time);
+          const d = new Date(b.time * 1000);
+          const wd = d.getUTCDay();
+          const hr = d.getUTCHours();
+          let targetTime = b.time;
+          if (b.time % 86400 !== 0) {
+            if (hr >= 20 && wd !== 5 && wd !== 6) {
+              targetTime = getNyCloseTradingDate(b.time);
+            } else {
+              const dayMid = Math.floor(b.time / 86400) * 86400;
+              targetTime = wd === 0 ? dayMid + 86400 : (wd === 6 ? dayMid - 86400 : dayMid);
+            }
+          } else {
+            targetTime = wd === 0 ? b.time + 86400 : (wd === 6 ? b.time - 86400 : b.time);
+          }
+          const isFoldedWeekend = (wd === 0 || wd === 6);
           const prev = map.get(targetTime);
           if (!prev) {
-            map.set(targetTime, { time: targetTime, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0, _srcWd: wd });
+            map.set(targetTime, { time: targetTime, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0, _srcWd: wd, _folded: isFoldedWeekend });
           } else if (wd === 0) {
             map.set(targetTime, {
               time: targetTime,
@@ -1967,9 +2096,10 @@
               low: Math.min(prev.low, b.low),
               close: prev.close,
               volume: (prev.volume || 0) + (b.volume || 0),
-              _srcWd: prev._srcWd
+              _srcWd: prev._srcWd,
+              _folded: prev._folded
             });
-          } else if (wd === 6 || (wd === 1 && prev._srcWd === 0)) {
+          } else if (wd === 6 || (wd === 1 && prev._folded)) {
             map.set(targetTime, {
               time: targetTime,
               open: prev.open,
@@ -1977,14 +2107,15 @@
               low: Math.min(prev.low, b.low),
               close: b.close,
               volume: (prev.volume || 0) + (b.volume || 0),
-              _srcWd: wd
+              _srcWd: wd,
+              _folded: false
             });
           } else {
-            map.set(targetTime, { time: targetTime, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0, _srcWd: wd });
+            map.set(targetTime, { time: targetTime, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0, _srcWd: wd, _folded: false });
           }
         }
         return Array.from(map.values())
-          .map(({ _srcWd, ...rest }) => rest)
+          .map(({ _srcWd, _folded, ...rest }) => rest)
           .sort((a, b) => a.time - b.time);
       }
 
@@ -3485,6 +3616,7 @@
         deriveFrom('H4', 'H1', b => aggregateBars(b, 14400).map(x => ({ ...x, _isFullDay: true })), true);
         deriveFrom('H4', 'H2', b => aggregateBars(b, 14400));
         deriveFrom('D1', 'H1', b => buildDailyFromH1(b, false), true);
+        if (tfBars.D1?.length) tfBars.D1 = foldSundayIntoMondayD1(tfBars.D1);
         deriveFrom('W1', 'D1', b => buildCalendarBars(b, 'W1').map(x => ({ ...x, _isFullDay: true })), true);
         deriveFrom('MN1', 'D1', b => buildCalendarBars(b, 'MN1').map(x => ({ ...x, _isFullDay: true })), true);
       }
@@ -3610,9 +3742,10 @@
         setProgress(24, `${pair.code} • biquote.io aşaması tamamlandı`);
 
         // ADIM 2: YAHOO FINANCE 24/5 (Vadeli NQ=F/ES=F/YM=F/GC=F/SI=F/CL=F/BZ=F/NG=F ve Forex =X)
-        const limM1 = nowSec - (29 * 86400 + 43200);
-        const limM5 = nowSec - (58 * 86400 + 43200);
-        const limH1 = nowSec - (720 * 86400);
+        // Temiz UTC saat/gun sinirina oturt ki M1/M5/H1 ilk mumlari Prop Journal birlestirmesinde kenar kovasini bozmasin
+        const limM1 = Math.ceil((nowSec - (29 * 86400 + 36000)) / 3600) * 3600;
+        const limM5 = Math.ceil((nowSec - (58 * 86400 + 36000)) / 3600) * 3600;
+        const limH1 = Math.ceil((nowSec - (719 * 86400)) / 86400) * 86400;
 
         const runYahooTicker = async (ticker, providerId, label, isFuturesSource, pctStart, pctSpan, allowedTfs = null) => {
           let transportFails = 0, reachable = false, yahooDead = false;
@@ -3877,8 +4010,9 @@
       }
 
       function getCsvExportSymbol(pairCode, pjCompat) {
-        if (pjCompat && pairCode === 'SP500') return 'SPX500';
-        return pairCode;
+        const up = String(pairCode || '').trim().toUpperCase();
+        if (pjCompat && (up === 'SP500' || up === 'US500')) return 'SPX500';
+        return up || String(pairCode || '');
       }
 
       function getPropJournalBucketStartSec(timeSec, tf) {
@@ -3888,10 +4022,36 @@
         return Math.floor(timeSec / p) * p;
       }
 
-      function buildPropJournalTfBars(tfBars) {
+      function getPropJournalContractInfo(pairRaw) {
+        const clean = String(pairRaw || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!clean) return { size: 1, recognized: true };
+        if (clean === 'XAUUSD' || clean.startsWith('XAU')) return { size: 100, recognized: true };
+        if (clean === 'XAGUSD' || clean.startsWith('XAG')) return { size: 5000, recognized: true };
+        const indexSymbols = new Set([
+          'NAS100', 'US30', 'SPX', 'SPX500', 'US500', 'US100', 'USTEC',
+          'USATECHIDXUSD', 'USA30IDXUSD', 'USA500IDXUSD', 'NDX', 'DJI',
+          'DAX', 'DE40', 'GER40', 'UK100', 'JP225', 'FRA40'
+        ]);
+        if (indexSymbols.has(clean)) return { size: 1, recognized: true };
+        if (clean === 'BTCUSD') return { size: 1, recognized: true };
+        const fx = new Set([
+          'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'NZD', 'CAD',
+          'TRY', 'SEK', 'NOK', 'DKK', 'PLN', 'ZAR', 'SGD', 'HKD', 'MXN', 'CNH'
+        ]);
+        if (clean.length === 6) {
+          const base = clean.slice(0, 3);
+          const quote = clean.slice(3, 6);
+          if (base !== quote && fx.has(base) && fx.has(quote)) return { size: 100000, recognized: true };
+        }
+        return { size: 1, recognized: false };
+      }
+
+      function buildPropJournalTfBars(tfBars, opts = {}) {
+        const { onlyExisting = false } = opts;
         const out = {};
         for (const tf of ALL_TF) {
-          out[tf] = sanitizeBars(tfBars[tf] || []);
+          const cleaned = sanitizeBars(tfBars[tf] || []);
+          out[tf] = tf === 'D1' && cleaned.length ? foldSundayIntoMondayD1(cleaned) : cleaned;
         }
 
         // Prop Journal reconcileRpMultiTfCandles ile birebir ayni kova hiyerarsisi:
@@ -3909,19 +4069,21 @@
           MN1: ['D1', 'H4', 'H2', 'H1']
         };
         const parents = ['M3', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'D1', 'W1', 'MN1'];
+        const partialBuckets = {};
 
         for (const tf of parents) {
           const orig = out[tf] || [];
+          if (onlyExisting && !orig.length) continue;
           const srcTf = (childSources[tf] || []).find(s => (out[s]?.length || 0) > 0);
           if (!srcTf) continue;
           const srcList = out[srcTf];
 
-          // H2 ve H4'te NY Close (21Z/22Z) ile UTC (00Z/04Z) karismasin diye alt TF varsa
-          // yalnizca Prop Journal'in UTC kovasina uyan baz mumlari tutar, ustune turetiriz.
+          // Alt TF mevcutken UTC kovasina uymayan (orn. 21Z/22Z NY kapanisi) baz mumlari disla ki
+          // UTC-00Z kovasiyla cift mum veya offset cakismasi olusmasin.
           const merged = new Map();
           for (const c of orig) {
             const expectedKey = getPropJournalBucketStartSec(c.time, tf);
-            if ((tf === 'H2' || tf === 'H4') && c.time !== expectedKey) continue;
+            if (c.time !== expectedKey) continue;
             merged.set(c.time, { ...c });
           }
 
@@ -3930,13 +4092,15 @@
           const firstBStart = getPropJournalBucketStartSec(srcFirstTime, tf);
           const lastBStart = getPropJournalBucketStartSec(srcLastTime, tf);
           const origLastTime = orig.length ? orig[orig.length - 1].time : 0;
-          const firstBoundaryIncomplete = (
+          const srcPartials = partialBuckets[srcTf];
+          const firstBoundaryIncomplete = Boolean(
+            (srcPartials && srcPartials.has(srcFirstTime)) ||
             (tf === 'D1' && srcFirstTime > firstBStart + 3 * 3600) ||
             (tf === 'W1' && srcFirstTime > firstBStart + 86400) ||
             (tf === 'MN1' && srcFirstTime > firstBStart + 3 * 86400) ||
             (tf !== 'D1' && tf !== 'W1' && tf !== 'MN1' && srcFirstTime > firstBStart)
           );
-          const lastBoundaryIncomplete = origLastTime > lastBStart;
+          const lastBoundaryIncomplete = origLastTime > lastBStart || Boolean(srcPartials && srcPartials.has(srcLastTime));
 
           const agg = new Map();
           for (let i = 0; i < srcList.length; i++) {
@@ -3952,17 +4116,102 @@
               cur.volume += (sc.volume || 0);
             }
           }
+          const tfPartials = new Set();
           for (const [bStart, cur] of agg.entries()) {
+            const isPartialFirst = bStart === firstBStart && firstBoundaryIncomplete;
+            const isPartialLast = bStart === lastBStart && lastBoundaryIncomplete;
             if (merged.has(bStart)) {
-              if (bStart === firstBStart && firstBoundaryIncomplete) continue;
-              if (bStart === lastBStart && lastBoundaryIncomplete) continue;
+              if (isPartialFirst || isPartialLast) continue;
+            } else if (isPartialFirst || isPartialLast) {
+              tfPartials.add(bStart);
             }
             merged.set(bStart, cur);
           }
+          if (tfPartials.size) partialBuckets[tf] = tfPartials;
           out[tf] = sanitizeBars(Array.from(merged.values()));
         }
 
         return out;
+      }
+
+      function auditPropJournalExport(payload) {
+        if (!payload) return { status: 'err', badge: 'Veri Yok', items: ['Denetlenecek veri bulunamadı.'], stats: { totalRows: 0, tfCount: 0, contractSize: 1 } };
+        const { exportSym, exportTfBars, pjCompat } = payload;
+        const contract = getPropJournalContractInfo(exportSym);
+        const issues = [];
+        const notes = [];
+        let severity = 'ok';
+        let totalRows = 0;
+        let tfCount = 0;
+        let orderErrors = 0;
+        let ohlcErrors = 0;
+        let offGridCount = 0;
+        const offGridTfs = [];
+
+        for (const tf of ALL_TF) {
+          const bars = exportTfBars?.[tf] || [];
+          if (!bars.length) continue;
+          tfCount++;
+          totalRows += bars.length;
+          let tfOffGrid = 0;
+          for (let i = 0; i < bars.length; i++) {
+            const b = bars[i];
+            if (i > 0 && b.time <= bars[i - 1].time) orderErrors++;
+            if (!(b.high >= b.open && b.high >= b.close && b.low <= b.open && b.low <= b.close && b.high >= b.low)) ohlcErrors++;
+            if (tf !== 'M1') {
+              const expected = getPropJournalBucketStartSec(b.time, tf);
+              if (b.time !== expected) tfOffGrid++;
+            }
+          }
+          if (tfOffGrid > 0) {
+            offGridCount += tfOffGrid;
+            offGridTfs.push(`${tf}(${tfOffGrid})`);
+          }
+        }
+
+        if (totalRows === 0) {
+          return {
+            status: 'err',
+            badge: 'Boş Veri',
+            items: ['Hiçbir zaman diliminde geçerli mum verisi yok.'],
+            stats: { totalRows: 0, tfCount: 0, contractSize: contract.size }
+          };
+        }
+
+        if (orderErrors > 0 || ohlcErrors > 0) {
+          severity = 'err';
+          issues.push(`${orderErrors} zaman/tekrar hatası, ${ohlcErrors} OHLC sınır hatası tespit edildi.`);
+        }
+        if (!pjCompat) {
+          if (severity === 'ok') severity = 'warn';
+          issues.push('<strong>Prop Journal uyumlu CSV</strong> kapalı: NY kapanışlı H2/H4 veya SP500 sembolü Prop Journal Replay çoklu diliminde sapma yapabilir.');
+        }
+        if (offGridCount > 0) {
+          if (severity === 'ok') severity = 'warn';
+          const h1Missing = !(exportTfBars?.H1?.length) && (offGridTfs.some(x => x.startsWith('H4(') || x.startsWith('H2(')));
+          issues.push(
+            h1Missing
+              ? `<strong>${offGridTfs.join(', ')}</strong> dilimlerinde UTC dışı kapanış saati var (H1 bulunmadığından NY kapanışı korundu).`
+              : `<strong>${offGridTfs.join(', ')}</strong> dilimlerinde ${offGridCount} mum UTC kova başlangıcında değil.`
+          );
+        }
+        if (!contract.recognized) {
+          if (severity === 'ok') severity = 'warn';
+          notes.push(`<strong>${escapeHtml(exportSym)}</strong> için Prop Journal kontrat büyüklüğünü otomatik <strong>1</strong> varsayar — emtia kontrat değerinizi Replay panelinden doğrulayın.`);
+        } else {
+          notes.push(`Kontrat: <strong>${escapeHtml(exportSym)}</strong> → Otomatik <strong>${contract.size.toLocaleString('tr-TR')}</strong> birim.`);
+        }
+
+        const badge = severity === 'ok' ? 'Prop Journal %100 Uyumlu' : (severity === 'warn' ? 'Uyarı Var' : 'Hata Tespit Edildi');
+        if (severity === 'ok') {
+          issues.push(`${tfCount} zaman dilimi, ${totalRows.toLocaleString('tr-TR')} mum: artan UTC sıra, tekrarsız zaman damgası, geçerli OHLC ve tam UTC kova hizalaması doğrulandı.`);
+        }
+        return {
+          status: severity,
+          badge,
+          items: [...issues, ...notes],
+          stats: { totalRows, tfCount, contractSize: contract.size, orderErrors, ohlcErrors, offGridCount }
+        };
       }
 
       function getExportPayload(resultObj = state.result) {
@@ -4021,13 +4270,17 @@
         downloadBlobFile(filename, new Blob([content], { type: 'text/csv;charset=utf-8;' }));
       }
 
-      function crc32(bytes) {
-        let crc = 0xFFFFFFFF;
+      function crc32Update(crc, bytes) {
+        let c = crc >>> 0;
         for (let i = 0; i < bytes.length; i++) {
-          crc ^= bytes[i];
-          for (let j = 0; j < 8; j++) crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
+          c ^= bytes[i];
+          for (let j = 0; j < 8; j++) c = (c >>> 1) ^ (c & 1 ? 0xEDB88320 : 0);
         }
-        return (crc ^ 0xFFFFFFFF) >>> 0;
+        return c >>> 0;
+      }
+
+      function crc32(bytes) {
+        return (crc32Update(0xFFFFFFFF, bytes) ^ 0xFFFFFFFF) >>> 0;
       }
 
       function buildZipBlob(files) {
@@ -4035,38 +4288,60 @@
         const localParts = [];
         const centralParts = [];
         let offset = 0;
+        const CHUNK = 25000;
 
         for (const f of files) {
           const nameBytes = enc.encode(f.name);
-          const dataBytes = typeof f.content === 'string' ? enc.encode(f.content) : f.content;
-          const crc = crc32(dataBytes);
+          const dataChunks = [];
+          let dataLen = 0;
+          let runningCrc = 0xFFFFFFFF;
 
+          if (Array.isArray(f.content)) {
+            const lines = f.content;
+            for (let i = 0; i < lines.length; i += CHUNK) {
+              const str = (i > 0 ? '\n' : '') + lines.slice(i, i + CHUNK).join('\n');
+              const u8 = enc.encode(str);
+              dataChunks.push(u8);
+              dataLen += u8.length;
+              runningCrc = crc32Update(runningCrc, u8);
+            }
+          } else {
+            const u8 = typeof f.content === 'string' ? enc.encode(f.content) : f.content;
+            dataChunks.push(u8);
+            dataLen = u8.length;
+            runningCrc = crc32Update(runningCrc, u8);
+          }
+
+          const crc = (runningCrc ^ 0xFFFFFFFF) >>> 0;
           const lfh = new Uint8Array(30 + nameBytes.length);
           const lv = new DataView(lfh.buffer);
           lv.setUint32(0, 0x04034b50, true);
           lv.setUint16(4, 20, true);
+          lv.setUint16(6, 0x0800, true);
           lv.setUint16(8, 0, true);
           lv.setUint32(14, crc, true);
-          lv.setUint32(18, dataBytes.length, true);
-          lv.setUint32(22, dataBytes.length, true);
+          lv.setUint32(18, dataLen, true);
+          lv.setUint32(22, dataLen, true);
           lv.setUint16(26, nameBytes.length, true);
           lfh.set(nameBytes, 30);
-          localParts.push(lfh, dataBytes);
+          localParts.push(lfh, ...dataChunks);
 
           const cdh = new Uint8Array(46 + nameBytes.length);
           const cv = new DataView(cdh.buffer);
           cv.setUint32(0, 0x02014b50, true);
           cv.setUint16(4, 20, true);
           cv.setUint16(6, 20, true);
+          cv.setUint16(8, 0x0800, true);
+          cv.setUint16(10, 0, true);
           cv.setUint32(16, crc, true);
-          cv.setUint32(20, dataBytes.length, true);
-          cv.setUint32(24, dataBytes.length, true);
+          cv.setUint32(20, dataLen, true);
+          cv.setUint32(24, dataLen, true);
           cv.setUint16(28, nameBytes.length, true);
           cv.setUint32(42, offset, true);
           cdh.set(nameBytes, 46);
           centralParts.push(cdh);
 
-          offset += lfh.length + dataBytes.length;
+          offset += lfh.length + dataLen;
         }
 
         const centralSize = centralParts.reduce((s, p) => s + p.length, 0);
@@ -4079,6 +4354,342 @@
         ev.setUint32(16, offset, true);
 
         return new Blob([...localParts, ...centralParts, eocd], { type: 'application/zip' });
+      }
+
+      // ===== HARICI / YEREL CSV PARSER & PROP JOURNAL BIRLESTIRICI =====
+      function detectCsvDelimiter(lines) {
+        const candidates = [',', ';', '\t', '|'];
+        const sample = (lines || []).slice(0, 6);
+        let bestDelim = ',';
+        let bestScore = -1;
+        for (const delim of candidates) {
+          const counts = sample.map(l => l.split(delim).length);
+          const minCols = Math.min(...counts);
+          if (minCols >= 4) {
+            const firstCols = counts[0];
+            const consistent = counts.every(c => c === firstCols);
+            const score = (consistent ? 100 : 0) + minCols;
+            if (score > bestScore) {
+              bestScore = score;
+              bestDelim = delim;
+            }
+          }
+        }
+        if (bestScore >= 0) return bestDelim;
+        const first = sample[0] || '';
+        for (const d of candidates) if (first.includes(d)) return d;
+        return ',';
+      }
+
+      function parseCsvNumber(raw, delimiter) {
+        if (raw === undefined || raw === null) return NaN;
+        let str = String(raw).trim().replace(/^["']|["']$/g, '');
+        if (!str) return NaN;
+        if ((delimiter === ';' || delimiter === '\t') && str.includes(',') && !str.includes('.')) {
+          str = str.replace(',', '.');
+        }
+        const v = Number(str);
+        return Number.isFinite(v) ? v : NaN;
+      }
+
+      function parseCsvTimeValue(raw) {
+        if (raw === undefined || raw === null) return null;
+        const str = String(raw).trim().replace(/^["']|["']$/g, '');
+        if (!str) return null;
+        if (/^\d+(?:\.\d+)?$/.test(str)) {
+          const num = Number(str);
+          if (!Number.isFinite(num) || num <= 0) return null;
+          return num >= 1e11 ? Math.floor(num / 1000) : Math.floor(num);
+        }
+        let m = str.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:?\d{2})?)?$/i);
+        if (m) {
+          const year = Number(m[1]), month = Number(m[2]), day = Number(m[3]);
+          const hour = m[4] !== undefined ? Number(m[4]) : 0;
+          const min = m[5] !== undefined ? Number(m[5]) : 0;
+          const sec = m[6] !== undefined ? Number(m[6]) : 0;
+          const tz = m[8];
+          if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || min > 59 || sec > 59) return null;
+          if (tz) {
+            const iso = `${String(year).padStart(4, '0')}-${pad2(month)}-${pad2(day)}T${pad2(hour)}:${pad2(min)}:${pad2(sec)}${tz}`;
+            const ms = Date.parse(iso);
+            return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+          }
+          return Math.floor(Date.UTC(year, month - 1, day, hour, min, sec) / 1000);
+        }
+        m = str.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?$/);
+        if (m) {
+          let day = Number(m[1]), month = Number(m[2]);
+          const year = Number(m[3]);
+          const hour = m[4] !== undefined ? Number(m[4]) : 0;
+          const min = m[5] !== undefined ? Number(m[5]) : 0;
+          const sec = m[6] !== undefined ? Number(m[6]) : 0;
+          if (month > 12 && day <= 12) { const tmp = month; month = day; day = tmp; }
+          if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || min > 59 || sec > 59) return null;
+          return Math.floor(Date.UTC(year, month - 1, day, hour, min, sec) / 1000);
+        }
+        const fallbackMs = Date.parse(str);
+        return Number.isFinite(fallbackMs) ? Math.floor(fallbackMs / 1000) : null;
+      }
+
+      function normalizeCsvTimeframe(raw, preferMonthFor1M = false) {
+        if (raw === undefined || raw === null) return '';
+        const trimmed = String(raw).trim().replace(/^["']|["']$/g, '');
+        if (!trimmed) return '';
+        if (trimmed === '1M' && preferMonthFor1M) return 'MN1';
+        if (trimmed === 'M' || /^1\s*mo(nths?)?$/i.test(trimmed)) return 'MN1';
+        const s = trimmed.toUpperCase().replace(/\s+/g, '');
+        const map = {
+          '1': 'M1', '1M': 'M1', 'M1': 'M1', '1MIN': 'M1', '1MINUTE': 'M1', '1MINUTES': 'M1',
+          '3': 'M3', '3M': 'M3', 'M3': 'M3', '3MIN': 'M3', '3MINUTES': 'M3',
+          '5': 'M5', '5M': 'M5', 'M5': 'M5', '5MIN': 'M5', '5MINUTES': 'M5',
+          '15': 'M15', '15M': 'M15', 'M15': 'M15', '15MIN': 'M15', '15MINUTES': 'M15',
+          '30': 'M30', '30M': 'M30', 'M30': 'M30', '30MIN': 'M30', '30MINUTES': 'M30',
+          '60': 'H1', '60M': 'H1', '60MIN': 'H1', '1H': 'H1', 'H1': 'H1', '1HR': 'H1', '1HRS': 'H1', '1HOUR': 'H1', '1HOURS': 'H1',
+          '120': 'H2', '120M': 'H2', '120MIN': 'H2', '2H': 'H2', 'H2': 'H2', '2HR': 'H2', '2HRS': 'H2', '2HOUR': 'H2', '2HOURS': 'H2',
+          '240': 'H4', '240M': 'H4', '240MIN': 'H4', '4H': 'H4', 'H4': 'H4', '4HR': 'H4', '4HRS': 'H4', '4HOUR': 'H4', '4HOURS': 'H4',
+          '1440': 'D1', '1440M': 'D1', '1D': 'D1', 'D1': 'D1', 'D': 'D1', 'DAY': 'D1', 'DAILY': 'D1', '1DAY': 'D1',
+          '10080': 'W1', '10080M': 'W1', '1W': 'W1', 'W1': 'W1', 'W': 'W1', '1WK': 'W1', 'WK': 'W1', 'WEEK': 'W1', 'WEEKLY': 'W1', '1WEEK': 'W1', '1WEEKS': 'W1',
+          '43200': 'MN1', '43200M': 'MN1', 'MN': 'MN1', 'MN1': 'MN1', '1MN': 'MN1', 'MO': 'MN1', '1MO': 'MN1', '1MON': 'MN1', 'MONTH': 'MN1', 'MONTHLY': 'MN1', '1MONTH': 'MN1', '1MONTHS': 'MN1'
+        };
+        return map[s] || s;
+      }
+
+      function inferMetaFromFilename(filename) {
+        const stem = String(filename || '').replace(/\.[^.]+$/, '');
+        const tokens = stem.split(/[^A-Za-z0-9]+/).filter(Boolean);
+        let inferredTf = '';
+        let inferredSym = '';
+        for (const t of tokens) {
+          const norm = normalizeCsvTimeframe(t, false);
+          if (!inferredTf && ALL_TF.includes(norm)) { inferredTf = norm; continue; }
+          const up = t.toUpperCase();
+          if (!inferredSym && (PAIRS[up] || ['SPX500', 'US500', 'US100', 'USTEC', 'DE40', 'GER30', 'BTCUSD', 'XAUUSD', 'XAGUSD'].includes(up) || (/^[A-Z]{6}$/.test(up) && !/^(BIRLESIK|TOPLU|MERGED)$/i.test(up)))) {
+            inferredSym = up;
+          }
+        }
+        return { inferredSym, inferredTf };
+      }
+
+      function inferTfFromBars(bars) {
+        if (!bars || bars.length < 2) return 'M15';
+        const diffs = [];
+        for (let i = 1; i < Math.min(bars.length, 40); i++) {
+          const dt = bars[i].time - bars[i - 1].time;
+          if (dt > 0) diffs.push(dt);
+        }
+        if (!diffs.length) return 'M15';
+        diffs.sort((a, b) => a - b);
+        const step = diffs[0];
+        if (step <= 90) return 'M1';
+        if (step <= 240) return 'M3';
+        if (step <= 450) return 'M5';
+        if (step <= 1200) return 'M15';
+        if (step <= 2700) return 'M30';
+        if (step <= 5400) return 'H1';
+        if (step <= 10800) return 'H2';
+        if (step <= 28800) return 'H4';
+        if (step <= 172800) return 'D1';
+        if (step <= 1209600) return 'W1';
+        return 'MN1';
+      }
+
+      function countPriceDecimals(num) {
+        const s = String(num);
+        const idx = s.indexOf('.');
+        return idx === -1 ? 0 : Math.min(6, s.length - idx - 1);
+      }
+
+      function parseSingleExternalCsvText(text, filename = 'veri.csv', fallbackSymbol = '') {
+        const cleanText = String(text || '').replace(/^\uFEFF/, '');
+        const lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (!lines.length) return { filename, delimiter: ',', rows: [], rawCount: 0, maxDec: 2 };
+
+        const delimiter = detectCsvDelimiter(lines);
+        const firstCells = lines[0].split(delimiter).map(c => c.trim());
+        const normHeader = firstCells.map(c => c.replace(/^["'<]+|["'>]+$/g, '').toLowerCase());
+
+        let symbolIdx = -1, tfIdx = -1, dateIdx = -1, timeIdx = -1;
+        let openIdx = -1, highIdx = -1, lowIdx = -1, closeIdx = -1, volIdx = -1;
+        let startRow = 0;
+
+        const hasHeader = normHeader.some(h =>
+          /^(time|date|datetime|timestamp|gmt time|time \(utc\)|open|high|low|close|volume|tickvol|vol|symbol|ticker|pair|instrument|timeframe|tf|period|interval|resolution)$/.test(h) ||
+          h.includes('gmt time') || h.includes('time (utc)') || h === 'o' || h === 'h' || h === 'l' || h === 'c'
+        );
+
+        if (hasHeader) {
+          startRow = 1;
+          normHeader.forEach((h, idx) => {
+            if ((h === 'symbol' || h === 'ticker' || h === 'pair' || h === 'instrument') && symbolIdx === -1) symbolIdx = idx;
+            else if ((h === 'timeframe' || h === 'tf' || h === 'period' || h === 'interval' || h === 'resolution') && tfIdx === -1) tfIdx = idx;
+            else if (h === 'date' && dateIdx === -1) dateIdx = idx;
+            else if ((h === 'time' || h === 'datetime' || h === 'timestamp' || h.includes('gmt time') || h.includes('time (utc)')) && timeIdx === -1) timeIdx = idx;
+            else if ((h === 'open' || h === 'o') && openIdx === -1) openIdx = idx;
+            else if ((h === 'high' || h === 'h') && highIdx === -1) highIdx = idx;
+            else if ((h === 'low' || h === 'l') && lowIdx === -1) lowIdx = idx;
+            else if ((h === 'close' || h === 'c') && closeIdx === -1) closeIdx = idx;
+            else if ((h === 'volume' || h === 'tickvol' || h === 'vol' || h === 'v') && volIdx === -1) volIdx = idx;
+          });
+          if (timeIdx === -1 && dateIdx !== -1) { timeIdx = dateIdx; dateIdx = -1; }
+        }
+
+        if (openIdx === -1 || highIdx === -1 || lowIdx === -1 || closeIdx === -1) {
+          const sampleRow = (lines[startRow] || '').split(delimiter).map(c => c.trim());
+          const isSplit = sampleRow.length >= 6 &&
+            /^\d{4}[./-]\d{1,2}[./-]\d{1,2}$/.test(sampleRow[0].replace(/^["']|["']$/g, '')) &&
+            /^\d{1,2}:\d{2}(?::\d{2})?$/.test(sampleRow[1].replace(/^["']|["']$/g, ''));
+          if (isSplit) {
+            dateIdx = 0; timeIdx = 1; openIdx = 2; highIdx = 3; lowIdx = 4; closeIdx = 5;
+            if (volIdx === -1 && sampleRow.length >= 7) volIdx = 6;
+          } else {
+            dateIdx = -1; timeIdx = 0; openIdx = 1; highIdx = 2; lowIdx = 3; closeIdx = 4;
+            if (volIdx === -1 && sampleRow.length >= 6) volIdx = 5;
+          }
+        }
+
+        const fileMeta = inferMetaFromFilename(filename);
+        const defSym = String(fallbackSymbol || '').trim().toUpperCase() || fileMeta.inferredSym || 'SYMBOL';
+        const rawRows = [];
+        const rawTfTokens = new Set();
+        let maxDec = 2;
+
+        for (let i = startRow; i < lines.length; i++) {
+          const cols = lines[i].split(delimiter);
+          const maxReq = Math.max(dateIdx, timeIdx, openIdx, highIdx, lowIdx, closeIdx);
+          if (cols.length <= maxReq) continue;
+
+          const timeStr = dateIdx !== -1
+            ? `${(cols[dateIdx] || '').trim()} ${(cols[timeIdx] || '').trim()}`.trim()
+            : (cols[timeIdx] || '').trim();
+          const time = parseCsvTimeValue(timeStr);
+          const open = parseCsvNumber(cols[openIdx], delimiter);
+          const high = parseCsvNumber(cols[highIdx], delimiter);
+          const low = parseCsvNumber(cols[lowIdx], delimiter);
+          const close = parseCsvNumber(cols[closeIdx], delimiter);
+          const volume = volIdx !== -1 && cols.length > volIdx ? Math.max(0, parseCsvNumber(cols[volIdx], delimiter) || 0) : 0;
+
+          if (time === null || !Number.isFinite(time)) continue;
+          if (!Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) continue;
+          if (open <= 0 || high <= 0 || low <= 0 || close <= 0 || high < low) continue;
+
+          maxDec = Math.max(maxDec, countPriceDecimals(open), countPriceDecimals(close));
+          const sym = (symbolIdx !== -1 && cols.length > symbolIdx ? String(cols[symbolIdx] || '').trim().replace(/^["']|["']$/g, '').toUpperCase() : '') || defSym;
+          const rawTf = tfIdx !== -1 && cols.length > tfIdx ? String(cols[tfIdx] || '').trim().replace(/^["']|["']$/g, '') : '';
+          if (rawTf) rawTfTokens.add(rawTf);
+
+          rawRows.push({
+            sym,
+            rawTf,
+            candle: { time, open, high: Math.max(high, open, close), low: Math.min(low, open, close), close, volume }
+          });
+        }
+
+        if (!rawRows.length) return { filename, delimiter, rows: [], rawCount: 0, maxDec };
+
+        const hasLowerStyle = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '1d', '1w'].some(t => rawTfTokens.has(t));
+        const hasUpperMinuteStyle = rawTfTokens.has('5M') || rawTfTokens.has('15M') || rawTfTokens.has('30M') || rawTfTokens.has('MN1');
+        let preferMonthFor1M = hasLowerStyle && !hasUpperMinuteStyle;
+        if (!preferMonthFor1M && rawTfTokens.size === 1 && rawTfTokens.has('1M') && rawRows.length >= 2) {
+          const dt = Math.abs(rawRows[1].candle.time - rawRows[0].candle.time);
+          if (dt >= 86400 * 20) preferMonthFor1M = true;
+        }
+
+        const missingTfFallback = fileMeta.inferredTf || inferTfFromBars(rawRows.map(r => r.candle).sort((a, b) => a.time - b.time));
+        const normalizedRows = rawRows.map(r => ({
+          sym: r.sym,
+          tf: r.rawTf ? (normalizeCsvTimeframe(r.rawTf, preferMonthFor1M) || missingTfFallback) : missingTfFallback,
+          candle: r.candle
+        }));
+
+        return { filename, delimiter, rows: normalizedRows, rawCount: normalizedRows.length, maxDec };
+      }
+
+      function mergeLocalCsvCollection(parsedFiles, options = {}) {
+        const { fallbackSymbol = '', pjCompat = true } = options;
+        const symbolMap = new Map();
+        const fileSummaries = [];
+
+        for (const f of (parsedFiles || [])) {
+          const parsed = f.rows ? f : parseSingleExternalCsvText(f.text || '', f.name || 'veri.csv', fallbackSymbol);
+          if (!parsed.rows.length) {
+            fileSummaries.push({ name: parsed.filename, delimiter: parsed.delimiter, symbols: [], tfs: [], rawCount: 0, netCount: 0, minTime: 0, maxTime: 0 });
+            continue;
+          }
+          const fileSyms = new Set();
+          const fileTfs = new Set();
+          let minT = Infinity, maxT = -Infinity;
+
+          for (const row of parsed.rows) {
+            const rawSym = (row.sym === 'SYMBOL' && fallbackSymbol.trim()) ? fallbackSymbol.trim().toUpperCase() : row.sym;
+            const exportSym = getCsvExportSymbol(rawSym, pjCompat);
+            if (!symbolMap.has(exportSym)) {
+              symbolMap.set(exportSym, {
+                symbol: exportSym,
+                dec: Math.max(PAIRS[rawSym]?.dec || 0, parsed.maxDec || 2),
+                tfBars: {}
+              });
+            }
+            const entry = symbolMap.get(exportSym);
+            entry.dec = Math.max(entry.dec, parsed.maxDec || 2);
+            if (!entry.tfBars[row.tf]) entry.tfBars[row.tf] = [];
+            entry.tfBars[row.tf].push(row.candle);
+            fileSyms.add(exportSym);
+            fileTfs.add(row.tf);
+            if (row.candle.time < minT) minT = row.candle.time;
+            if (row.candle.time > maxT) maxT = row.candle.time;
+          }
+
+          fileSummaries.push({
+            name: parsed.filename,
+            delimiter: parsed.delimiter,
+            symbols: Array.from(fileSyms),
+            tfs: Array.from(fileTfs),
+            rawCount: parsed.rawCount,
+            netCount: parsed.rawCount,
+            minTime: minT === Infinity ? 0 : minT,
+            maxTime: maxT === -Infinity ? 0 : maxT
+          });
+        }
+
+        const groups = [];
+        for (const entry of symbolMap.values()) {
+          const rawByTf = {};
+          let totalRaw = 0;
+          for (const tf of ALL_TF) {
+            const list = entry.tfBars[tf] || [];
+            totalRaw += list.length;
+            rawByTf[tf] = sanitizeBars(list);
+          }
+          for (const tf of Object.keys(entry.tfBars)) {
+            if (!ALL_TF.includes(tf)) {
+              rawByTf[tf] = sanitizeBars(entry.tfBars[tf]);
+              totalRaw += entry.tfBars[tf].length;
+            }
+          }
+          const finalByTf = pjCompat ? buildPropJournalTfBars(rawByTf, { onlyExisting: true }) : rawByTf;
+          const tfs = Object.keys(finalByTf).filter(tf => (finalByTf[tf]?.length || 0) > 0);
+          let totalNet = 0, minT = Infinity, maxT = -Infinity;
+          for (const tf of tfs) {
+            const arr = finalByTf[tf];
+            totalNet += arr.length;
+            if (arr[0].time < minT) minT = arr[0].time;
+            if (arr[arr.length - 1].time > maxT) maxT = arr[arr.length - 1].time;
+          }
+          const audit = auditPropJournalExport({ exportSym: entry.symbol, exportTfBars: finalByTf, pjCompat });
+          groups.push({
+            symbol: entry.symbol,
+            dec: entry.dec,
+            tfBars: finalByTf,
+            tfs,
+            totalRaw,
+            totalNet,
+            minTime: minT === Infinity ? 0 : minT,
+            maxTime: maxT === -Infinity ? 0 : maxT,
+            audit
+          });
+        }
+
+        return { groups, fileSummaries };
       }
 
       // GRAFIK & TEKNIK KATMANLAR
@@ -4194,17 +4805,45 @@
         }
       }
 
+      function renderPjAuditBox(el, audit, sym, totalLabel = '') {
+        if (!el) return;
+        if (!audit) {
+          el.style.display = 'none';
+          el.innerHTML = '';
+          return;
+        }
+        el.style.display = '';
+        el.className = `pj-audit-box ${audit.status}`;
+        const badgeCls = audit.status === 'ok' ? 'ok' : (audit.status === 'warn' ? 'partial' : 'err');
+        const statsText = `${audit.stats.tfCount} Dilim · ${audit.stats.totalRows.toLocaleString('tr-TR')} Mum`;
+        el.innerHTML = `
+          <div class="pj-audit-head">
+            <div class="pj-audit-title">
+              <span>Prop Journal Birleştirme &amp; Uyum Denetimi</span>
+              <span class="badge ${badgeCls}">${escapeHtml(audit.badge)}</span>
+            </div>
+            <div class="pj-audit-pills">
+              <span class="badge">${escapeHtml(sym || '-')}</span>
+              <span class="badge">${escapeHtml(totalLabel || statsText)}</span>
+            </div>
+          </div>
+          <ul class="pj-audit-list">${audit.items.map(item => `<li>${item}</li>`).join('')}</ul>
+        `;
+      }
+
       function renderResultView() {
         const payload = getExportPayload();
         if (!payload) return;
         const { pair, exportSym, dec, startStr, endStr, tfBars, exportTfBars, meta, incVol, pjCompat } = payload;
-        const avail = ALL_TF.filter(tf => (tfBars[tf]?.length || 0) > 0);
-        const totalBars = avail.reduce((sum, tf) => sum + tfBars[tf].length, 0);
+        const viewTfBars = pjCompat ? exportTfBars : tfBars;
+        const viewSym = exportSym;
+        const avail = ALL_TF.filter(tf => (viewTfBars[tf]?.length || 0) > 0);
+        const totalBars = avail.reduce((sum, tf) => sum + viewTfBars[tf].length, 0);
 
         $('resultSection').classList.add('visible');
-        $('resultTitle').textContent = `${pair} • ${avail.length}/11 Zaman Dilimi Hazır`;
+        $('resultTitle').textContent = `${viewSym} • ${avail.length}/11 Zaman Dilimi Hazır`;
         const modeLabel = pjCompat
-          ? `Prop Journal Uyumlu (${exportSym} • UTC H2/H4/D1)`
+          ? `Prop Journal Uyumlu (${viewSym} • UTC H2/H4/D1)`
           : 'NY Kapanışı (17:00 NY / MT5)';
         $('resultSubtitle').textContent = `${startStr} → ${endStr} • Toplam ${totalBars.toLocaleString('tr-TR')} mum • Başlık: ${csvHeader(incVol)} • CSV Modu: ${modeLabel}`;
         $('downloadMergedBtn').disabled = !state.authVerified || totalBars === 0;
@@ -4224,8 +4863,9 @@
         }
 
         renderBatchPairBar();
+        renderPjAuditBox($('pjAuditBox'), auditPropJournalExport(payload), viewSym);
 
-        if (!tfBars[state.activeTf]?.length && avail.length) {
+        if (!viewTfBars[state.activeTf]?.length && avail.length) {
           state.activeTf = avail.includes('M15') ? 'M15' : (avail.includes('H1') ? 'H1' : avail[0]);
         }
 
@@ -4243,7 +4883,7 @@
         const grid = $('tfGrid');
         grid.innerHTML = '';
         ALL_TF.forEach((tf, tfIdx) => {
-          const bars = tfBars[tf] || [];
+          const bars = viewTfBars[tf] || [];
           const csvBars = exportTfBars[tf] || bars;
           const m = meta[tf];
           const card = document.createElement('div');
@@ -4270,8 +4910,8 @@
             e.stopPropagation();
             if (!(await authorizeProtectedAction('CSV indirme'))) return;
             const lines = [csvHeader(incVol)];
-            appendCsvRows(lines, exportSym, tf, csvBars, dec, incVol);
-            const fname = `${exportSym}_${tf}_${startStr}_${endStr}.csv`;
+            appendCsvRows(lines, viewSym, tf, csvBars, dec, incVol);
+            const fname = `${viewSym}_${tf}_${startStr}_${endStr}.csv`;
             downloadBlobFile(fname, linesToCsvBlob(lines));
             showToast('CSV İndirildi', `${fname} (${csvBars.length.toLocaleString('tr-TR')} mum)`, 'ok', 2800);
           });
@@ -4285,8 +4925,8 @@
           grid.appendChild(card);
         });
 
-        const activeBars = tfBars[state.activeTf] || [];
-        $('chartTitle').textContent = `${pair} • ${state.activeTf} (${activeBars.length.toLocaleString('tr-TR')} mum)`;
+        const activeBars = viewTfBars[state.activeTf] || [];
+        $('chartTitle').textContent = `${viewSym} • ${state.activeTf} (${activeBars.length.toLocaleString('tr-TR')} mum)`;
         $('chartSessionInfo').textContent = activeMeta?.session
           ? `UTC Seans Mumları — Asya (00–07): ${activeMeta.session.asia} | Londra (07–13): ${activeMeta.session.london} | NY (13–22): ${activeMeta.session.ny}`
           : 'Karta tıklayarak zaman dilimini değiştirin';
@@ -4301,11 +4941,11 @@
         }
 
         const last30 = activeBars.slice(-30).reverse();
-        $('tableInfo').textContent = `${pair} • ${state.activeTf} (son ${last30.length} mum)`;
+        $('tableInfo').textContent = `${viewSym} • ${state.activeTf} (son ${last30.length} mum)`;
         $('tableHead').innerHTML = `<tr><th>symbol</th><th>timeframe</th><th>time</th><th>open</th><th>high</th><th>low</th><th>close</th>${incVol ? '<th>volume</th>' : ''}</tr>`;
         $('tableBody').innerHTML = last30.length
           ? last30.map(b => `<tr>
-              <td style="font-weight:700;color:var(--amber);">${pair}</td>
+              <td style="font-weight:700;color:var(--amber);">${escapeHtml(viewSym)}</td>
               <td style="font-weight:700;color:var(--cyan);">${state.activeTf}</td>
               <td>${isoUtc(b.time)}</td>
               <td>${b.open.toFixed(dec)}</td>
@@ -4630,19 +5270,26 @@
         updateSelectionInfo();
       });
 
+      function getActiveOverlayBars() {
+        const payload = getExportPayload();
+        if (!payload) return [];
+        const src = payload.pjCompat ? payload.exportTfBars : payload.tfBars;
+        return src[state.activeTf] || [];
+      }
+
       $('ema20Btn').addEventListener('click', () => {
         state.chartOpts.ema20 = !state.chartOpts.ema20;
-        if (state.result) updateChartOverlays(state.result.tfBars[state.activeTf] || [], state.result.dec);
+        if (state.result) updateChartOverlays(getActiveOverlayBars(), state.result.dec);
       });
 
       $('ema50Btn').addEventListener('click', () => {
         state.chartOpts.ema50 = !state.chartOpts.ema50;
-        if (state.result) updateChartOverlays(state.result.tfBars[state.activeTf] || [], state.result.dec);
+        if (state.result) updateChartOverlays(getActiveOverlayBars(), state.result.dec);
       });
 
       $('volOverlayBtn').addEventListener('click', () => {
         state.chartOpts.volume = !state.chartOpts.volume;
-        if (state.result) updateChartOverlays(state.result.tfBars[state.activeTf] || [], state.result.dec);
+        if (state.result) updateChartOverlays(getActiveOverlayBars(), state.result.dec);
       });
 
       function syncFullscreenBtn() {
@@ -4693,6 +5340,7 @@
           return;
         }
         try {
+          const viewSym = getCsvExportSymbol(state.result.pair, $('pjCompatChk').checked);
           const shot = state.chart.takeScreenshot();
           const out = document.createElement('canvas');
           const headerH = 38;
@@ -4703,7 +5351,7 @@
           ctx.fillRect(0, 0, out.width, out.height);
           ctx.fillStyle = '#e5b65c';
           ctx.font = 'bold 14px "Plus Jakarta Sans", system-ui, sans-serif';
-          ctx.fillText(`${state.result.pair} • ${state.activeTf}`, 16, 24);
+          ctx.fillText(`${viewSym} • ${state.activeTf}`, 16, 24);
           ctx.fillStyle = '#9399aa';
           ctx.font = '12px "JetBrains Mono", monospace';
           const metaTxt = `${state.result.startStr} → ${state.result.endStr}  |  UTC`;
@@ -4711,7 +5359,7 @@
           ctx.drawImage(shot, 0, headerH);
           out.toBlob(blob => {
             if (!blob) return;
-            const fname = `${state.result.pair}_${state.activeTf}_${state.result.startStr}_${state.result.endStr}.png`;
+            const fname = `${viewSym}_${state.activeTf}_${state.result.startStr}_${state.result.endStr}.png`;
             downloadBlobFile(fname, blob);
             showToast('PNG Kaydedildi', fname, 'ok', 2800);
           }, 'image/png');
@@ -4871,7 +5519,7 @@
         }
         const fname = `TOPLU_${pairCount}PARITE_11TF_${firstStart}_${firstEnd}.csv`;
         downloadBlobFile(fname, linesToCsvBlob(lines));
-        showToast('Toplu CSV İndirildi', `${fname} (${(lines.length - 1).toLocaleString('tr-TR')} satır)`, 'ok', 3200);
+        showToast('Toplu CSV İndirildi', `${fname} (${(lines.length - 1).toLocaleString('tr-TR')} satır) · Prop Journal Replay için ZIP içindeki tekil parite CSV'lerini kullanın.`, 'warn', 4500);
       });
 
       $('downloadBatchZipBtn').addEventListener('click', async () => {
@@ -4896,7 +5544,7 @@
           if (countTf > 0) {
             zipFiles.push({
               name: `${payload.exportSym}_BIRLESIK_${countTf}TF_${payload.startStr}_${payload.endStr}.csv`,
-              content: lines.join('\n')
+              content: lines
             });
           }
         }
@@ -4907,7 +5555,185 @@
         const blob = buildZipBlob(zipFiles);
         const fname = `CFD_TOPLU_${zipFiles.length}PARITE_${firstStart}_${firstEnd}.zip`;
         downloadBlobFile(fname, blob);
-        showToast('ZIP Arşivi İndirildi', `${fname} (${zipFiles.length} CSV dosyası)`, 'ok', 3200);
+        showToast('ZIP Arşivi İndirildi', `${fname} (${zipFiles.length} Prop Journal uyumlu CSV)`, 'ok', 3200);
+      });
+
+      // ===== YEREL CSV BIRLESTIRICI UI & OLAYLARI =====
+      function refreshLocalMergeView() {
+        const files = state.localMergeFiles || [];
+        const badge = $('localMergeBadge');
+        if (badge) {
+          badge.textContent = files.length ? `${files.length} Dosya` : '0 Dosya';
+          badge.className = `badge ${files.length ? 'ok' : ''}`;
+        }
+        if (!files.length) {
+          state.localMergeBuilt = null;
+          if ($('localMergeAuditBox')) $('localMergeAuditBox').style.display = 'none';
+          if ($('localMergeTableWrap')) $('localMergeTableWrap').style.display = 'none';
+          if ($('localMergeTableBody')) $('localMergeTableBody').innerHTML = '';
+          if ($('localMergeClearBtn')) $('localMergeClearBtn').disabled = true;
+          if ($('localMergeDownloadBtn')) $('localMergeDownloadBtn').disabled = true;
+          if ($('localMergeZipBtn')) { $('localMergeZipBtn').style.display = 'none'; $('localMergeZipBtn').disabled = true; }
+          return;
+        }
+
+        const built = mergeLocalCsvCollection(files, {
+          fallbackSymbol: $('localMergeSymbolInput')?.value || '',
+          pjCompat: $('localMergePjCompatChk')?.checked ?? true
+        });
+        state.localMergeBuilt = built;
+
+        const unlocked = Boolean(state.authVerified && state.authToken && Date.now() < state.authExpiresAt);
+        const groups = built.groups || [];
+        const totalNet = groups.reduce((s, g) => s + g.totalNet, 0);
+        const hasAny = totalNet > 0;
+        const multiSym = groups.length > 1;
+
+        if ($('localMergeClearBtn')) $('localMergeClearBtn').disabled = false;
+        if ($('localMergeDownloadBtn')) {
+          $('localMergeDownloadBtn').disabled = !unlocked || !hasAny;
+          $('localMergeDownloadBtn').style.display = multiSym ? 'none' : '';
+        }
+        if ($('localMergeZipBtn')) {
+          $('localMergeZipBtn').style.display = multiSym ? '' : 'none';
+          $('localMergeZipBtn').disabled = !unlocked || !hasAny;
+        }
+
+        const rowsHtml = [];
+        for (const f of built.fileSummaries) {
+          const span = f.minTime && f.maxTime ? `${shortDate(f.minTime)} – ${shortDate(f.maxTime)}` : 'Veri yok';
+          rowsHtml.push(`<tr>
+            <td style="color:var(--white);">${escapeHtml(f.name)}</td>
+            <td><code>${escapeHtml(f.delimiter === '\t' ? 'TAB' : f.delimiter)}</code> · ${escapeHtml(f.symbols.join(', ') || '-')}</td>
+            <td style="color:var(--cyan);">${escapeHtml(f.tfs.join(', ') || '-')}</td>
+            <td>${f.rawCount.toLocaleString('tr-TR')} satır</td>
+            <td>${span}</td>
+          </tr>`);
+        }
+        for (const g of groups) {
+          const span = g.minTime && g.maxTime ? `${shortDate(g.minTime)} – ${shortDate(g.maxTime)}` : '-';
+          rowsHtml.push(`<tr style="background:rgba(229,182,92,0.06);">
+            <td style="font-weight:700;color:var(--amber);">BİRLEŞİK ÇIKTI (${escapeHtml(g.symbol)})</td>
+            <td style="font-weight:700;color:#4ade80;">${escapeHtml(g.symbol)}</td>
+            <td style="color:var(--cyan);">${escapeHtml(g.tfs.join(', '))}</td>
+            <td style="font-weight:700;color:var(--white);">${g.totalRaw.toLocaleString('tr-TR')} → ${g.totalNet.toLocaleString('tr-TR')}</td>
+            <td>${span}</td>
+          </tr>`);
+        }
+        if ($('localMergeTableBody')) $('localMergeTableBody').innerHTML = rowsHtml.join('');
+        if ($('localMergeTableWrap')) $('localMergeTableWrap').style.display = '';
+
+        if (!hasAny) {
+          renderPjAuditBox($('localMergeAuditBox'), {
+            status: 'err',
+            badge: 'Geçersiz / Boş CSV',
+            items: ['Seçilen dosyalarda geçerli OHLC zaman serisi bulunamadı.'],
+            stats: { tfCount: 0, totalRows: 0 }
+          }, '-', '0 Mum');
+        } else if (groups.length === 1) {
+          renderPjAuditBox($('localMergeAuditBox'), groups[0].audit, groups[0].symbol);
+        } else {
+          const worstStatus = groups.some(g => g.audit.status === 'err') ? 'err' : (groups.some(g => g.audit.status === 'warn') ? 'warn' : 'ok');
+          renderPjAuditBox($('localMergeAuditBox'), {
+            status: worstStatus,
+            badge: `${groups.length} Parite · ZIP Hazır`,
+            items: [
+              `<strong>${groups.length} farklı parite</strong> (${groups.map(g => escapeHtml(g.symbol)).join(', ')}) ayrı CSV dosyalarına ayrıldı — Prop Journal Replay tekil parite beklediği için .zip olarak indirebilirsiniz.`
+            ],
+            stats: { tfCount: groups.reduce((s, g) => s + g.tfs.length, 0), totalRows: totalNet }
+          }, `${groups.length} Parite`);
+        }
+      }
+
+      async function ingestLocalCsvFiles(fileList) {
+        const picked = Array.from(fileList || []).filter(Boolean);
+        if (!picked.length) return;
+        for (const f of picked) {
+          try {
+            const text = await f.text();
+            const prevIdx = state.localMergeFiles.findIndex(x => x.name === f.name && x.size === f.size);
+            const item = { name: f.name, size: f.size, text };
+            if (prevIdx >= 0) state.localMergeFiles[prevIdx] = item;
+            else state.localMergeFiles.push(item);
+          } catch (_) {
+            showToast('Dosya Okunamadı', `${f.name} okunurken hata oluştu.`, 'err');
+          }
+        }
+        refreshLocalMergeView();
+      }
+
+      $('localMergeToggleBtn')?.addEventListener('click', () => {
+        const body = $('localMergeBody');
+        if (!body) return;
+        const isOpen = body.classList.toggle('open');
+        $('localMergeToggleBtn').textContent = isOpen ? 'Kapat' : 'Aracı Aç';
+        $('localMergeToggleBtn').setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+
+      $('localCsvFiles')?.addEventListener('change', async e => {
+        await ingestLocalCsvFiles(e.target.files);
+        e.target.value = '';
+      });
+
+      const dropzoneEl = $('localCsvDropzone');
+      if (dropzoneEl) {
+        dropzoneEl.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            $('localCsvFiles')?.click();
+          }
+        });
+        dropzoneEl.addEventListener('dragover', e => { e.preventDefault(); dropzoneEl.classList.add('dragover'); });
+        dropzoneEl.addEventListener('dragleave', () => dropzoneEl.classList.remove('dragover'));
+        dropzoneEl.addEventListener('drop', async e => {
+          e.preventDefault();
+          dropzoneEl.classList.remove('dragover');
+          await ingestLocalCsvFiles(e.dataTransfer?.files);
+        });
+      }
+
+      $('localMergeSymbolInput')?.addEventListener('input', refreshLocalMergeView);
+      $('localMergePjCompatChk')?.addEventListener('change', refreshLocalMergeView);
+      $('localMergeClearBtn')?.addEventListener('click', () => {
+        state.localMergeFiles = [];
+        refreshLocalMergeView();
+      });
+
+      $('localMergeDownloadBtn')?.addEventListener('click', async () => {
+        if (!(await authorizeProtectedAction('Birleşik yerel CSV indirme'))) return;
+        const g = state.localMergeBuilt?.groups?.[0];
+        if (!g || !g.totalNet) return;
+        const incVol = $('localMergeVolChk')?.checked ?? true;
+        const lines = [csvHeader(incVol)];
+        for (const tf of g.tfs) appendCsvRows(lines, g.symbol, tf, g.tfBars[tf], g.dec, incVol);
+        const sStr = g.minTime ? toYMD(new Date(g.minTime * 1000)) : 'bas';
+        const eStr = g.maxTime ? toYMD(new Date(g.maxTime * 1000)) : 'son';
+        const fname = `${g.symbol}_BIRLESIK_${g.tfs.length}TF_${sStr}_${eStr}.csv`;
+        downloadBlobFile(fname, linesToCsvBlob(lines));
+        showToast('Birleşik CSV Hazır', `${fname} (${g.totalNet.toLocaleString('tr-TR')} mum)`, 'ok', 3200);
+      });
+
+      $('localMergeZipBtn')?.addEventListener('click', async () => {
+        if (!(await authorizeProtectedAction('Birleşik yerel ZIP indirme'))) return;
+        const groups = state.localMergeBuilt?.groups || [];
+        if (groups.length < 2) return;
+        const incVol = $('localMergeVolChk')?.checked ?? true;
+        const zipFiles = [];
+        for (const g of groups) {
+          if (!g.totalNet) continue;
+          const lines = [csvHeader(incVol)];
+          for (const tf of g.tfs) appendCsvRows(lines, g.symbol, tf, g.tfBars[tf], g.dec, incVol);
+          const sStr = g.minTime ? toYMD(new Date(g.minTime * 1000)) : 'bas';
+          const eStr = g.maxTime ? toYMD(new Date(g.maxTime * 1000)) : 'son';
+          zipFiles.push({
+            name: `${g.symbol}_BIRLESIK_${g.tfs.length}TF_${sStr}_${eStr}.csv`,
+            content: lines
+          });
+        }
+        if (!zipFiles.length) return;
+        const fname = `YEREL_BIRLESIK_${zipFiles.length}PARITE.zip`;
+        downloadBlobFile(fname, buildZipBlob(zipFiles));
+        showToast('ZIP Arşivi İndirildi', `${fname} (${zipFiles.length} Prop Journal uyumlu CSV)`, 'ok', 3200);
       });
 
       // ===== PROP JOURNAL ERISIM KILIDI =====
@@ -5020,6 +5846,10 @@
         $('downloadMergedBtn').disabled = !unlocked || !hasResultBars;
         $('downloadBatchCsvBtn').disabled = !unlocked || state.batchResults.size < 2;
         $('downloadBatchZipBtn').disabled = !unlocked || state.batchResults.size < 2;
+
+        const hasLocalMerged = Boolean(state.localMergeBuilt?.groups?.some(g => g.totalNet > 0));
+        if ($('localMergeDownloadBtn')) $('localMergeDownloadBtn').disabled = !unlocked || !hasLocalMerged;
+        if ($('localMergeZipBtn')) $('localMergeZipBtn').disabled = !unlocked || !hasLocalMerged;
 
         document.querySelectorAll('.tf-csv-btn').forEach(btn => {
           const hasBars = btn.dataset.hasBars === '1';
