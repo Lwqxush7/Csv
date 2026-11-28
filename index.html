@@ -1256,10 +1256,13 @@
     <section id="settingsPanel" class="card settings-panel">
       <div class="setting-head">
         <strong style="font-size:15px;">Ücretsiz API Anahtarları ve Proxy Ayarları (localStorage)</strong>
-        <button type="button" id="resetAllSettingsBtn" class="btn btn-danger btn-sm">Tümünü Sıfırla</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" id="testAllKeysBtn" class="btn btn-sm">Kayıtlı Anahtarları Test Et</button>
+          <button type="button" id="resetAllSettingsBtn" class="btn btn-danger btn-sm">Tümünü Sıfırla</button>
+        </div>
       </div>
       <div class="settings-note">
-        <strong>24/5 CFD Kaynak Sırası:</strong> 1. biquote.io MT5 CFD (ücretsiz, anahtarsız) → 2. Yahoo 24/5 Vadeli &amp; FX (ücretsiz, anahtarsız) → 3. TraderMade (ücretsiz) → 4. Finnhub (ücretsiz) → 5. Tiingo (ücretsiz) → 6. Twelve Data (ücretsiz) → 7. Massive (ücretsiz) → 8. FCS API (ücretsiz) → 9. Alpha Vantage (ücretsiz) → 10. EODHD (ücretsiz) → 11. FMP → 12. Frankfurter ECB. Nakit borsa endeksleri (sadece NY/Londra saatleri) yalnızca 24/5 veri yoksa son çare kullanılır.
+        <strong>24/5 CFD Kaynak Sırası:</strong> 1. biquote.io MT5 CFD (ücretsiz, anahtarsız) → 2. Yahoo 24/5 Vadeli &amp; FX (ücretsiz, anahtarsız) → 3. TraderMade (ücretsiz) → 4. Finnhub (ücretsiz) → 5. Tiingo (ücretsiz) → 6. Twelve Data (ücretsiz) → 7. Massive (ücretsiz) → 8. FCS API (ücretsiz) → 9. Finage (ücretsiz) → 10. Alpha Vantage (ücretsiz) → 11. EODHD (ücretsiz) → 12. FMP → 13. Frankfurter ECB → 14. Currency CDN jsDelivr (anahtarsız FX &amp; XAU/XAG D1). Nakit borsa endeksleri (sadece NY/Londra saatleri) yalnızca 24/5 veri yoksa son çare kullanılır.
       </div>
       <div class="settings-grid">
         <div class="setting-box">
@@ -1358,11 +1361,11 @@
           <div id="eodhdMsg" class="msg-line"></div>
         </div>
 
-        <div class="setting-box" style="grid-column: 1 / -1;">
+        <div class="setting-box">
           <div class="setting-head"><strong>FMP API Key (Ek Yedek • Endeks, Forex &amp; Emtia)</strong><span id="fmpBadge" class="badge">Yok</span></div>
           <div class="setting-hint">Doğrudan CORS destekler (<a href="https://financialmodelingprep.com" target="_blank" rel="noopener">financialmodelingprep.com</a>); uygun planlarda ek yedek olarak devreye girer.</div>
-          <div class="setting-row" style="align-items:center;">
-            <input type="password" id="fmpKey" class="input" style="flex:1; min-width:220px;" placeholder="FMP apikey girin" autocomplete="off" />
+          <input type="password" id="fmpKey" class="input" placeholder="FMP apikey girin" autocomplete="off" />
+          <div class="setting-row">
             <button type="button" id="fmpSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
             <button type="button" id="fmpTestBtn" class="btn btn-sm">Test Et</button>
             <button type="button" id="fmpClearBtn" class="btn btn-danger btn-sm">Temizle</button>
@@ -1370,9 +1373,21 @@
           <div id="fmpMsg" class="msg-line"></div>
         </div>
 
+        <div class="setting-box">
+          <div class="setting-head"><strong>Finage API Key (Forex, XAU/XAG &amp; Endeks • Yeni)</strong><span id="finageBadge" class="badge">Yok</span></div>
+          <div class="setting-hint">Ücretsiz plan (<a href="https://finage.co.uk" target="_blank" rel="noopener">finage.co.uk</a>). Forex, Altın/Gümüş ve endekslerde M1–D1 tarihsel mum yedeği sunar.</div>
+          <input type="password" id="finageKey" class="input" placeholder="Finage apikey girin" autocomplete="off" />
+          <div class="setting-row">
+            <button type="button" id="finageSaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
+            <button type="button" id="finageTestBtn" class="btn btn-sm">Test Et</button>
+            <button type="button" id="finageClearBtn" class="btn btn-danger btn-sm">Temizle</button>
+          </div>
+          <div id="finageMsg" class="msg-line"></div>
+        </div>
+
         <div class="setting-box" style="grid-column: 1 / -1;">
           <div class="setting-head"><strong>Özel CORS Proxy Adresim (Cloudflare Worker — İsteğe Bağlı)</strong><span id="proxyBadge" class="badge">Hazır Proxy</span></div>
-          <div class="setting-hint">Önce doğrudan denenir; olmazsa bu proxy, sonra CorsProxy.io, Cors.dev, AllOrigins ve CodeTabs sırayla denenir.</div>
+          <div class="setting-hint">Önce doğrudan denenir; olmazsa bu proxy, sonra Cors.dev, AllOrigins ve CodeTabs sırayla denenir.</div>
           <div class="setting-row" style="align-items:center;">
             <input type="text" id="customProxyInput" class="input" style="flex:1; min-width:220px;" placeholder="https://worker-adiniz.workers.dev/?url=" autocomplete="off" />
             <button type="button" id="proxySaveBtn" class="btn btn-primary btn-sm">Kaydet</button>
@@ -1629,23 +1644,23 @@
 
       // 24/5 Asya+Londra+NY kapsami icin Vadeli (NQ=F, ES=F, YM=F, GC=F, SI=F, CL=F, BZ=F, NG=F) oncelikli, nakit borsa (^NDX vb.) sadece son care
       const PAIRS = {
-        EURUSD: { code: 'EURUSD', cat: 'forex', name: 'Euro / ABD Doları', dec: 5, yahoo: 'EURUSD=X', yahooAlt: null, yahooCash: null, biquote: ['EURUSD'], tm: 'EURUSD', finnhub: 'OANDA:EUR_USD', tiingo: 'eurusd', td: 'EUR/USD', massive: 'C:EURUSD', fcs: 'EUR/USD', av: { fx: 'EUR', to: 'USD' }, eodhd: 'EURUSD.FOREX', fmp: 'EURUSD', fxBase: 'EUR', fxQuote: 'USD', tz: 'UTC' },
-        GBPUSD: { code: 'GBPUSD', cat: 'forex', name: 'Sterlin / ABD Doları', dec: 5, yahoo: 'GBPUSD=X', yahooAlt: null, yahooCash: null, biquote: ['GBPUSD'], tm: 'GBPUSD', finnhub: 'OANDA:GBP_USD', tiingo: 'gbpusd', td: 'GBP/USD', massive: 'C:GBPUSD', fcs: 'GBP/USD', av: { fx: 'GBP', to: 'USD' }, eodhd: 'GBPUSD.FOREX', fmp: 'GBPUSD', fxBase: 'GBP', fxQuote: 'USD', tz: 'UTC' },
-        USDJPY: { code: 'USDJPY', cat: 'forex', name: 'ABD Doları / Japon Yeni', dec: 3, yahoo: 'USDJPY=X', yahooAlt: null, yahooCash: null, biquote: ['USDJPY'], tm: 'USDJPY', finnhub: 'OANDA:USD_JPY', tiingo: 'usdjpy', td: 'USD/JPY', massive: 'C:USDJPY', fcs: 'USD/JPY', av: { fx: 'USD', to: 'JPY' }, eodhd: 'USDJPY.FOREX', fmp: 'USDJPY', fxBase: 'USD', fxQuote: 'JPY', tz: 'UTC' },
-        USDCHF: { code: 'USDCHF', cat: 'forex', name: 'ABD Doları / İsviçre Frangı', dec: 5, yahoo: 'USDCHF=X', yahooAlt: null, yahooCash: null, biquote: ['USDCHF'], tm: 'USDCHF', finnhub: 'OANDA:USD_CHF', tiingo: 'usdchf', td: 'USD/CHF', massive: 'C:USDCHF', fcs: 'USD/CHF', av: { fx: 'USD', to: 'CHF' }, eodhd: 'USDCHF.FOREX', fmp: 'USDCHF', fxBase: 'USD', fxQuote: 'CHF', tz: 'UTC' },
-        AUDUSD: { code: 'AUDUSD', cat: 'forex', name: 'Avustralya Doları / USD', dec: 5, yahoo: 'AUDUSD=X', yahooAlt: null, yahooCash: null, biquote: ['AUDUSD'], tm: 'AUDUSD', finnhub: 'OANDA:AUD_USD', tiingo: 'audusd', td: 'AUD/USD', massive: 'C:AUDUSD', fcs: 'AUD/USD', av: { fx: 'AUD', to: 'USD' }, eodhd: 'AUDUSD.FOREX', fmp: 'AUDUSD', fxBase: 'AUD', fxQuote: 'USD', tz: 'UTC' },
+        EURUSD: { code: 'EURUSD', cat: 'forex', name: 'Euro / ABD Doları', dec: 5, yahoo: 'EURUSD=X', yahooAlt: null, yahooCash: null, biquote: ['EURUSD'], tm: 'EURUSD', finnhub: 'OANDA:EUR_USD', tiingo: 'eurusd', td: 'EUR/USD', massive: 'C:EURUSD', fcs: 'EUR/USD', finage: { kind: 'forex', sym: 'EURUSD' }, av: { fx: 'EUR', to: 'USD' }, eodhd: 'EURUSD.FOREX', fmp: 'EURUSD', fxBase: 'EUR', fxQuote: 'USD', tz: 'UTC' },
+        GBPUSD: { code: 'GBPUSD', cat: 'forex', name: 'Sterlin / ABD Doları', dec: 5, yahoo: 'GBPUSD=X', yahooAlt: null, yahooCash: null, biquote: ['GBPUSD'], tm: 'GBPUSD', finnhub: 'OANDA:GBP_USD', tiingo: 'gbpusd', td: 'GBP/USD', massive: 'C:GBPUSD', fcs: 'GBP/USD', finage: { kind: 'forex', sym: 'GBPUSD' }, av: { fx: 'GBP', to: 'USD' }, eodhd: 'GBPUSD.FOREX', fmp: 'GBPUSD', fxBase: 'GBP', fxQuote: 'USD', tz: 'UTC' },
+        USDJPY: { code: 'USDJPY', cat: 'forex', name: 'ABD Doları / Japon Yeni', dec: 3, yahoo: 'USDJPY=X', yahooAlt: null, yahooCash: null, biquote: ['USDJPY'], tm: 'USDJPY', finnhub: 'OANDA:USD_JPY', tiingo: 'usdjpy', td: 'USD/JPY', massive: 'C:USDJPY', fcs: 'USD/JPY', finage: { kind: 'forex', sym: 'USDJPY' }, av: { fx: 'USD', to: 'JPY' }, eodhd: 'USDJPY.FOREX', fmp: 'USDJPY', fxBase: 'USD', fxQuote: 'JPY', tz: 'UTC' },
+        USDCHF: { code: 'USDCHF', cat: 'forex', name: 'ABD Doları / İsviçre Frangı', dec: 5, yahoo: 'USDCHF=X', yahooAlt: null, yahooCash: null, biquote: ['USDCHF'], tm: 'USDCHF', finnhub: 'OANDA:USD_CHF', tiingo: 'usdchf', td: 'USD/CHF', massive: 'C:USDCHF', fcs: 'USD/CHF', finage: { kind: 'forex', sym: 'USDCHF' }, av: { fx: 'USD', to: 'CHF' }, eodhd: 'USDCHF.FOREX', fmp: 'USDCHF', fxBase: 'USD', fxQuote: 'CHF', tz: 'UTC' },
+        AUDUSD: { code: 'AUDUSD', cat: 'forex', name: 'Avustralya Doları / USD', dec: 5, yahoo: 'AUDUSD=X', yahooAlt: null, yahooCash: null, biquote: ['AUDUSD'], tm: 'AUDUSD', finnhub: 'OANDA:AUD_USD', tiingo: 'audusd', td: 'AUD/USD', massive: 'C:AUDUSD', fcs: 'AUD/USD', finage: { kind: 'forex', sym: 'AUDUSD' }, av: { fx: 'AUD', to: 'USD' }, eodhd: 'AUDUSD.FOREX', fmp: 'AUDUSD', fxBase: 'AUD', fxQuote: 'USD', tz: 'UTC' },
 
-        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: 'NQ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^NDX', biquote: ['USTEC', 'NAS100', 'US100', 'NDX100', 'TECH100'], tm: 'NAS100', finnhub: 'OANDA:NAS100_USD', tiingo: null, td: 'NDX', massive: 'I:NDX', fcs: 'NDX', av: null, eodhd: 'NDX.INDX', fmp: '^NDX', tz: 'America/New_York', maxBasisDiff: 0.06 },
-        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: 'ES=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^GSPC', biquote: ['US500', 'SP500', 'SPX500', 'USA500'], tm: 'SPX500', finnhub: 'OANDA:SPX500_USD', tiingo: null, td: 'SPX', massive: 'I:SPX', fcs: 'SPX', av: null, eodhd: 'GSPC.INDX', fmp: '^GSPC', tz: 'America/New_York', maxBasisDiff: 0.06 },
-        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: 'YM=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^DJI', biquote: ['US30', 'DJ30', 'USA30', 'WS30'], tm: 'USA30', finnhub: 'OANDA:US30_USD', tiingo: null, td: 'DJI', massive: 'I:DJI', fcs: 'DJI', av: null, eodhd: 'DJI.INDX', fmp: '^DJI', tz: 'America/New_York', maxBasisDiff: 0.06 },
-        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^GDAXI', biquote: ['DE30', 'DE40', 'GER40', 'GER30', 'DAX40', 'DAX'], tm: 'GER30', finnhub: 'OANDA:DE30_EUR', tiingo: null, td: 'GDAXI', massive: null, fcs: 'GDAXI', av: null, eodhd: 'GDAXI.INDX', fmp: '^GDAXI', tz: 'Europe/Berlin', maxBasisDiff: 0.05 },
-        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^FTSE', biquote: ['UK100', 'FTSE100', 'FT100'], tm: 'UK100', finnhub: 'OANDA:UK100_GBP', tiingo: null, td: 'FTSE', massive: null, fcs: 'FTSE', av: null, eodhd: 'FTSE.INDX', fmp: '^FTSE', tz: 'Europe/London', maxBasisDiff: 0.05 },
+        NAS100: { code: 'NAS100', cat: 'index', name: 'Nasdaq 100', dec: 2, yahoo: 'NQ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^NDX', biquote: ['USTEC', 'NAS100', 'US100', 'NDX100', 'TECH100'], tm: 'NAS100', finnhub: 'OANDA:NAS100_USD', tiingo: null, td: 'NDX', massive: 'I:NDX', fcs: 'NDX', finage: { kind: 'index', sym: 'NDX' }, av: null, eodhd: 'NDX.INDX', fmp: '^NDX', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        SP500:  { code: 'SP500',  cat: 'index', name: 'S&P 500',    dec: 2, yahoo: 'ES=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^GSPC', biquote: ['US500', 'SP500', 'SPX500', 'USA500'], tm: 'SPX500', finnhub: 'OANDA:SPX500_USD', tiingo: null, td: 'SPX', massive: 'I:SPX', fcs: 'SPX', finage: { kind: 'index', sym: 'SPX' }, av: null, eodhd: 'GSPC.INDX', fmp: '^GSPC', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        US30:   { code: 'US30',   cat: 'index', name: 'Dow Jones 30', dec: 2, yahoo: 'YM=F', yahooIsFutures: true, yahooAlt: null, yahooCash: '^DJI', biquote: ['US30', 'DJ30', 'USA30', 'WS30'], tm: 'USA30', finnhub: 'OANDA:US30_USD', tiingo: null, td: 'DJI', massive: 'I:DJI', fcs: 'DJI', finage: { kind: 'index', sym: 'DJI' }, av: null, eodhd: 'DJI.INDX', fmp: '^DJI', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        GER40:  { code: 'GER40',  cat: 'index', name: 'DAX 40',     dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^GDAXI', biquote: ['DE30', 'DE40', 'GER40', 'GER30', 'DAX40', 'DAX'], tm: 'GER30', finnhub: 'OANDA:DE30_EUR', tiingo: null, td: 'GDAXI', massive: null, fcs: 'GDAXI', finage: { kind: 'index', sym: 'DAX' }, av: null, eodhd: 'GDAXI.INDX', fmp: '^GDAXI', tz: 'Europe/Berlin', maxBasisDiff: 0.05 },
+        UK100:  { code: 'UK100',  cat: 'index', name: 'FTSE 100',   dec: 2, yahoo: null, yahooIsFutures: false, yahooAlt: null, yahooCash: '^FTSE', biquote: ['UK100', 'FTSE100', 'FT100'], tm: 'UK100', finnhub: 'OANDA:UK100_GBP', tiingo: null, td: 'FTSE', massive: null, fcs: 'FTSE', finage: { kind: 'index', sym: 'UKX' }, av: null, eodhd: 'FTSE.INDX', fmp: '^FTSE', tz: 'Europe/London', maxBasisDiff: 0.05 },
 
-        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'GC=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XAUUSD', 'GOLD'], tm: 'XAUUSD', finnhub: 'OANDA:XAU_USD', tiingo: 'xauusd', td: 'XAU/USD', massive: 'C:XAUUSD', fcs: 'XAU/USD', av: null, eodhd: 'XAUUSD.FOREX', fmp: 'GCUSD', tz: 'America/New_York', maxBasisDiff: 0.06 },
-        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'SI=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XAGUSD', 'SILVER'], tm: 'XAGUSD', finnhub: 'OANDA:XAG_USD', tiingo: 'xagusd', td: 'XAG/USD', massive: 'C:XAGUSD', fcs: 'XAG/USD', av: null, eodhd: 'XAGUSD.FOREX', fmp: 'SIUSD', tz: 'America/New_York', maxBasisDiff: 0.08 },
-        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['USOIL', 'WTI', 'XTIUSD', 'USOUSD'], tm: 'OIL', finnhub: 'OANDA:WTICO_USD', tiingo: null, td: 'WTI/USD', massive: null, fcs: 'WTI/USD', av: { comm: 'WTI' }, eodhd: 'CL.COMM', fmp: 'CLUSD', tz: 'America/New_York', maxBasisDiff: 0.12 },
-        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['UKOIL', 'BRENT', 'XBRUSD', 'UKOUSD'], tm: 'UKOIL', finnhub: 'OANDA:BCO_USD', tiingo: null, td: 'XBR/USD', massive: null, fcs: 'BRENT/USD', av: { comm: 'BRENT' }, eodhd: 'BZ.COMM', fmp: 'BZUSD', tz: 'America/New_York', maxBasisDiff: 0.12 },
-        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XNGUSD', 'NATGAS', 'NGAS'], tm: 'NATGAS', finnhub: 'OANDA:NATGAS_USD', tiingo: null, td: 'NG/USD', massive: null, fcs: 'NG/USD', av: { comm: 'NATURAL_GAS' }, eodhd: 'NG.COMM', fmp: 'NGUSD', tz: 'America/New_York', maxBasisDiff: 0.28 }
+        XAUUSD: { code: 'XAUUSD', cat: 'commodity', name: 'Altın Spot / USD', dec: 2, yahoo: 'GC=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XAUUSD', 'GOLD'], tm: 'XAUUSD', finnhub: 'OANDA:XAU_USD', tiingo: 'xauusd', td: 'XAU/USD', massive: 'C:XAUUSD', fcs: 'XAU/USD', finage: { kind: 'forex', sym: 'XAUUSD' }, av: null, eodhd: 'XAUUSD.FOREX', fmp: 'GCUSD', cdnBase: 'xau', cdnQuote: 'usd', tz: 'America/New_York', maxBasisDiff: 0.06 },
+        XAGUSD: { code: 'XAGUSD', cat: 'commodity', name: 'Gümüş Spot / USD', dec: 3, yahoo: 'SI=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XAGUSD', 'SILVER'], tm: 'XAGUSD', finnhub: 'OANDA:XAG_USD', tiingo: 'xagusd', td: 'XAG/USD', massive: 'C:XAGUSD', fcs: 'XAG/USD', finage: { kind: 'forex', sym: 'XAGUSD' }, av: null, eodhd: 'XAGUSD.FOREX', fmp: 'SIUSD', cdnBase: 'xag', cdnQuote: 'usd', tz: 'America/New_York', maxBasisDiff: 0.08 },
+        USOIL:  { code: 'USOIL',  cat: 'commodity', name: 'WTI Ham Petrol',   dec: 2, yahoo: 'CL=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['USOIL', 'WTI', 'XTIUSD', 'USOUSD'], tm: 'OIL', finnhub: 'OANDA:WTICO_USD', tiingo: null, td: 'WTI/USD', massive: null, fcs: 'WTI/USD', finage: null, av: { comm: 'WTI' }, eodhd: 'CL.COMM', fmp: 'CLUSD', tz: 'America/New_York', maxBasisDiff: 0.12 },
+        UKOIL:  { code: 'UKOIL',  cat: 'commodity', name: 'Brent Petrol',     dec: 2, yahoo: 'BZ=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['UKOIL', 'BRENT', 'XBRUSD', 'UKOUSD'], tm: 'UKOIL', finnhub: 'OANDA:BCO_USD', tiingo: null, td: 'XBR/USD', massive: null, fcs: 'BRENT/USD', finage: null, av: { comm: 'BRENT' }, eodhd: 'BZ.COMM', fmp: 'BZUSD', tz: 'America/New_York', maxBasisDiff: 0.12 },
+        NATGAS: { code: 'NATGAS', cat: 'commodity', name: 'Doğalgaz',         dec: 3, yahoo: 'NG=F', yahooIsFutures: true, yahooAlt: null, yahooCash: null, biquote: ['XNGUSD', 'NATGAS', 'NGAS'], tm: 'NATGAS', finnhub: 'OANDA:NATGAS_USD', tiingo: null, td: 'NG/USD', massive: null, fcs: 'NG/USD', finage: null, av: { comm: 'NATURAL_GAS' }, eodhd: 'NG.COMM', fmp: 'NGUSD', tz: 'America/New_York', maxBasisDiff: 0.28 }
       };
 
       const STORE = {
@@ -1655,6 +1670,7 @@
         td: 'cfd_key_twelvedata',
         massive: 'cfd_key_massive',
         fcs: 'cfd_key_fcs',
+        finage: 'cfd_key_finage',
         av: 'cfd_key_alphavantage',
         eodhd: 'cfd_key_eodhd',
         fmp: 'cfd_key_fmp',
@@ -1671,6 +1687,7 @@
       const TD_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1h', H4: '4h', D1: '1day' };
       const MASSIVE_TF = { M1: [1, 'minute'], M5: [5, 'minute'], M15: [15, 'minute'], M30: [30, 'minute'], H1: [1, 'hour'], H4: [4, 'hour'], D1: [1, 'day'], W1: [1, 'week'], MN1: [1, 'month'] };
       const FCS_TF = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', H4: '4h', D1: '1d', W1: '1w', MN1: '1M' };
+      const FINAGE_TF = { M1: [1, 'minute', '1min'], M5: [5, 'minute', '5min'], M15: [15, 'minute', '15min'], M30: [30, 'minute', '30min'], H1: [1, 'hour', '1h'], H4: [4, 'hour', '4h'], D1: [1, 'day', '1day'] };
       const AV_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '60min', D1: 'daily' };
       const EODHD_TF = { M1: '1m', M5: '5m', H1: '1h', D1: 'd' };
       const FMP_TF = { M1: '1min', M5: '5min', M15: '15min', M30: '30min', H1: '1hour', H4: '4hour', D1: '1day' };
@@ -1697,6 +1714,10 @@
         tdTimes: [],
         massiveTimes: [],
         finnhubTimes: [],
+        fcsTimes: [],
+        fcsBase: '',
+        fcsIndexVerified: null,
+        finageTimes: [],
         biquoteSymbols: null,
         logs: [],
         result: null,
@@ -1862,6 +1883,7 @@
           td: (safeGet(STORE.td) || '').trim(),
           massive: (safeGet(STORE.massive) || '').trim(),
           fcs: (safeGet(STORE.fcs) || '').trim(),
+          finage: (safeGet(STORE.finage) || '').trim(),
           av: (safeGet(STORE.av) || '').trim(),
           eodhd: (safeGet(STORE.eodhd) || '').trim(),
           fmp: (safeGet(STORE.fmp) || '').trim(),
@@ -1879,6 +1901,7 @@
         $('tdKey').value = s.td;
         $('massiveKey').value = s.massive;
         $('fcsKey').value = s.fcs;
+        $('finageKey').value = s.finage;
         $('avKey').value = s.av;
         $('eodhdKey').value = s.eodhd;
         $('fmpKey').value = s.fmp;
@@ -1896,13 +1919,14 @@
         setBadge('tdBadge', !!s.td);
         setBadge('massiveBadge', !!s.massive);
         setBadge('fcsBadge', !!s.fcs);
+        setBadge('finageBadge', !!s.finage);
         setBadge('avBadge', !!s.av);
         setBadge('eodhdBadge', !!s.eodhd);
         setBadge('fmpBadge', !!s.fmp);
         $('proxyBadge').textContent = s.proxy ? 'Özel Proxy Aktif' : 'Hazır Proxy';
         $('proxyBadge').className = `badge ${s.proxy ? 'ok' : ''}`;
 
-        const count = [s.tm, s.finnhub, s.tiingo, s.td, s.massive, s.fcs, s.av, s.eodhd, s.fmp].filter(Boolean).length;
+        const count = [s.tm, s.finnhub, s.tiingo, s.td, s.massive, s.fcs, s.finage, s.av, s.eodhd, s.fmp].filter(Boolean).length;
         $('settingsKeyCount').textContent = `${count} Anahtar`;
       }
 
@@ -2563,7 +2587,6 @@
         if (!state.localProxyDisabled) all.push({ id: 'local', url: `/api/proxy?url=${enc}` });
         if (custom) all.push({ id: 'custom', url: buildCustomProxyUrl(custom, targetUrl) });
         all.push(
-          { id: 'corsproxy', url: `https://corsproxy.io/?url=${enc}` },
           { id: 'corsdev', url: `https://proxy.cors.dev/${targetUrl}` },
           { id: 'allorigins', url: `https://api.allorigins.win/raw?url=${enc}` },
           { id: 'codetabs', url: `https://api.codetabs.com/v1/proxy?quest=${enc}` }
@@ -2574,9 +2597,11 @@
       function humanizeProviderError(rawMsg, sourceLabel = '') {
         let str = String(rawMsg || '').trim();
         if (!str) return sourceLabel ? `${sourceLabel}: Yanıt alınamadı` : 'Yanıt alınamadı';
-        if (str.startsWith('{') && /"status"\s*:\s*false|"code"\s*:\s*\d+|"credit_count"/i.test(str)) {
+        const jsonIdx = str.indexOf('{');
+        if (jsonIdx !== -1 && (/"status"\s*:\s*false|"code"\s*:\s*\d+|"credit_count"|"file_read"|"error"/i.test(str))) {
+          const jsonPart = str.slice(jsonIdx);
           try {
-            const p = JSON.parse(str);
+            const p = JSON.parse(jsonPart);
             if (p?.msg || p?.message || p?.error || p?.detail) {
               str = String(p.msg || p.message || p.error || p.detail);
             } else if (Number(p?.code) === 101 || p?.info?.credit_count === 0) {
@@ -2585,7 +2610,7 @@
               str = `API hatası (kod ${p?.code || '?'})`;
             }
           } catch (_) {
-            if (/credit_count\s*":\s*0|"code"\s*:\s*101/i.test(str)) {
+            if (/credit_count\s*":\s*0|"code"\s*:\s*101|valid api access key/i.test(str)) {
               str = 'API kotası doldu veya anahtar geçersiz';
             } else {
               str = 'API erişim/kota hatası';
@@ -2621,12 +2646,17 @@
           let parsed = null;
           try { parsed = JSON.parse(text); } catch (_) {}
 
-          const looksLikeTargetApi = parsed && typeof parsed === 'object' && (
+          const isProxyOwnError = !isDirect && parsed && typeof parsed === 'object' && (
+            'corsproxy_error' in parsed || 'corsfix_error' in parsed ||
+            /valid api key is required|console\.corsproxy\.io|domain_not_registered/i.test(String(parsed.error || parsed.message || ''))
+          );
+
+          const looksLikeTargetApi = !isProxyOwnError && parsed && typeof parsed === 'object' && (
             'chart' in parsed || 'results' in parsed || 'request_id' in parsed ||
             'values' in parsed || 'bars' in parsed || 'rates' in parsed || 'quotes' in parsed ||
             's' in parsed || 'response' in parsed || 'Note' in parsed || 'Information' in parsed ||
             'Time Series FX (Daily)' in parsed || 'Error Message' in parsed ||
-            ('error' in parsed && ('message' in parsed || 'upgrade_url' in parsed)) ||
+            ('error' in parsed && ('message' in parsed || 'upgrade_url' in parsed || /permission|authorized|invalid/i.test(String(parsed.error || '')))) ||
             ('status' in parsed && ('code' in parsed || 'message' in parsed || 'msg' in parsed)) ||
             'detail' in parsed || Array.isArray(parsed)
           );
@@ -2646,7 +2676,7 @@
             const err = new Error(humanizeProviderError(msg));
             err.httpStatus = resp.status;
             err.parsed = parsed;
-            err.isTargetApiError = isDirect ? (parsed !== null || [400, 401, 402, 403, 404, 429].includes(resp.status)) : looksLikeTargetApi;
+            err.isTargetApiError = !isProxyOwnError && (isDirect ? (parsed !== null || [400, 401, 402, 403, 404, 429].includes(resp.status)) : looksLikeTargetApi);
             throw err;
           }
           if (parsed === null) throw new Error(text && /exceeded|limit|upgrade|invalid/i.test(text) ? humanizeProviderError(text.slice(0, 120)) : 'Geçersiz JSON yanıtı');
@@ -2958,15 +2988,15 @@
         }
         let note = '';
 
-        const buildTmErr = (rawMsg) => {
+        const buildTmErr = (rawMsg, origErr = null) => {
           const msg = String(rawMsg || 'TraderMade API hatası');
           const isAuthOrQuota = /api_key|invalid|unauthorized|401|limit|quota|exceeded/i.test(msg);
           const isPlan = /dataset_not_in_plan|not_in_plan|plan|subscription|upgrade|not allowed|not permitted/i.test(msg);
           const clean = isPlan
             ? `TraderMade planı ${pair.code} ${tf} veri setini desteklemiyor`
-            : msg;
+            : humanizeProviderError(msg);
           const e = new Error(clean);
-          if (isAuthOrQuota) e.disableTm = true;
+          if (isAuthOrQuota || origErr?.isTransportError) e.disableTm = true;
           else if (isPlan) {
             if (tf === 'D1') e.disableTm = true;
             else if (tmInt === 'minute') e.disableTmMinute = true;
@@ -3017,13 +3047,13 @@
                 if (effGe < gs) return { bars: [], note };
                 continue;
               }
-              throw buildTmErr(e.tmRaw || e.message);
+              throw buildTmErr(e.tmRaw || e.message, e);
             }
           }
         }
 
-        const chunkSec = tmInt === 'minute' ? 2 * 86400 : 45 * 86400;
-        const maxChunks = tmInt === 'minute' ? 16 : 10;
+        const chunkSec = tmInt === 'minute' ? (tmPer >= 5 ? 10 * 86400 : 2 * 86400) : 45 * 86400;
+        const maxChunks = tmInt === 'minute' ? (tmPer >= 5 ? 20 : 48) : 12;
         let chunksDone = 0;
 
         for (let cur = gs; cur < effGe && chunksDone < maxChunks && !state.abortFetch; cur += chunkSec) {
@@ -3057,7 +3087,7 @@
               }
             }
           } catch (e) {
-            const built = buildTmErr(e.tmRaw || e.message);
+            const built = buildTmErr(e.tmRaw || e.message, e);
             if (!map.size) throw built;
             note = built.message;
             break;
@@ -3337,34 +3367,109 @@
         return { bars: sanitizeBars(out, minAccept, ge), note };
       }
 
-      // 8. FCS API (Ucretsiz 500 istek/ay)
+      // 8. FCS API (Ucretsiz 500 istek/ay, max 3 istek/dk, v4 & v3 destekli)
+      function buildFcsUrl(baseVer, endpoint, symbol, period, gs, ge, page, key) {
+        const fromStr = toYMD(new Date(gs * 1000));
+        const toStr = toYMD(new Date((ge + 86400) * 1000));
+        if (baseVer === 'v3') {
+          return `https://fcsapi.com/api-v3/${endpoint}/history?symbol=${encodeURIComponent(symbol)}&period=${encodeURIComponent(period)}&from=${fromStr}&to=${toStr}&access_key=${encodeURIComponent(key)}`;
+        }
+        return `https://api-v4.fcsapi.com/${endpoint}/history?symbol=${encodeURIComponent(symbol)}&period=${encodeURIComponent(period)}&length=500&page=${page}&from=${fromStr}&to=${toStr}&access_key=${encodeURIComponent(key)}`;
+      }
+
       async function fetchFcsRange(pair, tf, gs, ge, key) {
         const fPeriod = FCS_TF[tf];
         if (!fPeriod || !pair.fcs) return { bars: [], note: '' };
         const endpoint = pair.cat === 'index' ? 'stock' : 'forex';
         const map = new Map();
-        const maxPages = tf === 'M1' ? 8 : 5;
+        const maxPages = state.fcsBase === 'v3' ? 1 : (tf === 'M1' ? 6 : 4);
+        let note = '';
 
         for (let page = 1; page <= maxPages && !state.abortFetch; page++) {
-          const url = `https://api-v4.fcsapi.com/${endpoint}/history?symbol=${encodeURIComponent(pair.fcs)}&period=${encodeURIComponent(fPeriod)}&length=500&page=${page}&access_key=${encodeURIComponent(key)}`;
-          let json = null;
-          try {
-            json = await fetchWithCors(url, 7000);
-          } catch (e) {
-            const raw = [e.parsed?.msg, e.parsed?.message, e.message].filter(Boolean).join(' ');
-            const isQuota = Number(e.parsed?.code) === 101 || e.parsed?.info?.credit_count === 0 || /key|limit|credit|101|401|403|429|kota/i.test(raw);
-            const clean = isQuota ? 'FCS API kotası doldu veya anahtar geçersiz' : humanizeProviderError(e.message, 'FCS API');
-            const err = new Error(clean);
-            if (isQuota) err.disableFcs = true;
-            throw err;
+          let json = null, errLast = null, rateRetries = 0;
+          let activeVer = state.fcsBase || 'v4';
+
+          for (let att = 0; att < 2; att++) {
+            if (!await waitRateSlot(state.fcsTimes, 3, 62000, `${pair.code} ${tf} FCS API 3/dk limiti bekleniyor`)) break;
+            const url = buildFcsUrl(activeVer, endpoint, pair.fcs, fPeriod, gs, ge, page, key);
+            try {
+              state.fcsTimes.push(Date.now());
+              json = await fetchWithCors(url, 7000);
+              const rawMsg = String(json?.msg || json?.message || '');
+              const isRate = json?.code === 429 || /rate limit|3 requests per minute|too many/i.test(rawMsg);
+              if (isRate && ++rateRetries <= 1) {
+                if (!await sleepAbort(62000, `${pair.code} FCS API dakikalık kota bekleniyor`)) break;
+                att = -1;
+                continue;
+              }
+              const isCode101 = Number(json?.code) === 101 || (json?.status === false && json?.info?.credit_count === 0 && !isRate);
+              if (isCode101 && !state.fcsBase && activeVer === 'v4') {
+                activeVer = 'v3';
+                continue;
+              }
+              if (json?.status === false || Number(json?.code) >= 400 || Number(json?.code) === 101) {
+                const e = new Error(rawMsg || 'FCS API hatası');
+                e.fcsCode = Number(json?.code || 0);
+                e.fcsCredit = json?.info?.credit_count;
+                throw e;
+              }
+              if (!state.fcsBase) state.fcsBase = activeVer;
+              errLast = null;
+              break;
+            } catch (e) {
+              errLast = e;
+              const raw = [e.parsed?.msg, e.parsed?.message, e.message].filter(Boolean).join(' ');
+              if (/rate limit|3 requests per minute|429/i.test(raw) && ++rateRetries <= 1) {
+                if (!await sleepAbort(62000, `${pair.code} FCS API dakikalık kota bekleniyor`)) break;
+                att = -1;
+                continue;
+              }
+              const is101 = e.fcsCode === 101 || Number(e.parsed?.code) === 101 || /valid api access key|credit_count/i.test(raw);
+              if (is101 && !state.fcsBase && activeVer === 'v4') {
+                activeVer = 'v3';
+                continue;
+              }
+              if (is101 || e.isTransportError || e.httpStatus === 401 || e.httpStatus === 403) break;
+              await new Promise(r => setTimeout(r, 300));
+            }
           }
-          if (json?.status === false || json?.code >= 400 || Number(json?.code) === 101) {
-            const raw = String(json?.msg || json?.message || '');
-            const isQuota = Number(json?.code) === 101 || json?.info?.credit_count === 0 || /key|limit|credit|101|401|403|429/i.test(raw);
-            const err = new Error(isQuota ? 'FCS API kotası doldu veya anahtar geçersiz' : (humanizeProviderError(raw || 'FCS API hatası')));
-            if (isQuota) err.disableFcs = true;
-            throw err;
+
+          if (errLast) {
+            const raw = [errLast.parsed?.msg, errLast.parsed?.message, errLast.message].filter(Boolean).join(' ');
+            const isRate = /rate limit|3 requests per minute|429/i.test(raw) || errLast.fcsCode === 429;
+            const is101 = errLast.fcsCode === 101 || Number(errLast.parsed?.code) === 101 || errLast.fcsCredit === 0 || /key|credit|101|401|403|kota/i.test(raw);
+
+            if (is101 && pair.cat === 'index') {
+              let fxWorks = state.fcsIndexVerified;
+              if (fxWorks === null) {
+                try {
+                  if (await waitRateSlot(state.fcsTimes, 3, 62000, 'FCS API FX yetkisi doğrulanıyor')) {
+                    state.fcsTimes.push(Date.now());
+                    const fxProbe = await fetchWithCors(buildFcsUrl(state.fcsBase || 'v4', 'forex', 'EUR/USD', '1d', gs, ge, 1, key), 6500);
+                    fxWorks = Boolean(fxProbe?.status !== false && Number(fxProbe?.code) !== 101 && fxProbe?.response);
+                  }
+                } catch (_) { fxWorks = false; }
+                state.fcsIndexVerified = fxWorks;
+              }
+              if (fxWorks) {
+                const idxErr = new Error('FCS API ücretsiz planda endeks verisi desteklemiyor (FX/Emtia için aktif)');
+                idxErr.disableFcsIndex = true;
+                throw idxErr;
+              }
+            }
+
+            const clean = isRate
+              ? 'FCS API 3/dk limiti doldu'
+              : (is101 ? 'FCS API kotası doldu veya anahtar geçersiz' : humanizeProviderError(errLast.message, 'FCS API'));
+            if (!map.size) {
+              const outErr = new Error(clean);
+              if (is101 || errLast.isTransportError) outErr.disableFcs = true;
+              throw outErr;
+            }
+            note = clean;
+            break;
           }
+
           const resp = json?.response;
           const items = Array.isArray(resp) ? resp : (resp && typeof resp === 'object' ? Object.entries(resp).map(([k, v]) => ({ ...v, _k: k })) : []);
           if (!items.length) break;
@@ -3385,7 +3490,7 @@
         }
         let out = Array.from(map.values());
         if (tf === 'D1') out = foldSundayIntoMondayD1(out);
-        return { bars: sanitizeBars(out, gs, ge), note: '' };
+        return { bars: sanitizeBars(out, gs, ge), note };
       }
 
       // 9. ALPHA VANTAGE (Ucretsiz 25 istek/gun - Forex & Emtia)
@@ -3454,6 +3559,9 @@
         const handleErr = err => {
           const msg = String(err.message || '');
           const st = err.httpStatus;
+          if (err.isTransportError) {
+            const e = new Error(humanizeProviderError(msg)); e.disableEodhd = true; throw e;
+          }
           if (st === 401 || /unauthenticated|invalid.*token/i.test(msg)) {
             const e = new Error('EODHD API token geçersiz'); e.disableEodhd = true; throw e;
           }
@@ -3619,6 +3727,128 @@
           }
         }
         return { bars: sanitizeBars(out, gs, ge), note: out.length ? 'Frankfurter ECB günlük kapanış kuru (O=H=L=C)' : '' };
+      }
+
+      // 13. FINAGE (Ucretsiz plan - Forex, Altin/Gumus & Endeks M1-D1)
+      async function fetchFinageRange(pair, tf, gs, ge, key) {
+        const spec = FINAGE_TF[tf];
+        const fCfg = pair.finage;
+        if (!spec || !fCfg || !fCfg.sym) return { bars: [], note: '' };
+        const [mult, unit, idxTf] = spec;
+        const map = new Map();
+        const chunkDays = tf === 'M1' ? 7 : ((tf === 'M5' || tf === 'M15' || tf === 'M30') ? 30 : (tf === 'H1' || tf === 'H4' ? 180 : 730));
+        const chunkSec = chunkDays * 86400;
+        let note = '';
+
+        for (let cur = gs; cur <= ge && !state.abortFetch; cur += chunkSec) {
+          const next = Math.min(ge, cur + chunkSec - 1);
+          const fromStr = toYMD(new Date(cur * 1000));
+          const toStr = toYMD(new Date(next * 1000));
+          const url = fCfg.kind === 'index'
+            ? `https://api.finage.co.uk/agg/index/${encodeURIComponent(fCfg.sym)}/${encodeURIComponent(idxTf)}/${fromStr}/${toStr}?limit=50000&sort=asc&date_format=ts&apikey=${encodeURIComponent(key)}`
+            : `https://api.finage.co.uk/agg/forex/${encodeURIComponent(fCfg.sym)}/${mult}/${encodeURIComponent(unit)}/${fromStr}/${toStr}?limit=50000&sort=asc&date_format=ts&apikey=${encodeURIComponent(key)}`;
+
+          let json = null, errLast = null, rateRetries = 0;
+          for (let att = 0; att < 2; att++) {
+            if (!await waitRateSlot(state.finageTimes, 20, 61000, `${pair.code} ${tf} Finage limiti bekleniyor`)) break;
+            try {
+              state.finageTimes.push(Date.now());
+              json = await fetchWithCors(url, 7000);
+              if (json?.error) {
+                const e = new Error(json.error);
+                if (/permission|plan|subscribe|unauthorized/i.test(json.error)) e.httpStatus = 403;
+                throw e;
+              }
+              errLast = null;
+              break;
+            } catch (e) {
+              errLast = e;
+              if (e.httpStatus === 429 && ++rateRetries <= 1) {
+                if (!await sleepAbort(61000, `${pair.code} Finage limit bekleniyor`)) break;
+                att = -1;
+                continue;
+              }
+              if (e.httpStatus === 401 || e.httpStatus === 403 || e.isTransportError || /permission|plan|invalid|unauthorized/i.test(e.message || '')) break;
+              await new Promise(r => setTimeout(r, 250));
+            }
+          }
+
+          if (errLast) {
+            const raw = String(errLast.message || '');
+            const isPerm = errLast.httpStatus === 401 || errLast.httpStatus === 403 || /permission|plan|invalid|unauthorized/i.test(raw);
+            const clean = isPerm
+              ? (fCfg.kind === 'index' ? 'Finage ücretsiz planda endeks verisi kısıtlı' : 'Finage API anahtarı geçersiz veya yetkisiz')
+              : humanizeProviderError(raw, 'Finage');
+            if (!map.size) {
+              const outErr = new Error(clean);
+              if (isPerm || errLast.isTransportError) outErr.disableFinage = true;
+              throw outErr;
+            }
+            note = clean;
+            break;
+          }
+
+          const rows = Array.isArray(json?.results) ? json.results : (Array.isArray(json) ? json : []);
+          for (const r of rows) {
+            let time = Number(r.t ?? r.timestamp);
+            if (Number.isFinite(time) && time > 1e12) time = Math.floor(time / 1000);
+            else if (Number.isFinite(time)) time = Math.floor(time);
+            else time = parseTzDateTimeToUtcSec(r.datetime || r.date, 'UTC');
+            if (!Number.isFinite(time)) continue;
+            if (tf === 'D1') time = toBrokerDailyMidnight(time);
+            else if (tf === 'H4') time = getNyCloseBucketKey(time, 4);
+            if (time >= gs && time <= ge) {
+              map.set(time, {
+                time,
+                open: Number(r.o ?? r.open),
+                high: Number(r.h ?? r.high),
+                low: Number(r.l ?? r.low),
+                close: Number(r.c ?? r.close),
+                volume: Number(r.v ?? r.volume) || 0
+              });
+            }
+          }
+        }
+        let out = Array.from(map.values());
+        if (tf === 'D1') out = foldSundayIntoMondayD1(out);
+        return { bars: sanitizeBars(out, gs, ge), note };
+      }
+
+      // 14. FAWAZAHMED0 CURRENCY CDN (Anahtarsiz, CORS acik jsDelivr D1 FX & Altin/Gumus Son Yedek)
+      async function fetchCurrencyCdnRange(pair, gs, ge) {
+        const base = String(pair.cdnBase || pair.fxBase || '').toLowerCase();
+        const quote = String(pair.cdnQuote || pair.fxQuote || '').toLowerCase();
+        if (!base || !quote) return { bars: [], note: '' };
+
+        const startDay = Math.floor(gs / 86400) * 86400;
+        const endDay = Math.min(Math.floor(ge / 86400) * 86400, Math.floor(Date.now() / 86400000) * 86400);
+        const days = [];
+        for (let d = startDay; d <= endDay && days.length < 95; d += 86400) {
+          const wd = new Date(d * 1000).getUTCDay();
+          if (wd !== 0 && wd !== 6) days.push(d);
+        }
+        if (!days.length) return { bars: [], note: '' };
+
+        const out = [];
+        await runPool(days, 6, async dayTs => {
+          if (state.abortFetch) return;
+          const ymd = toYMD(new Date(dayTs * 1000));
+          const urls = [
+            `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${ymd}/v1/currencies/${base}.json`,
+            `https://${ymd}.currency-api.pages.dev/v1/currencies/${base}.json`
+          ];
+          for (const u of urls) {
+            try {
+              const json = await rawFetchJson(u, 4500, true);
+              const val = Number(json?.[base]?.[quote]);
+              if (Number.isFinite(val) && val > 0) {
+                out.push({ time: dayTs, open: val, high: val, low: val, close: val, volume: 0 });
+                break;
+              }
+            } catch (_) {}
+          }
+        });
+        return { bars: sanitizeBars(out, gs, ge), note: out.length ? 'Currency CDN (jsDelivr) günlük referans kapanış (O=H=L=C)' : '' };
       }
 
       // Turetme: M1->M3/M5, M5->M15/M30, M15->M30, H1->H2/H4/D1(NY Close), D1->W1/MN1
@@ -3924,18 +4154,20 @@
         }
         setProgress(48, `${pair.code} • Ek ücretsiz API kaynakları kontrol ediliyor...`);
 
-        // ADIM 3: YEDEK 24/5 KAYNAKLAR (TraderMade → Finnhub → Tiingo → TwelveData → Massive → FCS → AlphaVantage → EODHD → FMP → Frankfurter)
+        // ADIM 3: YEDEK 24/5 KAYNAKLAR (TraderMade → Finnhub → Tiingo → TwelveData → Massive → FCS → Finage → AlphaVantage → EODHD → FMP → Frankfurter → Currency CDN)
         const providers = [
           { id: 'tradermade', label: 'TraderMade', hasKey: !!cfg.tm, sym: pair.tm, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
           { id: 'finnhub', label: 'Finnhub', hasKey: !!cfg.finnhub, sym: pair.finnhub, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
           { id: 'tiingo', label: 'Tiingo FX', hasKey: !!cfg.tiingo, sym: pair.tiingo, tfs: ['D1', 'H1', 'M1', 'M5'], conc: 2 },
           { id: 'twelvedata', label: 'Twelve Data', hasKey: !!cfg.td, sym: pair.td, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 1 },
           { id: 'massive', label: 'Massive', hasKey: !!cfg.massive, sym: pair.massive, tfs: ['D1', 'W1', 'MN1', 'H4', 'H1', 'M5', 'M1'], conc: 1 },
-          { id: 'fcs', label: 'FCS API', hasKey: !!cfg.fcs, sym: pair.fcs, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
+          { id: 'fcs', label: 'FCS API', hasKey: !!cfg.fcs, sym: pair.fcs, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 1 },
+          { id: 'finage', label: 'Finage', hasKey: !!cfg.finage, sym: pair.finage, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
           { id: 'av', label: 'Alpha Vantage', hasKey: !!cfg.av, sym: pair.av, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 1 },
           { id: 'eodhd', label: 'EODHD', hasKey: !!cfg.eodhd, sym: pair.eodhd, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
           { id: 'fmp', label: 'FMP', hasKey: !!cfg.fmp, sym: pair.fmp, tfs: ['D1', 'H1', 'M5', 'M1'], conc: 2 },
-          { id: 'frankfurter', label: 'Frankfurter ECB', hasKey: true, sym: pair.fxBase, tfs: ['D1'], conc: 1 }
+          { id: 'frankfurter', label: 'Frankfurter ECB', hasKey: true, sym: pair.fxBase, tfs: ['D1'], conc: 1 },
+          { id: 'currencycdn', label: 'Currency CDN', hasKey: true, sym: pair.cdnBase || pair.fxBase, tfs: ['D1'], conc: 1 }
         ];
 
         const disabled = {};
@@ -3944,16 +4176,19 @@
         let massiveIntradayBlocked = false;
         let eodhdIntradayBlocked = false;
         let avIntradayBlocked = false;
+        let fcsIndexBlocked = false;
 
         for (let pIdx = 0; pIdx < providers.length && !state.abortFetch; pIdx++) {
           const prov = providers[pIdx];
           if (!prov.hasKey || !prov.sym || disabled[prov.id]) continue;
+          if (prov.id === 'fcs' && fcsIndexBlocked && pair.cat === 'index') continue;
 
           const startPct = 50 + Math.round((pIdx / providers.length) * 42);
           const spanPct = Math.max(3, Math.round(42 / providers.length));
 
           const runProviderTf = async (tf, idxInProv, totalInProv) => {
             if (state.abortFetch || disabled[prov.id]) return;
+            if (prov.id === 'fcs' && fcsIndexBlocked && pair.cat === 'index') return;
             if (prov.id === 'tradermade' && tmIntradayBlocked && tf !== 'D1') return;
             if (prov.id === 'tradermade' && tmMinuteBlocked && (tf === 'M1' || tf === 'M5' || tf === 'M15' || tf === 'M30')) return;
             if (prov.id === 'massive' && massiveIntradayBlocked && INTRADAY_TFS.has(tf)) return;
@@ -3977,10 +4212,12 @@
                 else if (prov.id === 'twelvedata') res = await fetchTdRange(pair, tf, gs, effGe, cfg.td);
                 else if (prov.id === 'massive') res = await fetchMassiveRange(pair, tf, gs, effGe, cfg.massive);
                 else if (prov.id === 'fcs') res = await fetchFcsRange(pair, tf, gs, effGe, cfg.fcs);
+                else if (prov.id === 'finage') res = await fetchFinageRange(pair, tf, gs, effGe, cfg.finage);
                 else if (prov.id === 'av') res = await fetchAlphaVantageRange(pair, tf, gs, effGe, cfg.av);
                 else if (prov.id === 'eodhd') res = await fetchEodhdRange(pair, tf, gs, effGe, cfg.eodhd);
                 else if (prov.id === 'fmp') res = await fetchFmpRange(pair, tf, gs, effGe, cfg.fmp);
                 else if (prov.id === 'frankfurter') res = await fetchFrankfurterRange(pair, gs, effGe);
+                else if (prov.id === 'currencycdn') res = await fetchCurrencyCdnRange(pair, gs, effGe);
 
                 const acc = acceptBars(tf, res.bars, prov.id, prov.label, gs, effGe, baseIsFutures);
                 const cleanResNote = res.note ? humanizeProviderError(res.note) : '';
@@ -4005,6 +4242,8 @@
                 if (e.disableTd) disabled.twelvedata = cleanErr;
                 if (e.disableMassive) disabled.massive = cleanErr;
                 if (e.disableFcs) disabled.fcs = cleanErr;
+                if (e.disableFcsIndex) { fcsIndexBlocked = true; }
+                if (e.disableFinage) disabled.finage = cleanErr;
                 if (e.disableAv) disabled.av = cleanErr;
                 if (e.disableEodhd) disabled.eodhd = cleanErr;
                 if (e.disableFmp) disabled.fmp = cleanErr;
@@ -4561,7 +4800,7 @@
           const norm = normalizeCsvTimeframe(t, false);
           if (!inferredTf && ALL_TF.includes(norm)) { inferredTf = norm; continue; }
           const up = t.toUpperCase();
-          if (!inferredSym && (PAIRS[up] || ['SPX500', 'US500', 'US100', 'USTEC', 'DE40', 'GER30', 'BTCUSD', 'XAUUSD', 'XAGUSD'].includes(up) || (/^[A-Z]{6}$/.test(up) && !/^(BIRLESIK|TOPLU|MERGED)$/i.test(up)))) {
+          if (!inferredSym && (PAIRS[up] || ['SPX500', 'US500', 'US100', 'USTEC', 'DE40', 'GER30', 'BTCUSD', 'XAUUSD', 'XAGUSD', 'NDX', 'SPX', 'DJI', 'USA30', 'USA500', 'TECH100', 'FTSE100', 'GOLD', 'SILVER', 'WTI', 'BRENT', 'XTIUSD', 'XBRUSD', 'XNGUSD'].includes(up) || (/^[A-Z]{6}$/.test(up) && !/^(BIRLESIK|TOPLU|MERGED)$/i.test(up)))) {
             inferredSym = up;
           }
         }
@@ -4692,7 +4931,8 @@
           if (dt >= 86400 * 20) preferMonthFor1M = true;
         }
 
-        const missingTfFallback = fileMeta.inferredTf || inferTfFromBars(rawRows.map(r => r.candle).sort((a, b) => a.time - b.time));
+        const sampleForTf = fileMeta.inferredTf ? [] : rawRows.slice(0, 250).map(r => r.candle).sort((a, b) => a.time - b.time);
+        const missingTfFallback = fileMeta.inferredTf || inferTfFromBars(sampleForTf);
         const normalizedRows = rawRows.map(r => ({
           sym: r.sym,
           tf: r.rawTf ? (normalizeCsvTimeframe(r.rawTf, preferMonthFor1M) || missingTfFallback) : missingTfFallback,
@@ -5096,7 +5336,7 @@
             $(msgId).textContent = info;
           } catch (e) {
             $(msgId).className = 'msg-line err';
-            $(msgId).textContent = `Hata: ${e.message}`;
+            $(msgId).textContent = `Hata: ${humanizeProviderError(e.message)}`;
           } finally {
             testBtn.disabled = false;
           }
@@ -5162,14 +5402,14 @@
         const from = toYMD(new Date(Date.now() - 7 * 86400000));
         const rows = await fetchWithCors(`https://api.tiingo.com/tiingo/fx/eurusd/prices?startDate=${from}&resampleFreq=1hour&token=${encodeURIComponent(key)}`, 7000);
         if (!Array.isArray(rows)) throw new Error(rows?.detail || 'Geçersiz yanıt');
-        return `Başarılı: ${rows.length} örnek mum alındı.`;
+        return `Başarılı: Tiingo FX doğrulandı (${rows.length} örnek bar).`;
       });
 
       bindKeyControls('tdKey', STORE.td, 'tdMsg', async key => {
         const json = await fetchWithCors(`https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=1h&outputsize=2&apikey=${encodeURIComponent(key)}`, 7000);
         if (json.status === 'error') throw new Error(json.message || 'Geçersiz anahtar');
         if (!Array.isArray(json.values) || !json.values.length) throw new Error('Veri alınamadı');
-        return `Başarılı: EUR/USD doğrulandı (${json.values[0].datetime}).`;
+        return `Başarılı: Twelve Data FX doğrulandı (${json.values[0].datetime}); bazı endeksler ücretli plan isteyebilir.`;
       });
 
       bindKeyControls('massiveKey', STORE.massive, 'massiveMsg', async key => {
@@ -5179,15 +5419,58 @@
         if (json?.status === 'ERROR' || json?.status === 'NOT_AUTHORIZED' || json?.error) {
           throw new Error(json.error || json.message || 'Yetki/anahtar hatası');
         }
-        return `Başarılı: Massive doğrulandı (${(json?.results || []).length} örnek bar).`;
+        const fxCnt = (json?.results || []).length;
+        try {
+          const idxJson = await fetchWithCors(`https://api.massive.com/v2/aggs/ticker/I:NDX/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=2&apiKey=${encodeURIComponent(key)}`, 7000);
+          if (idxJson?.status === 'NOT_AUTHORIZED' || idxJson?.error) {
+            return `Anahtar geçerli: Massive FX/Altın doğrulandı (${fxCnt} bar), ancak ABD Endeks (I:NDX) ücretsiz planda kısıtlı.`;
+          }
+        } catch (idxErr) {
+          if (idxErr.httpStatus === 403 || /authorized|entitled|plan/i.test(idxErr.message || '')) {
+            return `Anahtar geçerli: Massive FX/Altın doğrulandı (${fxCnt} bar), ancak ABD Endeks (I:NDX) ücretsiz planda kısıtlı.`;
+          }
+        }
+        return `Başarılı: Massive FX & Endeks doğrulandı (${fxCnt} bar).`;
       });
 
       bindKeyControls('fcsKey', STORE.fcs, 'fcsMsg', async key => {
-        const json = await fetchWithCors(`https://api-v4.fcsapi.com/forex/history?symbol=EUR/USD&period=1d&length=5&access_key=${encodeURIComponent(key)}`, 7000);
-        if (json?.status === false) throw new Error(json?.msg || 'Geçersiz anahtar');
-        const len = Array.isArray(json?.response) ? json.response.length : Object.keys(json?.response || {}).length;
-        if (!len) throw new Error('Veri alınamadı');
-        return `Başarılı: FCS API doğrulandı (${len} örnek bar).`;
+        state.fcsBase = '';
+        state.fcsIndexVerified = null;
+        let lastErr = '';
+        for (const ver of ['v4', 'v3']) {
+          const url = ver === 'v4'
+            ? `https://api-v4.fcsapi.com/forex/history?symbol=EUR/USD&period=1d&length=5&access_key=${encodeURIComponent(key)}`
+            : `https://fcsapi.com/api-v3/forex/history?symbol=EUR/USD&period=1d&access_key=${encodeURIComponent(key)}`;
+          try {
+            const json = await fetchWithCors(url, 7000);
+            if (json?.status === false || Number(json?.code) === 101) {
+              const raw = String(json?.msg || json?.message || '');
+              if (/rate limit|3 requests per minute/i.test(raw)) throw new Error('FCS API 3 istek/dk limiti doldu — 1 dakika bekleyin');
+              lastErr = raw || (Number(json?.code) === 101 ? 'FCS API kotası doldu veya anahtar geçersiz' : 'Geçersiz anahtar');
+              if (Number(json?.code) === 101 && ver === 'v4') continue;
+              throw new Error(lastErr);
+            }
+            const len = Array.isArray(json?.response) ? json.response.length : Object.keys(json?.response || {}).length;
+            if (!len) throw new Error('Veri alınamadı');
+            state.fcsBase = ver;
+            return `Başarılı: FCS API (${ver}) Forex doğrulandı (${len} örnek bar; max 3 istek/dk, ücretsiz planda endeksler kısıtlıdır).`;
+          } catch (e) {
+            lastErr = e.message || lastErr;
+            if (/3 istek\/dk|rate limit/i.test(lastErr)) throw e;
+            if (ver === 'v3') throw e;
+          }
+        }
+        throw new Error(lastErr || 'FCS API doğrulanamadı');
+      });
+
+      bindKeyControls('finageKey', STORE.finage, 'finageMsg', async key => {
+        const from = toYMD(new Date(Date.now() - 10 * 86400000));
+        const to = toYMD(new Date());
+        const json = await fetchWithCors(`https://api.finage.co.uk/agg/forex/EURUSD/1/day/${from}/${to}?limit=10&sort=asc&date_format=ts&apikey=${encodeURIComponent(key)}`, 7000);
+        if (json?.error) throw new Error(json.error);
+        const rows = Array.isArray(json?.results) ? json.results : (Array.isArray(json) ? json : []);
+        if (!rows.length) throw new Error('Veri alınamadı veya yetkisiz anahtar');
+        return `Başarılı: Finage doğrulandı (${rows.length} örnek bar).`;
       });
 
       bindKeyControls('avKey', STORE.av, 'avMsg', async key => {
@@ -5203,7 +5486,7 @@
         const to = toYMD(new Date());
         const rows = await fetchWithCors(`https://eodhd.com/api/eod/EURUSD.FOREX?from=${from}&to=${to}&fmt=json&api_token=${encodeURIComponent(key)}`, 7000);
         if (!Array.isArray(rows) || !rows.length) throw new Error('Veri alınamadı veya token geçersiz');
-        return `Başarılı: EODHD doğrulandı (${rows[rows.length - 1].date}).`;
+        return `Başarılı: EODHD D1 doğrulandı (${rows[rows.length - 1].date}); gün içi (M1/M5/H1) ücretli plan gerektirir.`;
       });
 
       bindKeyControls('fmpKey', STORE.fmp, 'fmpMsg', async key => {
@@ -5259,7 +5542,7 @@
           $('proxyMsg').textContent = 'Başarılı: Özel proxy çalışıyor ve kaydedildi.';
         } catch (e) {
           $('proxyMsg').className = 'msg-line err';
-          $('proxyMsg').textContent = `Hata: ${e.message}`;
+          $('proxyMsg').textContent = `Hata: ${humanizeProviderError(e.message)}`;
         } finally {
           $('proxyTestBtn').disabled = false;
         }
@@ -5273,12 +5556,57 @@
         $('proxyMsg').textContent = 'Özel proxy kaldırıldı.';
       });
 
+      $('testAllKeysBtn').addEventListener('click', async () => {
+        const btn = $('testAllKeysBtn');
+        const pairs = [
+          ['tmKey', 'tmTestBtn', 'tmMsg'],
+          ['finnhubKey', 'finnhubTestBtn', 'finnhubMsg'],
+          ['tiingoKey', 'tiingoTestBtn', 'tiingoMsg'],
+          ['tdKey', 'tdTestBtn', 'tdMsg'],
+          ['massiveKey', 'massiveTestBtn', 'massiveMsg'],
+          ['fcsKey', 'fcsTestBtn', 'fcsMsg'],
+          ['finageKey', 'finageTestBtn', 'finageMsg'],
+          ['avKey', 'avTestBtn', 'avMsg'],
+          ['eodhdKey', 'eodhdTestBtn', 'eodhdMsg'],
+          ['fmpKey', 'fmpTestBtn', 'fmpMsg']
+        ];
+        const filled = pairs.filter(([inp]) => ($(inp)?.value || '').trim().length > 0);
+        if (!filled.length) {
+          showToast('Kayıtlı Anahtar Yok', 'Test edilecek kayıtlı API anahtarı bulunamadı.', 'warn');
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = `Test Ediliyor (0/${filled.length})...`;
+        let okCount = 0;
+        try {
+          for (let i = 0; i < filled.length; i++) {
+            const [, testId, msgId] = filled[i];
+            btn.textContent = `Test Ediliyor (${i + 1}/${filled.length})...`;
+            $(testId)?.click();
+            await new Promise(resolve => {
+              const check = () => {
+                if (!$(testId)?.disabled) resolve();
+                else setTimeout(check, 80);
+              };
+              setTimeout(check, 80);
+            });
+            if ($(msgId)?.classList.contains('ok')) okCount++;
+          }
+          showToast('Anahtar Testi Tamamlandı', `${okCount}/${filled.length} API anahtarı doğrulandı.`, okCount === filled.length ? 'ok' : 'warn');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Kayıtlı Anahtarları Test Et';
+        }
+      });
+
       $('resetAllSettingsBtn').addEventListener('click', () => {
         Object.values(STORE).forEach(k => safeDel(k));
         state.hostRouteMemory.clear();
         state.badProxiesUntil.clear();
+        state.fcsBase = '';
+        state.fcsIndexVerified = null;
         state.soundEnabled = true;
-        ['tmMsg', 'finnhubMsg', 'tiingoMsg', 'tdMsg', 'massiveMsg', 'fcsMsg', 'avMsg', 'eodhdMsg', 'fmpMsg', 'proxyMsg'].forEach(id => { $(id).textContent = ''; });
+        ['tmMsg', 'finnhubMsg', 'tiingoMsg', 'tdMsg', 'massiveMsg', 'fcsMsg', 'finageMsg', 'avMsg', 'eodhdMsg', 'fmpMsg', 'proxyMsg'].forEach(id => { $(id).textContent = ''; });
         refreshSoundUi();
         refreshSettingsUi();
       });
