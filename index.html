@@ -1692,7 +1692,7 @@
         hostRouteMemory: new Map(),
         hostDiscoveryLocks: new Map(),
         badProxiesUntil: new Map(),
-        localProxyDisabled: !(location.protocol === 'http:' || location.protocol === 'https:'),
+        localProxyDisabled: !(location.protocol === 'http:' || location.protocol === 'https:') || /\.github\.io$/i.test(location.hostname || ''),
         tmTodayBlocked: false,
         tdTimes: [],
         massiveTimes: [],
@@ -2465,26 +2465,41 @@
           return gaps;
         }
 
+        // Strict degerlendirmede tek gunluk resmi tatiller (Thanksgiving, Labor Day, Noel vb.) ve erken kapanislar (Black Friday 18:00Z)
+        // tum donemi yanlislikla "Kismi" olarak isaretlememesi icin 26-30 saatlik tekil tatil bosluklarina tolerans taninir.
         const edgeThresh = tf === 'D1'
           ? (strictAssessment ? 30 * 3600 : 20 * 3600)
-          : (strictAssessment ? 14 * 3600 : 8 * 3600);
+          : (strictAssessment ? 30 * 3600 : 12 * 3600);
         const innerThresh = tf === 'D1'
           ? (strictAssessment ? 28 * 3600 : 12 * 3600)
-          : 5 * 3600;
+          : (strictAssessment ? 29 * 3600 : 9 * 3600);
 
+        const smallPauseGaps = [];
         if (weekdaySecondsBetween(effStart, bars[0].time) > edgeThresh) {
           gaps.push([reqStart, Math.min(reqEnd, bars[0].time + tfSec)]);
         }
         for (let i = 1; i < bars.length; i++) {
           const prevEnd = Math.min(bars[i].time, bars[i - 1].time + tfSec);
-          if (weekdaySecondsBetween(prevEnd, bars[i].time) > innerThresh) {
+          const wdGap = weekdaySecondsBetween(prevEnd, bars[i].time);
+          if (wdGap > innerThresh) {
             gaps.push([Math.max(reqStart, bars[i - 1].time), Math.min(reqEnd, bars[i].time)]);
+          } else if (strictAssessment && tf !== 'D1' && wdGap > 8 * 3600) {
+            smallPauseGaps.push([Math.max(reqStart, bars[i - 1].time), Math.min(reqEnd, bars[i].time), wdGap]);
           }
         }
         const lastT = bars[bars.length - 1].time;
         const tailCheckStart = tf === 'D1' ? lastT : (lastT + tfSec);
         if (weekdaySecondsBetween(tailCheckStart, effEnd) > edgeThresh) {
           gaps.push([Math.max(reqStart, lastT - tfSec), reqEnd]);
+        }
+
+        // Eger tekil tatil boslugu esigini gecen aralik yoksa bile sistematik olarak cok sayida seans eksikse (orn. %15+ hafta ici boslugu) Kismi say.
+        if (strictAssessment && !gaps.length && smallPauseGaps.length >= 4) {
+          const totalWd = Math.max(1, weekdaySecondsBetween(effStart, effEnd));
+          const sumSmall = smallPauseGaps.reduce((s, x) => s + x[2], 0);
+          if (sumSmall / totalWd > 0.15) {
+            for (const [a, b] of smallPauseGaps) gaps.push([a, b]);
+          }
         }
 
         if (gaps.length <= 1) return gaps;
@@ -2556,10 +2571,45 @@
         return all.filter(r => r.id === 'direct' || r.id === 'local' || r.id === 'custom' || (state.badProxiesUntil.get(r.id) || 0) <= now);
       }
 
+      function humanizeProviderError(rawMsg, sourceLabel = '') {
+        let str = String(rawMsg || '').trim();
+        if (!str) return sourceLabel ? `${sourceLabel}: Yanıt alınamadı` : 'Yanıt alınamadı';
+        if (str.startsWith('{') && /"status"\s*:\s*false|"code"\s*:\s*\d+|"credit_count"/i.test(str)) {
+          try {
+            const p = JSON.parse(str);
+            if (p?.msg || p?.message || p?.error || p?.detail) {
+              str = String(p.msg || p.message || p.error || p.detail);
+            } else if (Number(p?.code) === 101 || p?.info?.credit_count === 0) {
+              str = 'API kotası doldu veya anahtar geçersiz';
+            } else {
+              str = `API hatası (kod ${p?.code || '?'})`;
+            }
+          } catch (_) {
+            if (/credit_count\s*":\s*0|"code"\s*:\s*101/i.test(str)) {
+              str = 'API kotası doldu veya anahtar geçersiz';
+            } else {
+              str = 'API erişim/kota hatası';
+            }
+          }
+        }
+        if (/signal is aborted|the operation was aborted|aborterror/i.test(str)) {
+          str = 'Zaman aşımı (yanıt gelmedi)';
+        } else if (/failed to fetch|networkerror|load failed|cors/i.test(str)) {
+          str = 'Ağ/CORS erişim hatası';
+        } else if (/rate limit exceeded|requests per minute|too many requests|run out of api credits/i.test(str)) {
+          str = 'Dakikalık istek limiti doldu';
+        }
+        if (sourceLabel && !str.toLowerCase().includes(sourceLabel.toLowerCase())) {
+          return `${sourceLabel}: ${str}`;
+        }
+        return str;
+      }
+
       async function rawFetchJson(url, timeoutMs, isDirect) {
         const ctrl = new AbortController();
         state.activeControllers.add(ctrl);
-        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        let timedOut = false;
+        const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeoutMs);
         const isLocalProxy = typeof url === 'string' && url.startsWith('/api/proxy');
         try {
           const fetchOpts = { signal: ctrl.signal, cache: 'no-store' };
@@ -2577,7 +2627,7 @@
             's' in parsed || 'response' in parsed || 'Note' in parsed || 'Information' in parsed ||
             'Time Series FX (Daily)' in parsed || 'Error Message' in parsed ||
             ('error' in parsed && ('message' in parsed || 'upgrade_url' in parsed)) ||
-            ('status' in parsed && ('code' in parsed || 'message' in parsed)) ||
+            ('status' in parsed && ('code' in parsed || 'message' in parsed || 'msg' in parsed)) ||
             'detail' in parsed || Array.isArray(parsed)
           );
 
@@ -2585,15 +2635,30 @@
             if (isLocalProxy && resp.status === 401) {
               handleUnauthorizedSession(parsed?.error || 'Prop Journal oturumu geçersiz veya süresi doldu.');
             }
-            const msg = parsed?.chart?.error?.description || parsed?.error || parsed?.detail || parsed?.message || parsed?.['Error Message'] || text?.slice(0, 140) || `HTTP ${resp.status}`;
-            const err = new Error(msg);
+            let msg = parsed?.chart?.error?.description || parsed?.msg || parsed?.error || parsed?.detail || parsed?.message || parsed?.['Error Message'] || '';
+            if (!msg && parsed && (Number(parsed.code) === 101 || parsed.info?.credit_count === 0)) {
+              msg = 'API kotası doldu veya anahtar geçersiz';
+            }
+            if (!msg) {
+              const trimmed = String(text || '').trim();
+              msg = trimmed.startsWith('{') ? `API hatası (HTTP ${resp.status})` : (trimmed.slice(0, 120) || `HTTP ${resp.status}`);
+            }
+            const err = new Error(humanizeProviderError(msg));
             err.httpStatus = resp.status;
             err.parsed = parsed;
             err.isTargetApiError = isDirect ? (parsed !== null || [400, 401, 402, 403, 404, 429].includes(resp.status)) : looksLikeTargetApi;
             throw err;
           }
-          if (parsed === null) throw new Error(text && /exceeded|limit|upgrade|invalid/i.test(text) ? text.slice(0, 120) : 'Geçersiz JSON yanıtı');
+          if (parsed === null) throw new Error(text && /exceeded|limit|upgrade|invalid/i.test(text) ? humanizeProviderError(text.slice(0, 120)) : 'Geçersiz JSON yanıtı');
           return parsed;
+        } catch (err) {
+          if (err?.name === 'AbortError' || /signal is aborted/i.test(err?.message || '')) {
+            if (state.abortFetch) throw new Error('Durduruldu');
+            const te = new Error(timedOut ? 'Zaman aşımı (yanıt gelmedi)' : 'Bağlantı kesildi');
+            te.isTimeout = true;
+            throw te;
+          }
+          throw err;
         } finally {
           clearTimeout(timer);
           state.activeControllers.delete(ctrl);
@@ -2628,7 +2693,8 @@
             lastErr = err;
           }
         }
-        const transportErr = lastErr || new Error('Ağ veya CORS proxy hatası');
+        const transportMsg = lastErr?.message ? humanizeProviderError(lastErr.message) : 'Ağ veya CORS proxy hatası';
+        const transportErr = new Error(transportMsg);
         transportErr.isTransportError = true;
         throw transportErr;
       }
@@ -2709,7 +2775,8 @@
 
         const map = new Map();
         let cursorStart = gs, cursorEnd = ge;
-        const maxPages = tf === 'M1' ? 35 : 22;
+        const estTradingBars = Math.max(1000, Math.ceil(((ge - gs) / (TF_SEC[tf] || 60)) * 0.72));
+        const maxPages = Math.min(tf === 'M1' ? 160 : 80, Math.max(12, Math.ceil(estTradingBars / 900) + 4));
 
         for (let page = 0; page < maxPages && cursorStart < cursorEnd && !state.abortFetch; page++) {
           const url = `https://biquote.io/api/${encodeURIComponent(sym)}/ohlc?interval=${encodeURIComponent(bInt)}&limit=1000&from=${encodeURIComponent(isoUtc(cursorStart))}&to=${encodeURIComponent(isoUtc(cursorEnd))}`;
@@ -3131,7 +3198,7 @@
               json = await fetchWithCors(url, 7000);
               if (json?.status === 'error') {
                 const msg = String(json.message || 'Twelve Data hatası');
-                if (/credits|minute|too many/i.test(msg) && !/daily|day/i.test(msg) && ++rateRetries <= 1) {
+                if (/credits|minute|too many|rate limit|requests per minute/i.test(msg) && !/daily|day/i.test(msg) && ++rateRetries <= 1) {
                   if (!await sleepAbort(62000, `${pair.code} Twelve Data dakikalık kota bekleniyor`)) break;
                   att = -1;
                   continue;
@@ -3151,11 +3218,13 @@
 
           if (errLast) {
             const raw = errLast.message || '';
-            let clean = raw, disable = false;
+            let clean = humanizeProviderError(raw), disable = false;
             if (/grow|pro|ultra|plan|upgrade|permission|not available on|symbol or figi/i.test(raw) || errLast.tdCode === 403 || errLast.tdCode === 404) {
               clean = 'Twelve Data ücretsiz planda desteklemiyor'; disable = true;
             } else if (/daily|per day/i.test(raw)) {
               clean = 'Twelve Data günlük limit doldu'; disable = true;
+            } else if (/minute|credits|requests per minute|rate limit/i.test(raw)) {
+              clean = 'Twelve Data dakikalık limit aşıldı';
             } else if (/apikey|api key|unauthorized/i.test(raw) || errLast.tdCode === 401) {
               clean = 'Twelve Data API anahtarı geçersiz'; disable = true;
             }
@@ -3278,11 +3347,22 @@
 
         for (let page = 1; page <= maxPages && !state.abortFetch; page++) {
           const url = `https://api-v4.fcsapi.com/${endpoint}/history?symbol=${encodeURIComponent(pair.fcs)}&period=${encodeURIComponent(fPeriod)}&length=500&page=${page}&access_key=${encodeURIComponent(key)}`;
-          const json = await fetchWithCors(url, 7000);
-          if (json?.status === false || json?.code >= 400) {
-            const msg = String(json?.msg || json?.message || 'FCS API hatası');
-            const err = new Error(msg);
-            if (/key|limit|credit|401|403|429/i.test(msg)) err.disableFcs = true;
+          let json = null;
+          try {
+            json = await fetchWithCors(url, 7000);
+          } catch (e) {
+            const raw = [e.parsed?.msg, e.parsed?.message, e.message].filter(Boolean).join(' ');
+            const isQuota = Number(e.parsed?.code) === 101 || e.parsed?.info?.credit_count === 0 || /key|limit|credit|101|401|403|429|kota/i.test(raw);
+            const clean = isQuota ? 'FCS API kotası doldu veya anahtar geçersiz' : humanizeProviderError(e.message, 'FCS API');
+            const err = new Error(clean);
+            if (isQuota) err.disableFcs = true;
+            throw err;
+          }
+          if (json?.status === false || json?.code >= 400 || Number(json?.code) === 101) {
+            const raw = String(json?.msg || json?.message || '');
+            const isQuota = Number(json?.code) === 101 || json?.info?.credit_count === 0 || /key|limit|credit|101|401|403|429/i.test(raw);
+            const err = new Error(isQuota ? 'FCS API kotası doldu veya anahtar geçersiz' : (humanizeProviderError(raw || 'FCS API hatası')));
+            if (isQuota) err.disableFcs = true;
             throw err;
           }
           const resp = json?.response;
@@ -3638,7 +3718,7 @@
         const intradayReqStart = reqStart - 4 * 3600;
         const toDailyGe = (tf, ge) => ((tf === 'D1' || tf === 'W1' || tf === 'MN1') && ge >= reqEnd - 60) ? Math.max(ge, nyTodayEnd) : ge;
 
-        const tfBars = {}, tfSources = {}, tfNotes = {};
+        const tfBars = {}, tfSources = {}, tfNotes = {}, tfDiagNotes = {};
         let baseProviderId = '';
         let baseIsFutures = false;
         const basisCache = new Map();
@@ -3651,6 +3731,11 @@
           if (!note) return;
           if (!tfNotes[tf]) tfNotes[tf] = new Set();
           tfNotes[tf].add(note);
+        };
+        const addDiagNote = (tf, note, sourceLabel = '') => {
+          if (!note) return;
+          if (!tfDiagNotes[tf]) tfDiagNotes[tf] = new Set();
+          tfDiagNotes[tf].add(humanizeProviderError(note, sourceLabel));
         };
 
         const acceptBars = (tf, bars, providerId, sourceLabel, gs, ge, allowBasisShift = false) => {
@@ -3668,7 +3753,7 @@
               const pctStr = (check.diff * 100).toFixed(2);
               const msg = `Fiyat sapması %${pctStr} (>%0.4), kaynak reddedildi`;
               addLog(pair.code, sourceLabel, tf, `${shortDate(gs)}–${shortDate(ge)}`, bars.length, msg, 'err');
-              addNote(tf, `${sourceLabel}: ${msg}`);
+              addDiagNote(tf, msg, sourceLabel);
               return { accepted: false, count: 0 };
             }
             if (check.shifted) {
@@ -3695,7 +3780,7 @@
           }
         } catch (e) {
           bqSymOk = false;
-          addLog(pair.code, 'biquote.io', '-', `${shortDate(reqStart)}–${shortDate(reqEnd)}`, 0, e.message || 'Bağlantı hatası', 'err');
+          addLog(pair.code, 'biquote.io', '-', `${shortDate(reqStart)}–${shortDate(reqEnd)}`, 0, humanizeProviderError(e.message || 'Bağlantı hatası'), 'err');
         }
 
         if (bqSymOk && !state.abortFetch) {
@@ -3714,8 +3799,9 @@
                 if (acc.accepted) addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, 'Başarılı (24/5 CFD)', 'ok');
                 else addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
               } catch (e) {
-                addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
-                addNote(tf, `biquote.io: ${e.message}`);
+                const errMsg = humanizeProviderError(e.message);
+                addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, errMsg, 'err');
+                addDiagNote(tf, errMsg, 'biquote.io');
               }
             }
           });
@@ -3732,7 +3818,7 @@
                   const acc = acceptBars(tf, res.bars, 'biquote', 'biquote.io', gs, ge, false);
                   if (acc.accepted) addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, 'Başarılı (24/5 CFD)', 'ok');
                 } catch (e) {
-                  addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
+                  addLog(pair.code, 'biquote.io', tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, humanizeProviderError(e.message), 'err');
                 }
               }
             });
@@ -3750,6 +3836,7 @@
         const runYahooTicker = async (ticker, providerId, label, isFuturesSource, pctStart, pctSpan, allowedTfs = null) => {
           let transportFails = 0, reachable = false, yahooDead = false;
           const yahooTfs = allowedTfs || ['D1', 'H1', 'M5', 'M1'];
+          const addedTfs = new Set();
 
           await runPool(yahooTfs, 3, async tf => {
             if (state.abortFetch || yahooDead) return;
@@ -3761,13 +3848,13 @@
               if (state.abortFetch || yahooDead) break;
               let effGs = gs, limitNote = '';
               if (tf === 'M1') {
-                if (ge <= limM1) { addNote('M1', 'Yahoo M1 yalnızca son 30 gün'); continue; }
+                if (ge <= limM1) { addDiagNote('M1', 'Yahoo M1 yalnızca son 30 gün'); continue; }
                 if (gs < limM1) { effGs = Math.max(gs, limM1); limitNote = 'Yahoo M1 yalnızca son 30 gün'; }
               } else if (tf === 'M5' || tf === 'M15' || tf === 'M30') {
-                if (ge <= limM5) { addNote(tf, `Yahoo ${tf} yalnızca son 59 gün`); continue; }
+                if (ge <= limM5) { addDiagNote(tf, `Yahoo ${tf} yalnızca son 59 gün`); continue; }
                 if (gs < limM5) { effGs = Math.max(gs, limM5); limitNote = `Yahoo ${tf} yalnızca son 59 gün`; }
               } else if (tf === 'H1') {
-                if (ge <= limH1) { addNote('H1', 'Yahoo H1 yalnızca son 720 gün'); continue; }
+                if (ge <= limH1) { addDiagNote('H1', 'Yahoo H1 yalnızca son 720 gün'); continue; }
                 if (gs < limH1) { effGs = Math.max(gs, limH1); limitNote = 'Yahoo H1 yalnızca son 720 gün'; }
               }
 
@@ -3780,17 +3867,19 @@
                 reachable = true;
                 const acc = acceptBars(tf, bars, providerId, label, effGs, effGe, isFuturesSource);
                 if (acc.accepted) {
+                  addedTfs.add(tf);
                   const msg = [limitNote, acc.note].filter(Boolean).join(' • ') || 'Başarılı';
                   addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, msg, limitNote ? 'partial' : 'ok');
                 } else if (!bars.length) {
                   addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, 'Veri bulunamadı', 'partial');
                 }
-                if (limitNote) addNote(tf, limitNote);
+                if (limitNote) addDiagNote(tf, limitNote);
               } catch (e) {
                 if (e.isTransportError) { transportFails++; if (!reachable && transportFails >= 2) yahooDead = true; }
                 else reachable = true;
-                addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, e.message, 'err');
-                addNote(tf, `Yahoo: ${e.message}`);
+                const errMsg = humanizeProviderError(e.message);
+                addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, errMsg, 'err');
+                addDiagNote(tf, errMsg, 'Yahoo');
               }
             }
           });
@@ -3807,15 +3896,19 @@
                   try {
                     const bars = await fetchYahooRange(ticker, tf, effGs, ge);
                     const acc = acceptBars(tf, bars, providerId, label, effGs, ge, isFuturesSource);
-                    if (acc.accepted) addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, 'Başarılı', 'ok');
+                    if (acc.accepted) {
+                      addedTfs.add(tf);
+                      addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, acc.count, 'Başarılı', 'ok');
+                    }
                   } catch (e) {
-                    addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, e.message, 'err');
+                    addLog(pair.code, label, tf, `${shortDate(effGs)}–${shortDate(ge)}`, 0, humanizeProviderError(e.message), 'err');
                   }
                 }
               });
               applyDerivations(tfBars, tfSources, tfNotes, reqStart, reqEnd, pair);
             }
           }
+          return addedTfs;
         };
 
         if (pair.yahoo && !state.abortFetch) {
@@ -3890,40 +3983,42 @@
                 else if (prov.id === 'frankfurter') res = await fetchFrankfurterRange(pair, gs, effGe);
 
                 const acc = acceptBars(tf, res.bars, prov.id, prov.label, gs, effGe, baseIsFutures);
-                if (acc.accepted) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, res.note || 'Başarılı', res.note ? 'partial' : 'ok');
-                else if (!res.bars?.length) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, res.note || 'Veri bulunamadı', 'partial');
-                if (res.note) addNote(tf, res.note);
+                const cleanResNote = res.note ? humanizeProviderError(res.note) : '';
+                if (acc.accepted) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, acc.count, cleanResNote || 'Başarılı', cleanResNote ? 'partial' : 'ok');
+                else if (!res.bars?.length) addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, cleanResNote || 'Veri bulunamadı', 'partial');
+                if (cleanResNote) addDiagNote(tf, cleanResNote);
               } catch (e) {
-                addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, e.message, 'err');
-                addNote(tf, e.message);
-                if (e.disableTm) disabled.tradermade = e.message;
+                const cleanErr = humanizeProviderError(e.message, prov.label);
+                addLog(pair.code, prov.label, tf, `${shortDate(gs)}–${shortDate(ge)}`, 0, cleanErr, 'err');
+                addDiagNote(tf, cleanErr);
+                if (e.disableTm) disabled.tradermade = cleanErr;
                 if (e.disableTmMinute) {
                   tmMinuteBlocked = true;
-                  for (const mTf of ['M5', 'M1']) addNote(mTf, e.message);
+                  for (const mTf of ['M5', 'M1']) addDiagNote(mTf, cleanErr);
                 }
                 if (e.disableTmIntraday) {
                   tmIntradayBlocked = true;
-                  for (const iTf of ['H1', 'M5', 'M1']) addNote(iTf, e.message);
+                  for (const iTf of ['H1', 'M5', 'M1']) addDiagNote(iTf, cleanErr);
                 }
-                if (e.disableFinnhub) disabled.finnhub = e.message;
-                if (e.disableTiingo) disabled.tiingo = e.message;
-                if (e.disableTd) disabled.twelvedata = e.message;
-                if (e.disableMassive) disabled.massive = e.message;
-                if (e.disableFcs) disabled.fcs = e.message;
-                if (e.disableAv) disabled.av = e.message;
-                if (e.disableEodhd) disabled.eodhd = e.message;
-                if (e.disableFmp) disabled.fmp = e.message;
+                if (e.disableFinnhub) disabled.finnhub = cleanErr;
+                if (e.disableTiingo) disabled.tiingo = cleanErr;
+                if (e.disableTd) disabled.twelvedata = cleanErr;
+                if (e.disableMassive) disabled.massive = cleanErr;
+                if (e.disableFcs) disabled.fcs = cleanErr;
+                if (e.disableAv) disabled.av = cleanErr;
+                if (e.disableEodhd) disabled.eodhd = cleanErr;
+                if (e.disableFmp) disabled.fmp = cleanErr;
                 if (e.disableMassiveIntraday) {
                   massiveIntradayBlocked = true;
-                  for (const iTf of INTRADAY_TFS) addNote(iTf, e.message);
+                  for (const iTf of INTRADAY_TFS) addDiagNote(iTf, cleanErr);
                 }
                 if (e.disableEodhdIntraday) {
                   eodhdIntradayBlocked = true;
-                  for (const iTf of ['H1', 'M5', 'M1']) addNote(iTf, e.message);
+                  for (const iTf of ['H1', 'M5', 'M1']) addDiagNote(iTf, cleanErr);
                 }
                 if (e.disableAvIntraday) {
                   avIntradayBlocked = true;
-                  for (const iTf of ['H1', 'M5', 'M1']) addNote(iTf, e.message);
+                  for (const iTf of ['H1', 'M5', 'M1']) addDiagNote(iTf, cleanErr);
                 }
               }
             }
@@ -3943,11 +4038,11 @@
         if (pair.yahooCash && !state.abortFetch) {
           const needCashTfs = ['D1', 'H1', 'M5', 'M1'].filter(tf => computeMissingRanges(tfBars[tf], tf, reqStart, reqEnd, false).length > 0);
           if (needCashTfs.length > 0) {
-            usedCashFallback = true;
             setProgress(94, `${pair.code} • Eksik aralıklar için son çare borsa nakit (${pair.yahooCash}) deneniyor...`);
-            await runYahooTicker(pair.yahooCash, 'yahoo_cash', `Son Çare Nakit (${pair.yahooCash})`, false, 94, 4, needCashTfs);
-            for (const tf of needCashTfs) {
+            const addedCashTfs = await runYahooTicker(pair.yahooCash, 'yahoo_cash', `Son Çare Nakit (${pair.yahooCash})`, false, 94, 4, needCashTfs);
+            for (const tf of addedCashTfs) {
               if (tfBars[tf]?.length > 0 && INTRADAY_TFS.has(tf)) {
+                usedCashFallback = true;
                 addNote(tf, `Kısmi borsa seansı (${pair.yahooCash}) — eksik aralıklar nakitten tamamlandı`);
               }
             }
@@ -3965,6 +4060,7 @@
           const bars = tfBars[tf] || [];
           const srcList = Array.from(tfSources[tf] || []);
           const notesList = Array.from(tfNotes[tf] || []);
+          const diagList = Array.from(tfDiagNotes[tf] || []);
           const sess = INTRADAY_TFS.has(tf) ? analyzeSessionCoverage(bars) : null;
 
           if (!bars.length) {
@@ -3973,19 +4069,21 @@
               statusText: 'Yok',
               source: srcList.join(', ') || '-',
               session: sess,
-              reason: notesList.join(' • ') || (state.abortFetch ? 'İşlem durduruldu' : 'Hiçbir kaynaktan veri alınamadı')
+              reason: [...notesList, ...diagList].slice(0, 3).join(' • ') || (state.abortFetch ? 'İşlem durduruldu' : 'Hiçbir kaynaktan veri alınamadı')
             };
           } else {
             const remGaps = computeMissingRanges(bars, tf, reqStart, reqEnd, true);
             const cashWarn = sess && sess.isCashOnly ? 'Eksik seans (Asya/Londra eksik — nakit borsa saatleri)' : '';
             if (remGaps.length > 0 || (sess && sess.isCashOnly)) {
-              const partMsg = remGaps.length > 0 ? `Kısmi: ${shortDate(bars[0].time)} – ${shortDate(bars[bars.length - 1].time)}` : '';
+              const gapSummary = remGaps.slice(0, 2).map(([a, b]) => `${shortDate(a)}–${shortDate(b)}`).join(', ') + (remGaps.length > 2 ? ` (+${remGaps.length - 2})` : '');
+              const partMsg = remGaps.length > 0 ? `Eksik aralık: ${gapSummary}` : '';
+              const extraDiag = remGaps.length > 0 ? diagList.slice(0, 2) : [];
               meta[tf] = {
                 status: 'partial',
                 statusText: cashWarn ? 'Kısmi Seans' : 'Kısmi',
                 source: srcList.join(', '),
                 session: sess,
-                reason: [cashWarn, partMsg, ...notesList].filter(Boolean).join(' • ')
+                reason: [cashWarn, partMsg, ...notesList, ...extraDiag].filter(Boolean).join(' • ')
               };
             } else {
               const sessText = sess ? `24/5 (Asya:${sess.asia} • Lon:${sess.london} • NY:${sess.ny})` : 'Tam aralık kapsandı (NY Close)';
